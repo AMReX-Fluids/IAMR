@@ -99,57 +99,57 @@ void NavierStokes::prob_initData ()
     {
         const Box& vbx = mfi.tilebox();
 
-    if ( 1 == probtype )
+        if ( 1 == probtype )
         {
-      //
-      // Start from rest, constant density of 1
-      // Introduced for LidDrivenCavity problem
-      //
-      S_new[mfi].setVal<RunOn::Gpu>(1.0,Density);
-    }
+            //
+            // Start from rest, constant density of 1
+            // Introduced for LidDrivenCavity problem
+            //
+            S_new[mfi].setVal<RunOn::Gpu>(1.0,Density);
+        }
         else if ( 2 == probtype || 6 == probtype )
-    {
-      init_bubble(vbx, P_new.array(mfi), S_new.array(mfi, Xvel),
-              S_new.array(mfi, Density), nscal,
-              domain, dx, problo, probhi, IC);
-    }
+        {
+            init_bubble(vbx, P_new.array(mfi), S_new.array(mfi, Xvel),
+                        S_new.array(mfi, Density), nscal,
+                        domain, dx, problo, probhi, IC);
+        }
         else if ( 4 == probtype )
-    {
-      init_constant_vel_rho(vbx, P_new.array(mfi), S_new.array(mfi, Xvel),
-                S_new.array(mfi, Density), nscal,
-                domain, dx, problo, probhi, IC);
-    }
+        {
+            init_constant_vel_rho(vbx, P_new.array(mfi), S_new.array(mfi, Xvel),
+                                  S_new.array(mfi, Density), nscal,
+                                  domain, dx, problo, probhi, IC);
+        }
         else if ( 5 == probtype )
-    {
-      init_DoubleShearLayer(vbx, P_new.array(mfi), S_new.array(mfi, Xvel),
-                  S_new.array(mfi, Density), nscal,
-                  domain, dx, problo, probhi, IC);
-    }
+        {
+            init_DoubleShearLayer(vbx, P_new.array(mfi), S_new.array(mfi, Xvel),
+                                  S_new.array(mfi, Density), nscal,
+                                  domain, dx, problo, probhi, IC);
+        }
         else if ( 7 == probtype )
-    {
-      init_Euler(vbx, P_new.array(mfi), S_new.array(mfi, Xvel),
-             S_new.array(mfi, Density), nscal,
-             domain, dx, problo, probhi, IC);
-    }
+        {
+            init_Euler(vbx, P_new.array(mfi), S_new.array(mfi, Xvel),
+                       S_new.array(mfi, Density), nscal,
+                       domain, dx, problo, probhi, IC);
+        }
         else if ( 8 == probtype )
-    {
-      init_ConvectedVortex(vbx, P_new.array(mfi), S_new.array(mfi, Xvel),
-             S_new.array(mfi, Density), nscal,
-             domain, dx, problo, probhi, IC);
-    }
+        {
+            init_ConvectedVortex(vbx, P_new.array(mfi), S_new.array(mfi, Xvel),
+                                 S_new.array(mfi, Density), nscal,
+                                 domain, dx, problo, probhi, IC);
+        }
         else if ( 10 == probtype )
-    {
-      init_RayleighTaylor(vbx, P_new.array(mfi), S_new.array(mfi, Xvel),
-                  S_new.array(mfi, Density), nscal,
-                  domain, dx, problo, probhi, IC);
-    }
+        {
+            init_RayleighTaylor(vbx, P_new.array(mfi), S_new.array(mfi, Xvel),
+                                S_new.array(mfi, Density), nscal,
+                                domain, dx, problo, probhi, IC);
+        }
         else if ( 11 == probtype )
-    {
-      init_TaylorGreen(vbx, P_new.array(mfi), S_new.array(mfi, Xvel),
-               S_new.array(mfi, Density), nscal,
-               domain, dx, problo, probhi, IC);
-    }
-    else
+        {
+            init_TaylorGreen(vbx, P_new.array(mfi), S_new.array(mfi, Xvel),
+                             S_new.array(mfi, Density), nscal,
+                             domain, dx, problo, probhi, IC);
+        }
+        else
         {
             amrex::Abort("NavierStokes::prob_init: unknown probtype");
         }

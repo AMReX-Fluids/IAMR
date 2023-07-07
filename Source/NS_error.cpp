@@ -25,8 +25,8 @@ NavierStokes::error_setup()
         RealBox realbox;
         if (ppr.countval("in_box_lo")) {
             std::vector<Real> box_lo(AMREX_SPACEDIM), box_hi(AMREX_SPACEDIM);
-            ppr.getarr("in_box_lo",box_lo,0,box_lo.size());
-            ppr.getarr("in_box_hi",box_hi,0,box_hi.size());
+            ppr.getarr("in_box_lo",box_lo,0,AMREX_SPACEDIM);
+            ppr.getarr("in_box_hi",box_hi,0,AMREX_SPACEDIM);
             realbox = RealBox(&(box_lo[0]),&(box_hi[0]));
         }
 
@@ -128,7 +128,7 @@ NavierStokes::errorEst (TagBoxArray& tags,
 
   for (int j=0; j<errtags.size(); ++j) {
     std::unique_ptr<MultiFab> mf;
-    if (errtags[j].Field() != std::string()) {
+    if (! errtags[j].Field().empty()) {
       mf = derive(errtags[j].Field(), time, errtags[j].NGrow());
     }
     //
@@ -136,7 +136,7 @@ NavierStokes::errorEst (TagBoxArray& tags,
     // take level max here
     // add into errtags info for relative threshold ...
     //
-    errtags[j](tags,mf.get(),clearval,tagval,time,level,geom);
+    errtags[j](tags,mf.get(),char(clearval),char(tagval),time,level,geom);
   }
 
   //

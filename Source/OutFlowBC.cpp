@@ -8,10 +8,6 @@
 
 using namespace amrex;
 
-OutFlowBC::OutFlowBC () {}
-
-OutFlowBC::~OutFlowBC () {}
-
 Box
 OutFlowBC::SemiGrow (const Box& baseBox,
                          int        nGrow,
@@ -64,20 +60,17 @@ bool
 OutFlowBC::HasOutFlowBC (BCRec* _phys_bc)
 {
     bool has_out_flow = false;
-    int  numOutFlowBC = 0;
 
     for (int idir = 0; idir < AMREX_SPACEDIM; idir++)
     {
         if (_phys_bc->lo(idir) == Outflow)
         {
             has_out_flow = true;
-            numOutFlowBC++;
         }
 
         if (_phys_bc->hi(idir) == Outflow)
         {
             has_out_flow = true;
-            numOutFlowBC++;
         }
     }
 

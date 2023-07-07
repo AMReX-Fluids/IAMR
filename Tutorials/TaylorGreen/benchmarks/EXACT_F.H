@@ -1,5 +1,5 @@
-#ifndef _FORT_INTERFACE_
-#define _FORT_INTERFACE_
+#ifndef IAMR_FORT_INTERFACE_
+#define IAMR_FORT_INTERFACE_
 
 #ifdef BL_LANG_FORT
 c

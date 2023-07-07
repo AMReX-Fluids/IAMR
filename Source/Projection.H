@@ -1,6 +1,6 @@
 
-#ifndef _Projection_H_
-#define _Projection_H_
+#ifndef IAMR_Projection_H_
+#define IAMR_Projection_H_
 
 #include <AMReX_BC_TYPES.H>
 #include <AMReX_BCRec.H>
@@ -34,7 +34,6 @@ public:
                 int    /*_finest_level*/,
                 int    _radius_grow );
 
-    ~Projection ();
     //
     // Set a level in the projector.
     //
@@ -82,29 +81,29 @@ public:
     //
     // A sync project involving the coarse and fine level of a 2 level system.
     //
-    void MLsyncProject (int             crse_level,
+    void MLsyncProject (int                    c_lev,
                         amrex::MultiFab&       pres_crse,
                         amrex::MultiFab&       vel_crse,
                         amrex::MultiFab&       cc_rhs_crse,
                         amrex::MultiFab&       pres_fine,
                         amrex::MultiFab&       vel_fine,
                         amrex::MultiFab&       cc_rhs_fine,
-                        amrex::MultiFab&       rho_half,
+                        amrex::MultiFab&       rho_crse,
                         amrex::MultiFab&       rho_fine,
                         amrex::MultiFab&       Vsync,
                         amrex::MultiFab&       V_corr,
                         amrex::MultiFab&       phi,
-                        SyncRegister*   rhs_sync_reg,
-                        SyncRegister*   crsr_sync_reg,
+                        SyncRegister*          rhs_sync_reg,
+                        SyncRegister*          crsr_sync_reg,
                         amrex::Real            dt_crse,
                         amrex::IntVect&        ratio,
-                        int             crse_iteration,
-                        int             crse_dt_ratio,
+                        int                    crse_iteration,
+                        int                    crse_dt_ratio,
                         const amrex::Geometry& crse_geom);
     //
     // This projects an initial vorticity field to define a velocity field.
     //
-    void initialVorticityProject (int crse_level);
+    void initialVorticityProject (int c_lev);
     //
     // This computes the stream function, given the velocity field
     //  *AND ASSUMING* no-flow boundaries on all physical boundaries.
@@ -114,7 +113,7 @@ public:
     // The initial velocity projection in post_init.
     // This function ensures that the velocities are nondivergent.
     //
-    void initialVelocityProject (int  crse_level,
+    void initialVelocityProject (int c_lev,
                                  amrex::Real divu_time,
                                  int  have_divu,
                                  int init_vel_iter = 1 );
@@ -123,13 +122,13 @@ public:
     // This function creates an initially hydrostatic pressure field
     //   in the case of nonzero gravity.
     //
-    void initialPressureProject (int  crse_level);
+    void initialPressureProject (int  c_lev);
     //
     // The velocity projection in post_init, which computes the initial
     // pressure used in the timestepping.
     //
-    void initialSyncProject (int       crse_level,
-                             const amrex::Vector<amrex::MultiFab*> sig,
+    void initialSyncProject (int c_lev,
+                             const amrex::Vector<amrex::MultiFab*>& sig,
                              amrex::Real      dt,
                              amrex::Real      strt_time,
                              int       have_divu);
@@ -137,8 +136,7 @@ public:
     // Multiply a MultiFab by radius for r-z coordinates.
     // These should really be protected.
     //
-    void radMultScal (int       level,
-                      amrex::MultiFab& mf);
+    void radMultScal (int level, amrex::MultiFab& mf) const;
 
     //
     // Read parameters from the input file.
@@ -151,32 +149,32 @@ public:
     // Convert U to an Accleration like quantity
     // Unew = (Unew - Uold)/alpha
     //
-    void ConvertUnew (amrex::MultiFab&       Unew,
-                      amrex::MultiFab&       Uold,
-                      amrex::Real            alpha,
-                      const amrex::BoxArray& grids );
+    static void ConvertUnew (amrex::MultiFab&       Unew,
+                             amrex::MultiFab&       Uold,
+                             amrex::Real            alpha,
+                             const amrex::BoxArray& grids );
     //
     // Convert U to an Accleration like quantity.
     // Unew = (Unew - Uold)/alpha
     //
-    void ConvertUnew (amrex::FArrayBox& Unew,
-                      amrex::FArrayBox& Uold,
-                      amrex::Real       alpha,
-                      const amrex::Box& grd);
+    static void ConvertUnew (amrex::FArrayBox& Unew,
+                             amrex::FArrayBox& Uold,
+                             amrex::Real       alpha,
+                             const amrex::Box& grd);
     //
     // This function scales variables at the start of a projection.
     //
-    void scaleVar (amrex::MultiFab*       sig,
-                   int             sig_nghosts,
-                   amrex::MultiFab*       vel,
-                   int             level);
+    void scaleVar (amrex::MultiFab* sig,
+                   int              sig_nghosts,
+                   amrex::MultiFab* vel,
+                   int              level) const;
     //
     // This function rescales variables at the end of a projection.
     //
-    void rescaleVar (amrex::MultiFab*       sig,
-                     int             sig_nghosts,
-                     amrex::MultiFab*       vel,
-                     int             level);
+    void rescaleVar (amrex::MultiFab* sig,
+                     int              sig_nghosts,
+                     amrex::MultiFab* vel,
+                     int              level) const;
 
     void set_outflow_bcs (int        which_call,
                           const amrex::Vector<amrex::MultiFab*>& phi,
@@ -204,12 +202,13 @@ public:
                       amrex::FArrayBox*         phiFab,
                       const amrex::Geometry&    geom,
                       amrex::Orientation*       outFaces,
-                      int                numOutFlowFaces,
+                      int                       numOutFlowFaces,
                       amrex::Real               gravity);
 
-    void putDown(const amrex::Vector<amrex::MultiFab*>& phi, amrex::FArrayBox* phi_fine_strip,
-         int c_lev, int f_lev, const amrex::Orientation* outFaces,
-         int numOutFlowFaces, int ncStripWidth);
+    void putDown (const amrex::Vector<amrex::MultiFab*>& phi,
+                  amrex::FArrayBox* phi_fine_strip,
+                  int c_lev, int f_lev, const amrex::Orientation* outFaces,
+                  int numOutFlowFaces, int ncStripWidth) const;
     //
     // Pointers to amrlevel and amr.
     //
@@ -242,22 +241,22 @@ public:
     static int  do_outflow_bcs;
     static int  add_vort_proj;
 
-    void doMLMGNodalProjection(int c_lev, int nlevel,
-                               const amrex::Vector<amrex::MultiFab*>& vel,
-                               const amrex::Vector<amrex::MultiFab*>& phi,
-                               const amrex::Vector<amrex::MultiFab*>& sig,
-                               const amrex::Vector<amrex::MultiFab*>& rhcc,
-                               const amrex::Vector<amrex::MultiFab*>& rhnd,
-                               amrex::Real rel_tol, amrex::Real abs_tol,
-                   bool proj2,
-                               amrex::MultiFab* sync_resid_crse=nullptr,
-                               amrex::MultiFab* sync_resid_fine=nullptr,
-                               bool doing_initial_vortproj=false);
+    void doMLMGNodalProjection (int c_lev, int nlevel,
+                                const amrex::Vector<amrex::MultiFab*>& vel,
+                                const amrex::Vector<amrex::MultiFab*>& phi,
+                                const amrex::Vector<amrex::MultiFab*>& sig,
+                                const amrex::Vector<amrex::MultiFab*>& rhcc,
+                                const amrex::Vector<amrex::MultiFab*>& rhnd,
+                                amrex::Real rel_tol, amrex::Real abs_tol,
+                                bool increment_gp,
+                                amrex::MultiFab* sync_resid_crse=nullptr,
+                                amrex::MultiFab* sync_resid_fine=nullptr,
+                                bool doing_initial_vortproj=false);
 
     // set velocity in ghost cells to zero except for inflow
-    void set_boundary_velocity(int c_lev, int nlevel,
-                   const amrex::Vector<amrex::MultiFab*>& vel,
-                               bool inflowCorner);
+    void set_boundary_velocity (int c_lev, int nlevel,
+                                const amrex::Vector<amrex::MultiFab*>& vel,
+                                bool inflowCorner) const;
 
 };
 #endif

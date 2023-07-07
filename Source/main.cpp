@@ -18,8 +18,7 @@ using namespace amrex;
 
 #ifdef AMREX_USE_EB
 //skipping header file and just declaring eb2 init fn here as in CNS for now
-void initialize_EB2 (const Geometry& geom, const int required_level,
-             const int max_level);
+void initialize_EB2 (const Geometry& geom, int required_level, int max_level);
 #endif
 
 amrex::LevelBld* getLevelBld ();
@@ -111,7 +110,7 @@ main (int   argc,
     // If we set the regrid_on_restart flag and if we are *not* going to take
     // a time step then we want to go ahead and regrid here.
     //
-    if (amrptr->RegridOnRestart())
+    if (Amr::RegridOnRestart())
     {
         if (    (amrptr->levelSteps(0) >= max_step ) ||
                 ( (stop_time >= 0.0) &&

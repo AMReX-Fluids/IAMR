@@ -1,0 +1,76 @@
+---
+name: HIP
+
+on:
+  push:
+  pull_request:
+  schedule:
+    - cron: "23 8 * * *"
+
+concurrency:
+  group: ${{ github.ref }}-${{ github.head_ref }}-HIP
+  cancel-in-progress: true
+
+jobs:
+  hip_eb_3d:
+    name: HIP EB 3D
+    runs-on: ubuntu-20.04
+    steps:
+    - name: Checkout IAMR
+      uses: actions/checkout@v3
+      with:
+        path: IAMR
+    - name: Checkout AMReX-Hydro
+      uses: actions/checkout@v3
+      with:
+        repository: AMReX-Codes/AMReX-Hydro
+        path: AMReX-Hydro
+    - name: Checkout AMReX
+      uses: actions/checkout@v3
+      with:
+        repository: AMReX-Codes/amrex
+        path: amrex
+    - name: Set Up Cache
+      uses: actions/cache@v3
+      with:
+        path: ~/.cache/ccache
+        key: ccache-${{ github.workflow }}-${{ github.job }}-git-${{ github.sha }}
+        restore-keys: |
+             ccache-${{ github.workflow }}-${{ github.job }}-git-
+    - name: Load Dependencies
+      run: |
+        amrex/.github/workflows/dependencies/dependencies_hip.sh
+        amrex/.github/workflows/dependencies/dependencies_ccache.sh
+    - name: Build
+      run: |
+        export CCACHE_COMPRESS=1
+        export CCACHE_COMPRESSLEVEL=10
+        export CCACHE_MAXSIZE=200M
+        ccache -z
+
+        source /etc/profile.d/rocm.sh
+        hipcc --version
+        which clang
+        which clang++
+
+        cd IAMR/Exec/eb_run3d
+        make -j 2 USE_HIP=TRUE USE_MPI=FALSE USE_CCACHE=TRUE \
+            WARN_ALL=TRUE WARN_ERROR=TRUE
+
+        ccache -s
+        du -hs ~/.cache/ccache
+
+  save_pr_number:
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Save PR number
+        env:
+          PR_NUMBER: ${{ github.event.number }}
+        run: |
+          echo $PR_NUMBER > pr_number.txt
+      - uses: actions/upload-artifact@v3
+        with:
+          name: pr_number
+          path: pr_number.txt
+          retention-days: 1

@@ -1,5 +1,5 @@
-#ifndef _TurbulentForcing_params_H_
-#define _TurbulentForcing_params_H_
+#ifndef IAMR_TurbulentForcing_params_H_
+#define IAMR_TurbulentForcing_params_H_
 
 namespace TurbulentForcing {
 

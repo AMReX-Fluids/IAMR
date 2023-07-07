@@ -1,6 +1,6 @@
 
-#ifndef _depRand_H_
-#define _depRand_H_
+#ifndef IAMR_depRand_H_
+#define IAMR_depRand_H_
 
 #include <AMReX_Vector.H>
 

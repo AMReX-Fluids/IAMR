@@ -1,6 +1,6 @@
 
-#ifndef _NavierStokesBase_H_
-#define _NavierStokesBase_H_
+#ifndef IAMR_NavierStokesBase_H_
+#define IAMR_NavierStokesBase_H_
 
 #ifdef _OPENMP
 #include <omp.h>
@@ -73,61 +73,66 @@ public:
     friend class MacProj;
     friend class Diffusion;
 
-    virtual ~NavierStokesBase ();
+    ~NavierStokesBase () override;
+
+    NavierStokesBase (NavierStokesBase const&) = delete;
+    NavierStokesBase (NavierStokesBase &&) = delete;
+    NavierStokesBase& operator= (NavierStokesBase const&) = delete;
+    NavierStokesBase& operator= (NavierStokesBase &&) = delete;
 
     ////////////////////////////////////////////////////////////////////////////
     //    AmrLevel virtual functions                                          //
     ////////////////////////////////////////////////////////////////////////////
 
-    virtual void checkPoint (const std::string& dir,
-                             std::ostream&      os,
-                             amrex::VisMF::How         how = amrex::VisMF::OneFilePerCPU,
-                             bool               dump_old = true) override;
+    void checkPoint (const std::string& dir,
+                     std::ostream&      os,
+                     amrex::VisMF::How         how = amrex::VisMF::OneFilePerCPU,
+                     bool               dump_old = true) override;
 
-    virtual void computeInitialDt (int                   finest_level,
-                                   int                   sub_cycle,
-                                   amrex::Vector<int>&           n_cycle,
-                                   const amrex::Vector<amrex::IntVect>& ref_ratio,
-                                   amrex::Vector<amrex::Real>&          dt_level,
-                                   amrex::Real                  stop_time) override;
+    void computeInitialDt (int                   finest_level,
+                           int                   sub_cycle,
+                           amrex::Vector<int>&           n_cycle,
+                           const amrex::Vector<amrex::IntVect>& ref_ratio,
+                           amrex::Vector<amrex::Real>&          dt_level,
+                           amrex::Real                  stop_time) override;
 
-    virtual void computeNewDt (int                   finest_level,
-                               int                   sub_cycle,
-                               amrex::Vector<int>&           n_cycle,
-                               const amrex::Vector<amrex::IntVect>& ref_ratio,
-                               amrex::Vector<amrex::Real>&          dt_min,
-                               amrex::Vector<amrex::Real>&          dt_level,
-                               amrex::Real                  stop_time,
-                               int                   post_regrid_flag) override;
+    void computeNewDt (int                   finest_level,
+                       int                   sub_cycle,
+                       amrex::Vector<int>&           n_cycle,
+                       const amrex::Vector<amrex::IntVect>& ref_ratio,
+                       amrex::Vector<amrex::Real>&          dt_min,
+                       amrex::Vector<amrex::Real>&          dt_level,
+                       amrex::Real                  stop_time,
+                       int                   post_regrid_flag) override;
     //
     // Error estimation for regridding.
     //
-    virtual void errorEst (amrex::TagBoxArray& tb,
-                           int          clearval,
-                           int          tagval,
-                           amrex::Real         time,
-                           int          n_error_buf = 0,
-                           int          ngrow = 0) override;
+    void errorEst (amrex::TagBoxArray& tb,
+                   int          clearval,
+                   int          tagval,
+                   amrex::Real         time,
+                   int          n_error_buf = 0,
+                   int          ngrow = 0) override;
     //
     // This function fills a new level n with the best
     // level n and coarser data available (usually during regrid).
     //
-    virtual void init (amrex::AmrLevel& old) override;
+    void init (amrex::AmrLevel& old) override;
     //
     // Init data on this level after regridding if old level
     // did not exist previously.
     //
-    virtual void init () override;
+    void init () override;
     //
     // Called in grid_places after other tagging routines to modify
     //   the list of tagged points
     //
-    virtual void manual_tags_placement (amrex::TagBoxArray&    tags,
-                                        const amrex::Vector<amrex::IntVect>& bf_lev) override;
+    void manual_tags_placement (amrex::TagBoxArray&    tags,
+                                const amrex::Vector<amrex::IntVect>& bf_lev) override;
     //
     // Estimate the end of the simulation for amrLevel.
     //
-    virtual int okToContinue () override;
+    int okToContinue () override;
     //
     // Check whether simulation has reached steady state, i.e. whether the
     // change from last iteration is below a prescribed threshold steady_tol.
@@ -136,37 +141,37 @@ public:
     //
     // Build any additional data structures after regrid.
     //
-    virtual void post_regrid (int lbase, int new_finest) override;
+    void post_regrid (int lbase, int new_finest) override;
     //
     // Build any additional data structures after restart.
     //
-    virtual void post_restart () override;
+    void post_restart () override;
     //
     // Sync state and pressure at the end of a composite timestep.
     //
-    virtual void post_timestep (int iteration) override;
+    void post_timestep (int iteration) override;
     //
-    virtual void restart (amrex::Amr&          papa,
-                          std::istream& is,
-                          bool          bReadSpecial = false) override;
+    void restart (amrex::Amr&          papa,
+                  std::istream& is,
+                  bool          bReadSpecial = false) override;
     //
     // Old checkpoint file may have different number of state types than the
     // new source code.
     //
-    virtual void set_state_in_checkpoint (amrex::Vector<int>& state_in_checkpoint) override;
+    void set_state_in_checkpoint (amrex::Vector<int>& state_in_checkpoint) override;
     //
     // Set time levels of state data.
     //
-    virtual void setTimeLevel (amrex::Real time,
-                               amrex::Real dt_old,
-                               amrex::Real dt_new) override;
+    void setTimeLevel (amrex::Real time,
+                       amrex::Real dt_old,
+                       amrex::Real dt_new) override;
     //
     // A string written as the first item in writePlotFile() at level zero.
     // It is so we can distinguish between different types of plot files.
     //
     // For NavierStokes it has the form: NavierStokes-Vnnn
     //
-    virtual std::string thePlotFileType () const override;
+    std::string thePlotFileType () const override;
 
     ////////////////////////////////////////////////////////////////////////////
     //    NavierStokesBase public functions                                   //
@@ -216,7 +221,7 @@ public:
     void average_down(const amrex::MultiFab& S_fine, amrex::MultiFab& S_crse,
               int scomp, int ncomp);
 
-    void calc_mut_LES(amrex::MultiFab*  diffusivity[AMREX_SPACEDIM], amrex::Real time);
+    void calc_mut_LES(amrex::MultiFab* mu_LES[AMREX_SPACEDIM], amrex::Real time);
 
     void time_average(amrex::Real& time_avg, amrex::Real& time_avg_fluct, amrex::Real& dt_avg, const amrex::Real& dt_level);
 
@@ -245,10 +250,10 @@ public:
     NavierStokesBase ();
 
     NavierStokesBase (amrex::Amr&            papa,
-                      int             lev,
+                      int                    lev,
                       const amrex::Geometry& level_geom,
                       const amrex::BoxArray& bl,
-                              const amrex::DistributionMapping& dm,
+                      const amrex::DistributionMapping& dm,
                       amrex::Real            time);
 
     //////////////////////////////////////////////////////////////////
@@ -257,18 +262,18 @@ public:
 
     void advance_cleanup (int iteration,int ncycle);
 
-    void diffuse_scalar_setup (int sigma, int& rho_flag);
+    static void diffuse_scalar_setup (int sigma, int& rho_flag);
     //
     // Get the forcing term.
     //
     virtual void getForce (amrex::FArrayBox&       force,
                            const amrex::Box&       bx,
-                           int                     strt_comp,
-                           int                     num_comp,
-                           const amrex::Real       time,
-                           const amrex::FArrayBox& Vel,
-                           const amrex::FArrayBox& Scal,
-                           int                     scalScomp,
+                           int                     scomp,
+                           int                     ncomp,
+                           amrex::Real             time,
+                           const amrex::FArrayBox& State,
+                           const amrex::FArrayBox& Aux,
+                           int                     auxScomp,
                            const amrex::MFIter&    mfi);
 
     auto& getAdvFluxReg () {
@@ -293,7 +298,7 @@ public:
     //
     // Get dSdt from the state data.
     //
-    amrex::MultiFab* getDsdt (int ngrow, amrex::Real time);
+    [[nodiscard]] amrex::MultiFab* getDsdt (int ngrow, amrex::Real time);
     //
     void incrRhoAvg (amrex::Real alpha);
     void incrRhoAvg (const amrex::MultiFab& rho_incr,
@@ -375,7 +380,7 @@ public:
                          amrex::IntVect&  ratio);
 
     void sync_setup (amrex::MultiFab*& DeltaSsync);
-    void sync_cleanup (amrex::MultiFab*& DeltaSsync);
+    static void sync_cleanup (amrex::MultiFab*& DeltaSsync);
     //
     // Grow by nGrow and fillpatch the MAC-projected velocities.
     //
@@ -425,11 +430,11 @@ public:
     //
     // Calculate nonuniform viscosity and diffusivity
     //
-    virtual void calcViscosity (const amrex::Real time,
-                                const amrex::Real dt,
-                                const int  iteration,
-                                const int  ncycle) = 0;
-    virtual void calcDiffusivity (const amrex::Real time) = 0;
+    virtual void calcViscosity (amrex::Real time,
+                                amrex::Real dt,
+                                int  iteration,
+                                int  ncycle) = 0;
+    virtual void calcDiffusivity (amrex::Real time) = 0;
     //
     // Create the RHS for the MAC projection.
     //
@@ -441,7 +446,7 @@ public:
     virtual amrex::Real estTimeStep ();
 
     virtual void getViscosity (amrex::MultiFab*  viscosity[AMREX_SPACEDIM],
-                               const amrex::Real time) = 0;
+                               amrex::Real time) = 0;
     //
     // Compute viscous terms.
     //
@@ -532,15 +537,15 @@ public:
         return *sync_reg;
     }
     //
-    void getOutFlowFaces (amrex::Vector<amrex::Orientation>& outFaces);
+    static void getOutFlowFaces (amrex::Vector<amrex::Orientation>& outFaces);
     //
     // Get state data.
     //
-    amrex::MultiFab* getState (int  ngrow,
-                   int  state_indx,
-                   int  strt_comp,
-                   int  num_comp,
-                   amrex::Real time);
+    [[nodiscard]] amrex::MultiFab* getState (int  ngrow,
+                                             int  state_indx,
+                                             int  strt_comp,
+                                             int  num_comp,
+                                             amrex::Real time);
     //
     // Compile p_avg in advance.
     //
@@ -551,25 +556,25 @@ public:
     //
     void initRhoAvg (amrex::Real alpha);
     //
-    void init_additional_state_types ();
+    static void init_additional_state_types ();
     //
     amrex::Real initialTimeStep ();
 
     //
     // Correct a conservatively-advected scalar for under-over shoots.
     //
-    void ConservativeScalMinMax ( amrex::MultiFab& Snew, const int snew_comp, const int new_density_comp,
-                                  amrex::MultiFab const& Sold, const int sold_comp, const int old_density_comp );
+    void ConservativeScalMinMax ( amrex::MultiFab& Snew, int snew_comp, int new_density_comp,
+                                  amrex::MultiFab const& Sold, int sold_comp, int old_density_comp );
 
     //
     // Correct a convectively-advected scalar for under-over shoots.
     //
-    void ConvectiveScalMinMax ( amrex::MultiFab& Snew, const int snew_comp,
-                                amrex::MultiFab const& Sold, const int sold_comp );
+    void ConvectiveScalMinMax ( amrex::MultiFab& Snew, int snew_comp,
+                                amrex::MultiFab const& Sold, int sold_comp );
     //
     // Floor small values of states to be extrapolated
     //
-    void floor(amrex::MultiFab& mf);
+    static void floor(amrex::MultiFab& mf);
 
 #ifdef AMREX_USE_EB
 
@@ -596,10 +601,11 @@ public:
 
     void ComputeAofs (int comp, int ncomp,
                       amrex::MultiFab const& state,
-                      int state_comp,
+                      int S_comp,
                       amrex::MultiFab const& forcing_term,
                       amrex::MultiFab const& divu,
                       bool is_velocity, amrex::Real dt);
+
     void ComputeAofs (amrex::MultiFab& advc, int a_comp,
                       int state_indx, int ncomp,
                       amrex::MultiFab const& S, int S_comp,
@@ -609,7 +615,7 @@ public:
                       amrex::Array<amrex::MultiFab, AMREX_SPACEDIM>& edgestate, int edge_comp,
                       bool known_edge_state,
                       bool is_velocity, amrex::Real dt,
-                      bool is_sync, amrex::Array<amrex::MultiFab*, AMREX_SPACEDIM> const& Uflux,
+                      bool is_sync, amrex::Array<amrex::MultiFab*, AMREX_SPACEDIM> const& U_corr,
                       bool do_crse_add, bool do_fine_add);
 //
 // Data
@@ -636,12 +642,12 @@ public:
     //
     // MAC edge velocities.
     //
-    amrex::MultiFab* u_mac;
+    amrex::MultiFab* u_mac = nullptr;
     int  umac_n_grow;
     //
     // Advective update terms.
     //
-    amrex::MultiFab* aofs;
+    amrex::MultiFab* aofs = nullptr;
     //
     // BC info for advection
     //
@@ -651,7 +657,7 @@ public:
     amrex::Gpu::DeviceVector<amrex::BCRec> m_bcrec_velocity_d;
     amrex::Gpu::DeviceVector<amrex::BCRec> m_bcrec_scalars_d;
 
-    Diffusion* diffusion;
+    Diffusion* diffusion = nullptr;
     //
     // arrays for variable viscosity and diffusivity
     //
@@ -676,8 +682,8 @@ public:
     // Density at time n+1/2 (used in advance).
     //
     amrex::MultiFab rho_half;
-    amrex::MultiFab* rho_qtime;
-    amrex::MultiFab* rho_tqtime;
+    amrex::MultiFab* rho_qtime = nullptr;
+    amrex::MultiFab* rho_tqtime = nullptr;
     //
     // Density at prev_time used in advance().
     //
@@ -689,7 +695,7 @@ public:
     //
     // Data structure used to compute RHS for sync project.
     //
-    SyncRegister* sync_reg;
+    SyncRegister* sync_reg = nullptr;
     //
     // Data structures to store advective and viscous refluxing quantities
     // on coarse-fine grid interfaces.
@@ -699,7 +705,7 @@ public:
 #else
     std::unique_ptr<amrex::YAFluxRegister> advflux_reg;
 #endif
-    amrex::FluxRegister* viscflux_reg;
+    amrex::FluxRegister* viscflux_reg = nullptr;
     //
     // Radii for r-z calculations.
     //
@@ -711,9 +717,9 @@ public:
     //
     // Static objects.
     //
-    static amrex::BCRec       phys_bc;
-    static Projection* projector;
-    static MacProj*    mac_projector;
+    static amrex::BCRec phys_bc;
+    static Projection*  projector;
+    static MacProj*     mac_projector;
     //
     // Internal parameters for timestepping.
     //
@@ -810,9 +816,8 @@ public:
     //
     static int  do_mom_diff;
 
-    int nghost_state ();
-    int nghost_force ();
-
+    int nghost_state () const;
+    static constexpr int nghost_force () { return 1; }
 
     //
     // static integer constants

@@ -1,4 +1,5 @@
 AMREX_NO_PROBINIT=TRUE
+BL_NO_FORT = TRUE
 
 include $(AMREX_HOME)/Tools/GNUMake/Make.defs
 
@@ -73,7 +74,9 @@ CEXE_headers += $(AMREX_HOME)/Tools/C_scripts/AMReX_buildInfo.H
 INCLUDE_LOCATIONS +=  $(AMREX_HOME)/Tools/C_scripts
 
 all: $(executable)
+ifneq ($(KEEP_BUILDINFO_CPP),TRUE)
 	$(SILENT) $(RM) AMReX_buildInfo.cpp
+endif
 	@echo SUCCESS
 
 AMReX_buildInfo.cpp:

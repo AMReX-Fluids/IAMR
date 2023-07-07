@@ -94,17 +94,17 @@ MacProj::Initialize ()
 
     // Abort if old verbose flag is found
     if ( pp.countname("v") > 0 ) {
-	amrex::Abort("mac_proj.v found in inputs. To set verbosity use mac_proj.verbose");
+    amrex::Abort("mac_proj.v found in inputs. To set verbosity use mac_proj.verbose");
     }
     // Abort if old "mac." prefix is used.
     std::set<std::string> old_mac = ParmParse::getEntries("mac");
     if (!old_mac.empty()){
-	Print()<<"All runtime options related to the mac projection now use 'mac_proj'.\n"
-	       <<"Found these depreciated entries in the parameters list: \n";
-	for ( auto param : old_mac ) {
-	    Print()<<"  "<<param<<"\n";
-	}
-	amrex::Abort("Replace 'mac' prefix with 'mac_proj' in inputs");
+    Print()<<"All runtime options related to the mac projection now use 'mac_proj'.\n"
+           <<"Found these depreciated entries in the parameters list: \n";
+    for ( auto const& param : old_mac ) {
+        Print()<<"  "<<param<<"\n";
+    }
+    amrex::Abort("Replace 'mac' prefix with 'mac_proj' in inputs");
     }
 
     amrex::ExecOnFinalize(MacProj::Finalize);
@@ -141,9 +141,6 @@ MacProj::MacProj (Amr*   _parent,
     finest_level_allocated = finest_level;
 }
 
-MacProj::~MacProj () {}
-
-
 void
 MacProj::install_level (int       level,
                         AmrLevel* level_data)
@@ -167,9 +164,9 @@ MacProj::install_level (int       level,
 
     if (level > 0)
     {
-        mac_reg[level].reset(new FluxRegister(LevelData[level]->boxArray(),
-                                              LevelData[level]->DistributionMap(),
-                                              parent->refRatio(level-1),level,1));
+        mac_reg[level] = std::make_unique<FluxRegister>(LevelData[level]->boxArray(),
+                                                        LevelData[level]->DistributionMap(),
+                                                        parent->refRatio(level-1),level,1);
     }
 
 }
@@ -183,7 +180,7 @@ MacProj::setup (int level)
         {
             const BoxArray& grids = LevelData[level]->boxArray();
             const DistributionMapping& dmap = LevelData[level]->DistributionMap();
-            mac_phi_crse[level].reset(new MultiFab(grids,dmap,1,1, MFInfo(), LevelData[level]->Factory()));
+            mac_phi_crse[level]= std::make_unique<MultiFab>(grids,dmap,1,1, MFInfo(), LevelData[level]->Factory());
             mac_phi_crse[level]->setVal(0.0);
         }
     }
@@ -253,15 +250,15 @@ MacProj::mac_project (int             level,
     const BoxArray& grids      = LevelData[level]->boxArray();
     const DistributionMapping& dmap = LevelData[level]->DistributionMap();
     const int       max_level  = parent->maxLevel();
-    MultiFab*       mac_phi    = 0;
-    NavierStokesBase&   ns     = *(NavierStokesBase*) &(parent->getLevel(level));
+    MultiFab*       mac_phi    = nullptr;
+    auto&               ns     = dynamic_cast<NavierStokesBase&>(parent->getLevel(level));
     const MultiFab*     area   = ns.Area();
     //
     // If finest level possible no need to make permanent mac_phi for bcs.
     //
     std::unique_ptr<MultiFab> raii;
     if (level == max_level) {
-        raii.reset(new MultiFab(grids,dmap,1,1, MFInfo(), LevelData[level]->Factory()));
+        raii = std::make_unique<MultiFab>(grids,dmap,1,1, MFInfo(), LevelData[level]->Factory());
         mac_phi = raii.get();
     } else {
         mac_phi = mac_phi_crse[level].get();
@@ -307,8 +304,8 @@ MacProj::mac_project (int             level,
     // Perform projection
     //
     mlmg_mac_solve(parent, cphi, *phys_bc, density_math_bc, level,
-		   mac_tol, mac_abs_tol, rhs_scale,
-		   rho, divu, umac, mac_phi, fluxes);
+           mac_tol, mac_abs_tol, rhs_scale,
+           rho, divu, umac, mac_phi, fluxes);
 
     //
     // Test that u_mac is divergence free
@@ -541,7 +538,7 @@ MacProj::mac_sync_compute (int                   level,
         edgestate[i].define(ba, dmap, num_state_comps, nghost, MFInfo(), ns_level.Factory());
     }
 
-    MultiFab visc_terms(grids,dmap,num_state_comps,ns_level.nghost_force(),
+    MultiFab visc_terms(grids,dmap,num_state_comps,NavierStokesBase::nghost_force(),
                         MFInfo(),ns_level.Factory());
     FillPatchIterator S_fpi(ns_level,visc_terms,ns_level.nghost_state(),
                             prev_time,State_Type,0,num_state_comps);
@@ -569,13 +566,13 @@ MacProj::mac_sync_compute (int                   level,
     //
     // Compute the mac sync correction.
     //
-    if ( ns_level.advection_scheme == "Godunov_PLM" ||
-         ns_level.advection_scheme == "Godunov_PPM" ||
-         ns_level.advection_scheme == "BDS" )
+    if ( NavierStokesBase::advection_scheme == "Godunov_PLM" ||
+         NavierStokesBase::advection_scheme == "Godunov_PPM" ||
+         NavierStokesBase::advection_scheme == "BDS" )
     {
 
-        forcing_term.reset(new MultiFab(grids, dmap, num_state_comps, ns_level.nghost_force()));
-        divu_fp.reset(ns_level.getDivCond(ns_level.nghost_force(),prev_time));
+        forcing_term = std::make_unique<MultiFab>(grids, dmap, num_state_comps, NavierStokesBase::nghost_force());
+        divu_fp.reset(ns_level.getDivCond(NavierStokesBase::nghost_force(),prev_time));
 
         MultiFab& Gp = ns_level.get_old_data(Gradp_Type);
 
@@ -595,7 +592,7 @@ MacProj::mac_sync_compute (int                   level,
 #endif
         for (MFIter Smfi(Smf,TilingIfNotGPU()); Smfi.isValid(); ++Smfi)
         {
-            auto const gbx = Smfi.growntilebox(ns_level.nghost_force());
+            auto const gbx = Smfi.growntilebox(NavierStokesBase::nghost_force());
 
             //
             // Compute total forcing terms.
@@ -921,9 +918,11 @@ MacProj::set_outflow_bcs (int             level,
             const Box&     valid_ccBndBox       = ccBndBox & domain;
             const BoxArray uncovered_outflow_ba = amrex::complementIn(valid_ccBndBox,grids);
 
-            if (uncovered_outflow_ba.size() &&
-                amrex::intersect(grids,valid_ccBndBox).size())
+            if ((!uncovered_outflow_ba.empty()) &&
+                grids.intersects(valid_ccBndBox))
+            {
                 amrex::Error("MacProj: Cannot yet handle partially refined outflow");
+            }
         }
     }
 
@@ -989,7 +988,7 @@ struct TURec
 
 void
 MacProj::test_umac_periodic (int       level,
-                             MultiFab* u_mac)
+                             MultiFab* u_mac) const
 {
     const Geometry& geom = parent->Geom(level);
 
@@ -1027,37 +1026,37 @@ MacProj::test_umac_periodic (int       level,
 
                 geom.periodicShift(eDomain, eBox, pshifts);
 
-                for (int iiv = 0, M = pshifts.size(); iiv < M; iiv++)
+                for (auto const& siv : pshifts)
                 {
-                    eBox += pshifts[iiv];
+                    eBox += siv;
 
                     u_mac[dim].boxArray().intersections(eBox,isects);
 
-                    for (int i = 0, N = isects.size(); i < N; i++)
+                    for (auto const& isect : isects)
                     {
-                        const Box& srcBox = isects[i].second;
-                        const Box& dstBox = srcBox - pshifts[iiv];
+                        const Box& srcBox = isect.second;
+                        const Box& dstBox = srcBox - siv;
 
                         TURec r(mfi.index(),dim,srcBox,dstBox);
 
                         r.m_fbid = mfcd.AddBox(mfid[dim],
                                                srcBox,
-                                               0,
-                                               isects[i].first,
+                                               nullptr,
+                                               isect.first,
                                                0,
                                                0,
                                                1);
                         pirm.push_back(r);
                     }
 
-                    eBox -= pshifts[iiv];
+                    eBox -= siv;
                 }
             }
             // }// end OMP region
         }
     }
 
-    int nrecv = pirm.size();
+    auto nrecv = int(pirm.size());
     ParallelDescriptor::ReduceIntMax(nrecv);
     if (nrecv == 0)
         //
@@ -1067,19 +1066,19 @@ MacProj::test_umac_periodic (int       level,
 
     mfcd.CollectData();
 
-    for (long unsigned int i = 0; i < pirm.size(); i++)
+    for (auto const& pirm_i : pirm)
     {
-        const int dim = pirm[i].m_dim;
+        const int dim = pirm_i.m_dim;
 
-        AMREX_ASSERT(pirm[i].m_fbid.box() == pirm[i].m_srcBox);
-        AMREX_ASSERT(pirm[i].m_srcBox.sameSize(pirm[i].m_dstBox));
-        AMREX_ASSERT(u_mac[dim].DistributionMap()[pirm[i].m_idx] == ParallelDescriptor::MyProc());
+        AMREX_ASSERT(pirm_i.m_fbid.box() == pirm_i.m_srcBox);
+        AMREX_ASSERT(pirm_i.m_srcBox.sameSize(pirm_i.m_dstBox));
+        AMREX_ASSERT(u_mac[dim].DistributionMap()[pirm_i.m_idx] == ParallelDescriptor::MyProc());
 
-        diff.resize(pirm[i].m_srcBox, 1);
+        diff.resize(pirm_i.m_srcBox, 1);
 
-        mfcd.FillFab(mfid[dim], pirm[i].m_fbid, diff);
+        mfcd.FillFab(mfid[dim], pirm_i.m_fbid, diff);
 
-        diff.minus<RunOn::Host>(u_mac[dim][pirm[i].m_idx],pirm[i].m_dstBox,diff.box(),0,0,1);
+        diff.minus<RunOn::Host>(u_mac[dim][pirm_i.m_idx],pirm_i.m_dstBox,diff.box(),0,0,1);
 
         const Real max_norm = diff.norm<RunOn::Host>(0);
 
@@ -1087,7 +1086,7 @@ MacProj::test_umac_periodic (int       level,
         {
             amrex::Print() << "dir = "         << dim
                            << ", diff norm = " << max_norm
-                           << " for region: "  << pirm[i].m_dstBox << std::endl;
+                           << " for region: "  << pirm_i.m_dstBox << std::endl;
             amrex::Error("Periodic bust in u_mac");
         }
     }
@@ -1096,11 +1095,11 @@ MacProj::test_umac_periodic (int       level,
 // project
 void
 MacProj::mlmg_mac_solve (Amr* a_parent, const MultiFab* cphi, const BCRec& a_phys_bc,
-			 const BCRec& density_math_bc,
-			 int level, Real a_mac_tol, Real a_mac_abs_tol, Real rhs_scale,
-			 const MultiFab &rho, const MultiFab &Rhs,
-			 Array<MultiFab*,AMREX_SPACEDIM>& u_mac, MultiFab *mac_phi,
-			 Array<MultiFab*,AMREX_SPACEDIM>& fluxes)
+             const BCRec& density_math_bc,
+             int level, Real a_mac_tol, Real a_mac_abs_tol, Real rhs_scale,
+             const MultiFab &rho, const MultiFab &Rhs,
+             Array<MultiFab*,AMREX_SPACEDIM>& u_mac, MultiFab *mac_phi,
+             Array<MultiFab*,AMREX_SPACEDIM>& fluxes)
 {
     const Geometry& geom = a_parent->Geom(level);
     const BoxArray& ba = Rhs.boxArray();
@@ -1113,8 +1112,8 @@ MacProj::mlmg_mac_solve (Amr* a_parent, const MultiFab* cphi, const BCRec& a_phy
     for (int idim = 0; idim < AMREX_SPACEDIM; ++idim)
     {
         BoxArray nba = amrex::convert(ba,IntVect::TheDimensionVector(idim));
-        bcoefs[idim].reset(new  MultiFab(nba, dm, 1, 0, MFInfo(),
-					 (a_parent->getLevel(level)).Factory()));
+        bcoefs[idim] = std::make_unique<MultiFab>(nba, dm, 1, 0, MFInfo(),
+                     (a_parent->getLevel(level)).Factory());
     }
 
     //
@@ -1123,7 +1122,7 @@ MacProj::mlmg_mac_solve (Amr* a_parent, const MultiFab* cphi, const BCRec& a_phy
     //
 #ifdef AMREX_USE_EB
     EB_interp_CellCentroid_to_FaceCentroid( rho, GetArrOfPtrs(bcoefs), 0, 0, 1,
-					    geom, {density_math_bc});
+                        geom, {density_math_bc});
 #else
     amrex::ignore_unused(density_math_bc);
     average_cellcenter_to_face(GetArrOfPtrs(bcoefs), rho, geom);
@@ -1199,8 +1198,8 @@ MacProj::mlmg_mac_solve (Amr* a_parent, const MultiFab* cphi, const BCRec& a_phy
 
 void
 MacProj::set_mac_solve_bc (Array<MLLinOp::BCType,AMREX_SPACEDIM>& mlmg_lobc,
-			   Array<MLLinOp::BCType,AMREX_SPACEDIM>& mlmg_hibc,
-			   const BCRec& a_phys_bc, const Geometry& geom)
+               Array<MLLinOp::BCType,AMREX_SPACEDIM>& mlmg_hibc,
+               const BCRec& a_phys_bc, const Geometry& geom)
 {
     for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {
         if (geom.isPeriodic(idim)) {
