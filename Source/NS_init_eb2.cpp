@@ -68,8 +68,8 @@ void reentrant_profile(std::vector<amrex::RealVect> &points) {
 
 // called in main before Amr->init(start,stop)
 void
-initialize_EB2 (const Geometry& geom, const int required_coarsening_level,
-                const int max_coarsening_level)
+initialize_EB2 (const Geometry& geom, int required_coarsening_level,
+                int max_coarsening_level)
 {
     // read in EB parameters
     ParmParse ppeb2("eb2");
@@ -367,8 +367,8 @@ initialize_EB2 (const Geometry& geom, const int required_coarsening_level,
 
 
         // Build the implicit function as a union of two cylinders
-    EB2::BoxIF big_square(big_square_lo, big_square_hi,   0);
-    EB2::BoxIF small_square(small_square_lo, small_square_hi, 0);
+    EB2::BoxIF big_square(big_square_lo, big_square_hi,   false);
+    EB2::BoxIF small_square(small_square_lo, small_square_hi, false);
     auto square_grid = EB2::makeDifference(big_square, small_square);
 
 
@@ -403,7 +403,7 @@ NavierStokesBase::initialize_eb2_structs() {
   // NOTE: THIS NEEDS TO BE REPLACED WITH A FLAGFAB
 
   // n.b., could set this to 1 if geometry is all_regular as an optimization
-  no_eb_in_domain = 0;
+  no_eb_in_domain = false;
 
   //  1->regular, 0->irregular, -1->covered, 2->outside
   ebmask.define(grids, dmap,  1, 0);
@@ -447,15 +447,6 @@ NavierStokesBase::initialize_eb2_structs() {
       });
     }
     else if (typ == FabType::singlevalued) {
-      int Ncut = 0;
-      for (BoxIterator bit(tbox); bit.ok(); ++bit) {
-        const EBCellFlag& flag = flagfab(bit(), 0);
-
-        if (!(flag.isRegular() || flag.isCovered())) {
-          Ncut++;
-        }
-      }
-
       for (BoxIterator bit(tbox); bit.ok(); ++bit) {
         const EBCellFlag& flag = flagfab(bit(), 0);
 
@@ -518,7 +509,7 @@ NavierStokesBase::define_body_state()
     // Find proc with lowest rank to find valid point, use that for all
     std::vector<int> found(ParallelDescriptor::NProcs(),0);
     found[ParallelDescriptor::MyProc()] = (int)foundPt;
-    ParallelDescriptor::ReduceIntSum(&(found[0]),found.size());
+    ParallelDescriptor::ReduceIntSum(&(found[0]),int(found.size()));
     int body_rank = -1;
     int found_size = static_cast<int>(found.size());
     for (int i=0; i < found_size; ++i) {

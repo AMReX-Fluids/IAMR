@@ -5,7 +5,7 @@ using namespace amrex;
 MultiFab**
 FluxBoxes::define (const AmrLevel* amr_level, int nvar, int nghost)
 {
-    AMREX_ASSERT(data == 0);
+    AMREX_ASSERT(data == nullptr);
     data = new MultiFab*[AMREX_SPACEDIM];
     for (int dir = 0; dir < AMREX_SPACEDIM; dir++)
     {
@@ -19,12 +19,12 @@ FluxBoxes::define (const AmrLevel* amr_level, int nvar, int nghost)
 void
 FluxBoxes::clear ()
 {
-    if (data != 0)
+    if (data != nullptr)
     {
         for (int i = 0; i<AMREX_SPACEDIM; i++) {
             delete data[i];
         }
         delete [] data;
-        data = 0;
+        data = nullptr;
     }
 }

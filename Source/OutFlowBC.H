@@ -1,6 +1,6 @@
 
-#ifndef _OUTFLOWBC_H_
-#define _OUTFLOWBC_H_
+#ifndef IAMR_OUTFLOWBC_H_
+#define IAMR_OUTFLOWBC_H_
 
 #include <AMReX_FArrayBox.H>
 #include <AMReX_Geometry.H>
@@ -14,51 +14,20 @@
 class OutFlowBC
 {
 public:
-
-    OutFlowBC ();
-
-    virtual ~OutFlowBC ();
-
-    virtual void computeBC (amrex::FArrayBox         velMF[][2*AMREX_SPACEDIM],
-                            amrex::FArrayBox         divuMF[2*AMREX_SPACEDIM],
-                            amrex::FArrayBox         rhoMF[2*AMREX_SPACEDIM],
-                            amrex::FArrayBox         phiMF[2*AMREX_SPACEDIM],
-                            const amrex::Geometry&   geom,
-                            amrex::Orientation*      outFaces,
-                            int               numOutFlowFaces,
-                            const int*        lo_bc,
-                            const int*        hi_bc,
-                            amrex::Real              gravity) = 0;
-
-    virtual void computeBC (amrex::FArrayBox         velMF[][2*AMREX_SPACEDIM],
-                            amrex::FArrayBox         divuMF[2*AMREX_SPACEDIM],
-                            amrex::FArrayBox         rhoMF[2*AMREX_SPACEDIM],
-                            amrex::FArrayBox         phiMF[2*AMREX_SPACEDIM],
-                            const amrex::Geometry&    geom,
-                            amrex::Orientation*       outFaces,
-                            int                numOutFlowFaces,
-                            const int*        lo_bc,
-                            const int*        hi_bc,
-                            amrex::Real              small_udiff,
-                            amrex::Real              gravity) = 0;
-
     static amrex::Box SemiGrow (const amrex::Box& baseBox,
-                         int        nGrow,
-                         int        direction);
+                                int               nGrow,
+                                int               direction);
 
     static amrex::Box SemiCoarsen (const amrex::Box& baseBox,
-                            int        ref_factor,
-                            int        direction);
+                                   int               ref_factor,
+                                   int               direction);
 
-    static void GetOutFlowFaces (bool&        haveOutFlow,
+    static void GetOutFlowFaces (bool&               haveOutFlow,
                                  amrex::Orientation* outFaces,
                                  amrex::BCRec*       _phys_bc,
-                                 int&         numOutFlowFaces);
+                                 int&                numOutFlowBC);
 
     static bool HasOutFlowBC (amrex::BCRec* _phys_bc);
-
-protected:
 };
 
 #endif /*_OUTFLOWBC_H_*/
-

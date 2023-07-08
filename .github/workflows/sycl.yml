@@ -1,0 +1,76 @@
+---
+name: SYCL
+
+on:
+  push:
+  pull_request:
+  schedule:
+    - cron: "23 8 * * *"
+
+concurrency:
+  group: ${{ github.ref }}-${{ github.head_ref }}-SYCL
+  cancel-in-progress: true
+
+jobs:
+  sycl_no_eb_3d:
+    name: SYCL NO EB 3D
+    runs-on: ubuntu-latest
+    steps:
+    - name: Checkout IAMR
+      uses: actions/checkout@v3
+      with:
+        path: IAMR
+    - name: Checkout AMReX-Hydro
+      uses: actions/checkout@v3
+      with:
+        repository: AMReX-Codes/AMReX-Hydro
+        path: AMReX-Hydro
+    - name: Checkout AMReX
+      uses: actions/checkout@v3
+      with:
+        repository: AMReX-Codes/amrex
+        path: amrex
+    - name: Set Up Cache
+      uses: actions/cache@v3
+      with:
+        path: ~/.cache/ccache
+        key: ccache-${{ github.workflow }}-${{ github.job }}-git-${{ github.sha }}
+        restore-keys: |
+             ccache-${{ github.workflow }}-${{ github.job }}-git-
+    - name: Load Dependencies
+      run: |
+        amrex/.github/workflows/dependencies/dependencies_dpcpp.sh
+        amrex/.github/workflows/dependencies/dependencies_ccache.sh
+    - name: Build
+      run: |
+        export CCACHE_COMPRESS=1
+        export CCACHE_COMPRESSLEVEL=10
+        export CCACHE_MAXSIZE=100M
+        export CCACHE_DEPEND=1
+        ccache -z
+
+        set +e
+        source /opt/intel/oneapi/setvars.sh
+        set -e
+
+        cd IAMR/Exec/run3d
+        make -j 2 USE_SYCL=TRUE USE_CCACHE=TRUE \
+            WARN_ALL=TRUE WARN_ERROR=TRUE EXTRACXXFLAGS="-Wno-missing-braces"
+
+        ccache -s
+        du -hs ~/.cache/ccache
+
+  save_pr_number:
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Save PR number
+        env:
+          PR_NUMBER: ${{ github.event.number }}
+        run: |
+          echo $PR_NUMBER > pr_number.txt
+      - uses: actions/upload-artifact@v3
+        with:
+          name: pr_number
+          path: pr_number.txt
+          retention-days: 1

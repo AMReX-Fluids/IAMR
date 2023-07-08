@@ -1,6 +1,6 @@
 
-#ifndef _MacProj_H_
-#define _MacProj_H_
+#ifndef IAMR_MacProj_H_
+#define IAMR_MacProj_H_
 
 #include <AMReX_Amr.H>
 #include <AMReX_AmrLevel.H>
@@ -24,9 +24,6 @@ public:
              int    _finest_level,
              amrex::BCRec* _phys_bc,
              int    /*not used*/ );
-
-    ~MacProj ();
-
 
     void install_level (int       level,
                         amrex::AmrLevel* level_data);
@@ -76,13 +73,13 @@ public:
                            amrex::Array<amrex::MultiFab*,AMREX_SPACEDIM>& Ucorr,
                            amrex::MultiFab&             Sync,
                            int                          comp,
-                           int                          s_ind,
-                           amrex::MultiFab* const*      sync_edges,
-                           int                          eComp,
+                           int                          Sync_indx,
+                           amrex::MultiFab* const*      edgestate,
+                           int                          edge_comp,
                            amrex::Real                  dt,
                            bool                         update_fluxreg = true);
 
-    void mlmg_mac_solve (amrex::Amr* parent, const amrex::MultiFab* cphi,
+    static void mlmg_mac_solve (amrex::Amr* parent, const amrex::MultiFab* cphi,
                          const amrex::BCRec& phys_bc,
                          const amrex::BCRec& density_math_bc,
                          int level, amrex::Real mac_tol, amrex::Real mac_abs_tol,
@@ -90,16 +87,16 @@ public:
                          const amrex::MultiFab &rho, const amrex::MultiFab &Rhs,
                          amrex::Array<amrex::MultiFab*,AMREX_SPACEDIM>& u_mac,
                          amrex::MultiFab *mac_phi,
-                         amrex::Array<amrex::MultiFab*,AMREX_SPACEDIM>& Ucorr);
+                         amrex::Array<amrex::MultiFab*,AMREX_SPACEDIM>& fluxes);
 
-    void set_mac_solve_bc (amrex::Array<amrex::MLLinOp::BCType,AMREX_SPACEDIM>& mlmg_lobc,
+    static void set_mac_solve_bc (amrex::Array<amrex::MLLinOp::BCType,AMREX_SPACEDIM>& mlmg_lobc,
                            amrex::Array<amrex::MLLinOp::BCType,AMREX_SPACEDIM>& mlmg_hibc,
                            const amrex::BCRec& phys_bc, const amrex::Geometry& geom);
 
     static void Initialize ();
     static void Finalize ();
 
-    void test_umac_periodic (int level, amrex::MultiFab* u_mac);
+    void test_umac_periodic (int level, amrex::MultiFab* u_mac) const;
 
     //
     // Test the divergence constraint.

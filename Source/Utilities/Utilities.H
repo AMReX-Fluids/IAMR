@@ -1,5 +1,5 @@
-#ifndef _UTILITIES_H_
-#define _UTILITIES_H_
+#ifndef IAMR_UTILITIES_H_
+#define IAMR_UTILITIES_H_
 
 #include <AMReX_FArrayBox.H>
 
@@ -15,17 +15,17 @@ read_file(std::ifstream& in)
 
 void read_binary(
   const std::string& iname,
-  const size_t nx,
-  const size_t ny,
-  const size_t nz,
-  const size_t ncol,
+  size_t nx,
+  size_t ny,
+  size_t nz,
+  size_t ncol,
   amrex::Vector<amrex::Real>& data);
 
 void read_csv(
   const std::string& iname,
-  const size_t nx,
-  const size_t ny,
-  const size_t nz,
+  size_t nx,
+  size_t ny,
+  size_t nz,
   amrex::Vector<amrex::Real>& data);
 
 // -----------------------------------------------------------

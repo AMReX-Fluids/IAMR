@@ -1,6 +1,6 @@
 
-#ifndef _Diffusion_H_
-#define _Diffusion_H_
+#ifndef IAMR_Diffusion_H_
+#define IAMR_Diffusion_H_
 
 
 #include <AMReX_Box.H>
@@ -43,8 +43,6 @@ public:
                amrex::FluxRegister*      Viscflux_reg,
                const amrex::Vector<int>&  _is_diffusive);
 
-    ~Diffusion ();
-
     void echo_settings () const;
 
     amrex::FluxRegister* viscFluxReg ();
@@ -57,7 +55,7 @@ public:
                          amrex::Vector<amrex::MultiFab*>&       S_new,
                          const amrex::Vector<amrex::MultiFab*>& Rho_new,
                          int                                    S_comp,
-                         int                                    num_comp,
+                         int                                    nComp,
                          int                                    Rho_comp,
                          amrex::Real                            prev_time,
                          amrex::Real                            curr_time,
@@ -70,7 +68,7 @@ public:
                          amrex::MultiFab*                       delta_rhs,
                          int                                    rhsComp,
                          const amrex::MultiFab*                 alpha,
-                         int                                    alphaComp,
+                         int                                    alpha_in_comp,
                          const amrex::MultiFab* const*          betan,
                          const amrex::MultiFab* const*          betanp1,
                          int                                    betaComp,
@@ -86,9 +84,9 @@ public:
                           int                           rho_flag,
                           amrex::MultiFab*              delta_rhs,
                           const amrex::MultiFab* const* betan,
-                          const amrex::MultiFab* const  betanCC,
+                          const amrex::MultiFab*        betanCC,
                           const amrex::MultiFab* const* betanp1,
-                          const amrex::MultiFab* const  betanp1CC);
+                          const amrex::MultiFab*        betanp1CC);
 
     void diffuse_velocity (amrex::Real                   dt,
                            amrex::Real                   be_cn_theta,
@@ -97,9 +95,9 @@ public:
                            amrex::MultiFab*              delta_rhs,
                            int                           rhsComp,
                            const amrex::MultiFab* const* betan,
-                           const amrex::MultiFab* const  betanCC,
+                           const amrex::MultiFab*        betanCC,
                            const amrex::MultiFab* const* betanp1,
-                           const amrex::MultiFab* const  betanp1CC,
+                           const amrex::MultiFab*        betanp1CC,
                            int                           betaComp);
 
     void diffuse_tensor_velocity (amrex::Real            dt,
@@ -109,9 +107,9 @@ public:
                                   amrex::MultiFab*       delta_rhs,
                                   int                    rhsComp,
                                   const amrex::MultiFab* const* betan,
-                                  const amrex::MultiFab* const  betanCC,
+                                  const amrex::MultiFab*        betanCC,
                                   const amrex::MultiFab* const* betanp1,
-                                  const amrex::MultiFab* const  betanp1CC,
+                                  const amrex::MultiFab*        betanp1CC,
                                   int                    betaComp);
 
     void diffuse_Vsync (amrex::MultiFab&              Vsync,
@@ -135,7 +133,7 @@ public:
 
     void diffuse_Ssync (amrex::MultiFab&              Ssync,
                         int                           sigma,
-                        int                           num_comp,
+                        int                           nComp,
                         amrex::Real                   dt,
                         amrex::Real                   be_cn_theta,
                         const amrex::MultiFab&        rho_half,
@@ -160,11 +158,11 @@ public:
     void getTensorViscTerms (amrex::MultiFab&              visc_terms,
                              amrex::Real                   time,
                              const amrex::MultiFab* const* beta,
-                             const amrex::MultiFab* const  betaCC,
-                             int                           dataComp);
+                             const amrex::MultiFab*        betaCC,
+                             int                           betaComp);
 
     void FillBoundary (amrex::BndryRegister& bdry,
-                       int                   src_comp,
+                       int                   state_ind,
                        int                   dest_comp,
                        int                   num_comp,
                        amrex::Real           time,
@@ -174,13 +172,13 @@ public:
                            int&                          allthere,
                            int&                          allnull);
 
-    void checkBeta (const amrex::MultiFab* const* beta,
-                    int&                          allthere) const;
+    static void checkBeta (const amrex::MultiFab* const* beta,
+                           int&                          allthere);
 
-    int maxOrder () const;
-    int tensorMaxOrder () const;
+    [[nodiscard]] static int maxOrder ();
+    [[nodiscard]] static int tensorMaxOrder ();
 
-    static int set_rho_flag (const DiffusionForm compDiffusionType);
+    static int set_rho_flag (DiffusionForm compDiffusionType);
 
     static void setDomainBC (std::array<amrex::LinOpBCType,AMREX_SPACEDIM>& mlmg_lobc,
                              std::array<amrex::LinOpBCType,AMREX_SPACEDIM>& mlmg_hibc,
@@ -201,9 +199,9 @@ public:
     static void setBeta(amrex::MLEBABecLap&           op,
                         const amrex::MultiFab* const* beta,
                         int                           betaComp,
-                        int                           num_comp = 1);
+                        int                           nComp = 1);
 
-    void setViscosity(amrex::MLEBTensorOp&          tensorop,
+    static void setViscosity(amrex::MLEBTensorOp&          tensorop,
                       const amrex::MultiFab* const* beta,
                       int                           betaComp,
                       const amrex::MultiFab&        beta_cc);
@@ -211,20 +209,20 @@ public:
     static void setBeta(amrex::MLABecLaplacian&       op,
                         const amrex::MultiFab* const* beta,
                         int                           betaComp,
-                        int                           num_comp = 1);
+                        int                           nComp = 1);
 
-    void setViscosity(amrex::MLTensorOp&            tensorop,
-                      const amrex::MultiFab* const* beta,
-                      int                           betaComp);
+    static void setViscosity(amrex::MLTensorOp&            tensorop,
+                             const amrex::MultiFab* const* beta,
+                             int                           betaComp);
 #endif
 
     static void computeExtensiveFluxes(amrex::MLMG&            a_mg,
                                        amrex::MultiFab&        Soln,
                                        amrex::MultiFab* const* flux,
-                                       const int               fluxComp,
-                                       const int               nomp,
+                                       int                     fluxComp,
+                                       int                     ncomp,
                                        amrex::MultiFab*        area,
-                                       const amrex::Real       fac );
+                                       amrex::Real             fac );
 
 protected:
 
@@ -268,4 +266,3 @@ private:
 };
 
 #endif
-

@@ -13,6 +13,7 @@ namespace derive_functions
             Real /*time*/, const int* /*bcrec*/, int level)
 
   {
+    amrex::ignore_unused(ncomp);
     AMREX_ASSERT(derfab.box().contains(bx));
     AMREX_ASSERT(datfab.box().contains(bx));
     AMREX_ASSERT(derfab.nComp() >= dcomp + ncomp);
@@ -52,6 +53,7 @@ namespace derive_functions
            Real /*time*/, const int* /*bcrec*/, int /*level*/)
 
   {
+    amrex::ignore_unused(ncomp);
     AMREX_ASSERT(derfab.box().contains(bx));
     AMREX_ASSERT(Box(datfab.box()).enclosedCells().contains(bx));
     AMREX_ASSERT(derfab.nComp() >= dcomp + ncomp);
@@ -86,6 +88,7 @@ namespace derive_functions
           Real /*time*/, const int* /*bcrec*/, int /*level*/)
 
   {
+    amrex::ignore_unused(ncomp);
     AMREX_ASSERT(derfab.box().contains(bx));
     AMREX_ASSERT(datfab.box().contains(bx));
     AMREX_ASSERT(derfab.nComp() >= dcomp + ncomp);
@@ -100,7 +103,7 @@ namespace derive_functions
     amrex::Array4<amrex::Real>       const&vort_arr = derfab.array(dcomp);
 
 #ifdef AMREX_USE_EB
-    const EBFArrayBox& ebfab = static_cast<EBFArrayBox const&>(datfab);
+    const auto& ebfab = static_cast<EBFArrayBox const&>(datfab);
     const EBCellFlagFab& flags = ebfab.getEBCellFlagFab();
     auto typ = flags.getType(bx);
     if (typ == FabType::covered)
@@ -265,6 +268,7 @@ namespace derive_functions
         Real /*time*/, const int* /*bcrec*/, int /*level*/)
 
   {
+    amrex::ignore_unused(ncomp);
     AMREX_ASSERT(derfab.box().contains(bx));
     AMREX_ASSERT(Box(datfab.box()).contains(bx));
     AMREX_ASSERT(derfab.nComp() >= dcomp + ncomp);

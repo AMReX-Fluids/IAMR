@@ -1,6 +1,6 @@
 
-#ifndef _SYNCREGISTER_H_
-#define _SYNCREGISTER_H_
+#ifndef IAMR_SYNCREGISTER_H_
+#define IAMR_SYNCREGISTER_H_
 
 #include <AMReX_BoxArray.H>
 #include <AMReX_FArrayBox.H>
@@ -18,8 +18,6 @@ public:
     SyncRegister (const amrex::BoxArray& fine_boxes,
                   const amrex::DistributionMapping& dmap,
                   const amrex::IntVect& ref_ratio);
-
-    ~SyncRegister ();
 
     void CrseInit (amrex::MultiFab& Sync_resid_crse, const amrex::Geometry& crse_geom, amrex::Real mult);
 

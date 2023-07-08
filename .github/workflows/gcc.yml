@@ -1,0 +1,261 @@
+---
+name: GCC
+
+on:
+  push:
+  pull_request:
+  schedule:
+    - cron: "23 8 * * *"
+
+concurrency:
+  group: ${{ github.ref }}-${{ github.head_ref }}-gcc
+  cancel-in-progress: true
+
+jobs:
+  gcc_eb_3d:
+    name: GCC EB 3D
+    runs-on: ubuntu-latest
+    steps:
+    - name: Checkout IAMR
+      uses: actions/checkout@v3
+      with:
+        path: IAMR
+    - name: Checkout AMReX-Hydro
+      uses: actions/checkout@v3
+      with:
+        repository: AMReX-Codes/AMReX-Hydro
+        path: AMReX-Hydro
+    - name: Checkout AMReX
+      uses: actions/checkout@v3
+      with:
+        repository: AMReX-Codes/amrex
+        path: amrex
+    - name: Set Up Cache
+      uses: actions/cache@v3
+      with:
+        path: ~/.cache/ccache
+        key: ccache-${{ github.workflow }}-${{ github.job }}-git-${{ github.sha }}
+        restore-keys: |
+             ccache-${{ github.workflow }}-${{ github.job }}-git-
+    - name: Load Dependencies
+      run: |
+        amrex/.github/workflows/dependencies/dependencies.sh
+        amrex/.github/workflows/dependencies/dependencies_clang-tidy.sh 14
+        amrex/.github/workflows/dependencies/dependencies_ccache.sh
+    - name: Build
+      run: |
+        export CCACHE_COMPRESS=1
+        export CCACHE_COMPRESSLEVEL=10
+        export CCACHE_MAXSIZE=400M
+        export CCACHE_EXTRAFILES=${{ github.workspace }}/IAMR/.clang-tidy
+        export CCACHE_LOGFILE=${{ github.workspace }}/ccache.log.txt
+
+        ccache -z
+
+        cd IAMR/Exec/eb_run3d
+        make -j 2 USE_MPI=TRUE USE_OMP=FALSE USE_CCACHE=TRUE USE_ASSERTION=TRUE \
+            WARN_ALL=TRUE WARN_ERROR=TRUE EXTRACXXFLAGS="-Wno-null-dereference" \
+            KEEP_BUILDINFO_CPP=TRUE
+
+        ${{github.workspace}}/amrex/Tools/C_scripts/mmclt.py --input ${{github.workspace}}/ccache.log.txt --identifier Source
+        make -j2 -f clang-tidy-ccache-misses.mak \
+            CLANG_TIDY=clang-tidy-14 \
+            CLANG_TIDY_ARGS="--config-file=${{github.workspace}}/IAMR/.clang-tidy --warnings-as-errors=*"
+
+        ccache -s
+        du -hs ~/.cache/ccache
+
+    - name: Run
+      run: |
+        cd ${{ github.workspace }}/IAMR/Exec/eb_run3d
+        mpiexec -n 2 ./amr3d.gnu.MPI.ex regtest.3d.flow_past_cylinder-z max_step=3 ns.v=1 mac_proj.verbose=1 nodal_proj.verbose=1
+
+  gcc_no_eb_3d:
+    name: GCC NO EB 3D
+    runs-on: ubuntu-latest
+    steps:
+    - name: Checkout IAMR
+      uses: actions/checkout@v3
+      with:
+        path: IAMR
+    - name: Checkout AMReX-Hydro
+      uses: actions/checkout@v3
+      with:
+        repository: AMReX-Codes/AMReX-Hydro
+        path: AMReX-Hydro
+    - name: Checkout AMReX
+      uses: actions/checkout@v3
+      with:
+        repository: AMReX-Codes/amrex
+        path: amrex
+    - name: Set Up Cache
+      uses: actions/cache@v3
+      with:
+        path: ~/.cache/ccache
+        key: ccache-${{ github.workflow }}-${{ github.job }}-git-${{ github.sha }}
+        restore-keys: |
+             ccache-${{ github.workflow }}-${{ github.job }}-git-
+    - name: Load Dependencies
+      run: |
+        amrex/.github/workflows/dependencies/dependencies.sh
+        amrex/.github/workflows/dependencies/dependencies_clang-tidy.sh 14
+        amrex/.github/workflows/dependencies/dependencies_ccache.sh
+    - name: Build
+      run: |
+        export CCACHE_COMPRESS=1
+        export CCACHE_COMPRESSLEVEL=10
+        export CCACHE_MAXSIZE=300M
+        export CCACHE_EXTRAFILES=${{ github.workspace }}/IAMR/.clang-tidy
+        export CCACHE_LOGFILE=${{ github.workspace }}/ccache.log.txt
+
+        ccache -z
+
+        cd IAMR/Exec/run3d
+        make -j 2 USE_MPI=TRUE USE_OMP=FALSE USE_CCACHE=TRUE USE_ASSERTION=TRUE \
+            WARN_ALL=TRUE WARN_ERROR=TRUE EXTRACXXFLAGS="-Wno-null-dereference" \
+            KEEP_BUILDINFO_CPP=TRUE
+
+        ${{github.workspace}}/amrex/Tools/C_scripts/mmclt.py --input ${{github.workspace}}/ccache.log.txt --identifier Source
+        make -j2 -f clang-tidy-ccache-misses.mak \
+            CLANG_TIDY=clang-tidy-14 \
+            CLANG_TIDY_ARGS="--config-file=${{github.workspace}}/IAMR/.clang-tidy --warnings-as-errors=*"
+
+        ccache -s
+        du -hs ~/.cache/ccache
+
+    - name: Run
+      run: |
+        cd ${{ github.workspace }}/IAMR/Exec/run3d
+        mpiexec -n 2 ./amr3d.gnu.MPI.ex regtest.3d.euler max_step=3 ns.v=1 mac_proj.verbose=1 nodal_proj.verbose=1
+
+  gcc_eb_2d:
+    name: GCC EB 2D
+    runs-on: ubuntu-latest
+    steps:
+    - name: Checkout IAMR
+      uses: actions/checkout@v3
+      with:
+        path: IAMR
+    - name: Checkout AMReX-Hydro
+      uses: actions/checkout@v3
+      with:
+        repository: AMReX-Codes/AMReX-Hydro
+        path: AMReX-Hydro
+    - name: Checkout AMReX
+      uses: actions/checkout@v3
+      with:
+        repository: AMReX-Codes/amrex
+        path: amrex
+    - name: Set Up Cache
+      uses: actions/cache@v3
+      with:
+        path: ~/.cache/ccache
+        key: ccache-${{ github.workflow }}-${{ github.job }}-git-${{ github.sha }}
+        restore-keys: |
+             ccache-${{ github.workflow }}-${{ github.job }}-git-
+    - name: Load Dependencies
+      run: |
+        amrex/.github/workflows/dependencies/dependencies.sh
+        amrex/.github/workflows/dependencies/dependencies_clang-tidy.sh 14
+        amrex/.github/workflows/dependencies/dependencies_ccache.sh
+    - name: Build
+      run: |
+        export CCACHE_COMPRESS=1
+        export CCACHE_COMPRESSLEVEL=10
+        export CCACHE_MAXSIZE=300M
+        export CCACHE_EXTRAFILES=${{ github.workspace }}/IAMR/.clang-tidy
+        export CCACHE_LOGFILE=${{ github.workspace }}/ccache.log.txt
+
+        ccache -z
+
+        cd IAMR/Exec/eb_run2d
+        make -j 2 USE_MPI=FALSE USE_OMP=TRUE USE_CCACHE=TRUE USE_ASSERTION=TRUE \
+            WARN_ALL=TRUE WARN_ERROR=TRUE EXTRACXXFLAGS="-Wno-null-dereference" \
+            KEEP_BUILDINFO_CPP=TRUE
+
+        ${{github.workspace}}/amrex/Tools/C_scripts/mmclt.py --input ${{github.workspace}}/ccache.log.txt --identifier Source
+        make -j2 -f clang-tidy-ccache-misses.mak \
+            CLANG_TIDY=clang-tidy-14 \
+            CLANG_TIDY_ARGS="--config-file=${{github.workspace}}/IAMR/.clang-tidy --warnings-as-errors=*"
+
+        ccache -s
+        du -hs ~/.cache/ccache
+
+    - name: Run
+      run: |
+        export OMP_NUM_THREADS=2
+        cd ${{ github.workspace }}/IAMR/Exec/eb_run2d
+        ./amr2d.gnu.OMP.ex regtest.2d.flow_past_cylinder-x max_step=10 ns.v=1 mac_proj.verbose=1 nodal_proj.verbose=1
+
+  gcc_no_eb_2d:
+    name: GCC NO EB 2D
+    runs-on: ubuntu-latest
+    steps:
+    - name: Checkout IAMR
+      uses: actions/checkout@v3
+      with:
+        path: IAMR
+    - name: Checkout AMReX-Hydro
+      uses: actions/checkout@v3
+      with:
+        repository: AMReX-Codes/AMReX-Hydro
+        path: AMReX-Hydro
+    - name: Checkout AMReX
+      uses: actions/checkout@v3
+      with:
+        repository: AMReX-Codes/amrex
+        path: amrex
+    - name: Set Up Cache
+      uses: actions/cache@v3
+      with:
+        path: ~/.cache/ccache
+        key: ccache-${{ github.workflow }}-${{ github.job }}-git-${{ github.sha }}
+        restore-keys: |
+             ccache-${{ github.workflow }}-${{ github.job }}-git-
+    - name: Load Dependencies
+      run: |
+        amrex/.github/workflows/dependencies/dependencies.sh
+        amrex/.github/workflows/dependencies/dependencies_clang-tidy.sh 14
+        amrex/.github/workflows/dependencies/dependencies_ccache.sh
+    - name: Build
+      run: |
+        export CCACHE_COMPRESS=1
+        export CCACHE_COMPRESSLEVEL=10
+        export CCACHE_MAXSIZE=300M
+        export CCACHE_EXTRAFILES=${{ github.workspace }}/IAMR/.clang-tidy
+        export CCACHE_LOGFILE=${{ github.workspace }}/ccache.log.txt
+
+        ccache -z
+
+        cd IAMR/Exec/run2d
+        make -j 2 USE_MPI=TRUE USE_OMP=FALSE USE_CCACHE=TRUE USE_ASSERTION=TRUE \
+        WARN_ALL=TRUE WARN_ERROR=TRUE EXTRACXXFLAGS="-Wno-null-dereference" \
+        KEEP_BUILDINFO_CPP=TRUE
+
+        ${{github.workspace}}/amrex/Tools/C_scripts/mmclt.py --input ${{github.workspace}}/ccache.log.txt --identifier Source
+        make -j2 -f clang-tidy-ccache-misses.mak \
+            CLANG_TIDY=clang-tidy-14 \
+            CLANG_TIDY_ARGS="--config-file=${{github.workspace}}/IAMR/.clang-tidy --warnings-as-errors=*"
+
+        ccache -s
+        du -hs ~/.cache/ccache
+
+    - name: Run
+      run: |
+        cd ${{ github.workspace }}/IAMR/Exec/run2d
+        mpiexec -n 2 ./amr2d.gnu.MPI.ex regtest.2d.poiseuille max_step=10 ns.v=1 mac_proj.verbose=1 nodal_proj.verbose=1
+
+  save_pr_number:
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Save PR number
+        env:
+          PR_NUMBER: ${{ github.event.number }}
+        run: |
+          echo $PR_NUMBER > pr_number.txt
+      - uses: actions/upload-artifact@v3
+        with:
+          name: pr_number
+          path: pr_number.txt
+          retention-days: 1
