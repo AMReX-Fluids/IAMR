@@ -5019,7 +5019,7 @@ NavierStokesBase::ComputeAofs ( MultiFab& advc, int a_comp, // Advection term "A
     // Build mask to find the ghost cells we need to correct
     // **********************************************************************************
     if (coarse_fine_mask == null_ptr) {
-       coarse_fine_mask = std::make_unique<iMultiFab(grids, dmap, 1, 2, MFInfo(), DefaultFabFactory<IArrayBox>())>;
+       coarse_fine_mask = std::make_unique<iMultiFab>(grids, dmap, 1, 2, MFInfo(), DefaultFabFactory<IArrayBox>());
        coarse_fine_mask->BuildMask(geom.Domain(), geom.periodicity(),
                    level_mask_covered, level_mask_notcovered, level_mask_physbnd, level_mask_interior);
     }
