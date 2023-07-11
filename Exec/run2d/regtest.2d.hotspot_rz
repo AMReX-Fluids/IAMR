@@ -5,7 +5,7 @@
 
 # Maximum number of coarse grid timesteps to be taken, if stop_time is
 #  not reached first.
-max_step 		= 1
+max_step 		= 10
 
 # Refinement criterion, use vorticity and presence of tracer
 amr.refinement_indicators = tracer vorticity

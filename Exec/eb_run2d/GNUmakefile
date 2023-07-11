@@ -14,14 +14,10 @@ PRECISION   = DOUBLE
 DIM         = 2
 COMP        = gnu
 
-USE_MPI     = TRUE
-USE_OMP     = TRUE
-PROFILE     = FALSE
-
 DEBUG       = FALSE
-
-TEST          = TRUE
-USE_ASSERTION = TRUE
+USE_MPI     = TRUE
+USE_OMP     = FALSE
+PROFILE     = FALSE
 
 USE_EB = TRUE
 
