@@ -617,7 +617,7 @@ public:
     amrex::MultiFab volume;
     amrex::MultiFab area[AMREX_SPACEDIM];
 
-    std::unique_ptr<iMultiFab> coarse_fine_mask;
+    std::unique_ptr<amrex::iMultiFab> coarse_fine_mask;
 
 #ifdef AMREX_USE_EB
     void set_body_state(amrex::MultiFab& S);
