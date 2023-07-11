@@ -1,7 +1,3 @@
-//fixme, for writesingle level plotfile
-//#include<AMReX_PlotFileUtil.H>
-//
-
 #include <AMReX_Geometry.H>
 #include <AMReX_ParmParse.H>
 #include <NavierStokesBase.H>
@@ -280,12 +276,10 @@ Projection::level_project (int             level,
 
     MultiFab& Gp = ns->get_old_data(Gradp_Type);
 
-#ifndef NDEBUG
 #ifdef AMREX_USE_EB
-    // fixme - deal with case where covered cells are set to zero
-    //   there's probably a better way to handle this..
-    EB_set_covered(rho_half,0,1,1,1.2345e40);
-#endif
+    // We set this to a non-zero value so we don't have to
+    // protect against divide by 0 later
+    EB_set_covered(rho_half,0,1,1,1.2345e20);
 #endif
 
 #ifdef _OPENMP
@@ -1590,9 +1584,6 @@ Projection::initialVorticityProject (int c_lev)
     //
     // Project.
     //
-    // FIXME -- need to think about what proj2 should really be. Don't
-    // think we actually want to update Gradp here at all. And subsequent
-    // initialVelocityProject will set P=Gp=0 anyway, right?
     bool proj2 = !add_vort_proj;
     doMLMGNodalProjection(c_lev, f_lev-c_lev+1,
                           amrex::GetVecOfPtrs(u_real),
@@ -1691,8 +1682,8 @@ Projection::putDown (const Vector<MultiFab*>& phi,
             phiC_strip.grow(nGrow);
             BoxArray ba(phiC_strip);
 
-            // FIXME: this size may need adjusting
-            ba.maxSize(32);
+            // This is somewhat arbitrary but convenient
+            ba.maxSize(64);
 
             DistributionMapping dm{ba};
             MultiFab phi_crse_strip(ba, dm, nCompPhi, 0);
@@ -1903,12 +1894,13 @@ Projection::set_outflow_bcs_at_level (int          /*which_call*/,
                   parent->Geom(lev),
                   outFacesAtThisLevel,numOutFlowFaces,gravity);
 
-    // fixme - there's a cleaner way to do this
     for ( int iface = 0; iface < numOutFlowFaces; iface++)
     {
         BoxArray phi_fine_strip_ba(phi_fine_strip[iface].box());
-        // FIXME: this size may need adjusting
-        phi_fine_strip_ba.maxSize(32);
+
+        // This is somewhat arbitrary but convenient
+        phi_fine_strip_ba.maxSize(64);
+
         DistributionMapping dm {phi_fine_strip_ba};
         MultiFab phi_fine_strip_mf(phi_fine_strip_ba,dm,1,0);
 
@@ -2016,12 +2008,6 @@ Projection::computeRhoG(FArrayBox*         rhoFab,
           const auto* lo_bc = ns->m_bcrec_scalars[0].lo();
           const auto* hi_bc = ns->m_bcrec_scalars[0].hi();
 
-          //
-          // fixme? - TODO: Could parallelize here by dividing the loop over i (or j)
-          // only and thus the k integration stays intact. However, would want to move
-          // this declaration of rho_i, rho_ii to ensure each k integration has it's own
-          // copy.
-          //
           Real rho_i, rho_ii;
 
           if ( outDir == int(Direction::x) )
@@ -2552,12 +2538,6 @@ void Projection::doMLMGNodalProjection (int c_lev, int nlevel,
         MultiFab::Copy(Gp, *gradphi[lev], 0, 0, AMREX_SPACEDIM, 0);
 
       }
-      //
-      // FIXME - could we get away with only FillPatching in predict_velocity
-      // and initialPressureProject? I think this would depend on the definition
-      // of properly nested... For now, be safe and just fill them.
-      // Fill ghost cells
-      //
       const Real& time = (ns.state)[Gradp_Type].curTime();
       NavierStokesBase::FillPatch(ns, Gp, Gp.nGrow(), time, Gradp_Type, 0, AMREX_SPACEDIM);
     }
@@ -2592,7 +2572,6 @@ void Projection::set_boundary_velocity (int c_lev, int nlevel,
         vel[lev]->setBndry(0.0, Xvel+idir, 1);
       }
       else {
-        //fixme: is it worth the overhead to have threads here?
 #ifdef _OPENMP
 #pragma omp parallel
 #endif

@@ -1,7 +1,3 @@
-//fixme, for writesingle level plotfile
-#include<AMReX_PlotFileUtil.H>
-//
-
 #include <Diffusion.H>
 #include <NavierStokesBase.H>
 #include <iamr_constants.H>
@@ -35,10 +31,13 @@ namespace
     bool initialized = false;
     int agglomeration = 1;
     int consolidation = 1;
+    int max_iter     = 0;
     int max_fmg_iter = 0;
     int use_hypre = 0;
     int hypre_verbose = 0;
+    int bottom_verbose = 0;
 }
+
 //
 // Set default values in !initialized section of code in constructor!!!
 //
@@ -105,7 +104,9 @@ Diffusion::Diffusion (Amr*               Parent,
 
         ppdiff.query("agglomeration", agglomeration);
         ppdiff.query("consolidation", consolidation);
+        ppdiff.query("max_iter"    , max_iter);
         ppdiff.query("max_fmg_iter", max_fmg_iter);
+        ppdiff.query("bottom_verbose", bottom_verbose);
 #ifdef AMREX_USE_HYPRE
         ppdiff.query("use_hypre", use_hypre);
         ppdiff.query("hypre_verbose", hypre_verbose);
@@ -752,12 +753,14 @@ Diffusion::diffuse_tensor_velocity (Real                   dt,
 #endif
 
          MLMG mlmg(tensorop);
-         // FIXME -- consider making new parameters max_iter and bottom_verbose
-         //mlmg.setMaxIter(max_iter);
+         if (max_iter > 0) {
+             mlmg.setMaxIter(max_iter);
+         }
+         if (bottom_verbose > 0) {
+             mlmg.setBottomVerbose(bottom_verbose);
+         }
          mlmg.setMaxFmgIter(max_fmg_iter);
-         mlmg.setVerbose(10);
-         mlmg.setBottomVerbose(10);
-         //mlmg.setBottomVerbose(bottom_verbose);
+         mlmg.setVerbose(verbose);
 
          int nghost(2);
          MultiFab Rhs_tmp(grids,dmap,AMREX_SPACEDIM,nghost, MFInfo(),navier_stokes->Factory());
@@ -904,11 +907,14 @@ Diffusion::diffuse_tensor_velocity (Real                   dt,
 #endif
 
       MLMG mlmg(tensorop);
-      //fixme?
-      //mlmg.setMaxIter(max_iter);
+      if (max_iter > 0) {
+          mlmg.setMaxIter(max_iter);
+      }
+      if (bottom_verbose > 0) {
+          mlmg.setBottomVerbose(bottom_verbose);
+      }
       mlmg.setMaxFmgIter(max_fmg_iter);
       mlmg.setVerbose(verbose);
-      //mlmg.setBottomVerbose(bottom_verbose);
 
       // ensures ghost cells of sol are correctly filled when returned from solver
       mlmg.setFinalFillBC(true);
@@ -1122,10 +1128,13 @@ Diffusion::diffuse_tensor_Vsync (MultiFab&              Vsync,
     }
 
     MLMG mlmg(tensorop);
-    //fixme?
-    //mlmg.setMaxIter(max_iter);
-    //mlmg.setBottomVerbose(bottom_verbose);
-    if (use_hypre) {
+    if (max_iter > 0) {
+        mlmg.setMaxIter(max_iter);
+    }
+    if (bottom_verbose > 0) {
+        mlmg.setBottomVerbose(bottom_verbose);
+    }
+   if (use_hypre) {
        mlmg.setBottomSolver(MLMG::BottomSolver::hypre);
        mlmg.setBottomVerbose(hypre_verbose);
     }
@@ -1548,88 +1557,82 @@ Diffusion::getViscTerms (MultiFab&              visc_terms,
     // Note: This routine DOES NOT fill grow cells
     //
 
-    //
-    // FIXME
-    // LinOp classes cannot handle multcomponent MultiFabs yet,
-    // construct the components one at a time and copy to visc_terms.
-    //
-
     if (is_diffusive[comp])
     {
         int ng = 1;
         int ng_visc(2);// needed for redistribution
         MultiFab visc_tmp(grids,dmap,1,ng_visc,MFInfo(),navier_stokes->Factory()),
                  s_tmp(grids,dmap,1,ng,MFInfo(),navier_stokes->Factory());
-    // not sure this is needed...
         visc_tmp.setVal(0.);
+
         //
         // Set up operator and apply to compute viscous terms.
         //
         const Real a = 0.0;
         const Real b = -1.0;
 
-    LPInfo info;
-    info.setAgglomeration(agglomeration);
-    info.setConsolidation(consolidation);
-    info.setMaxCoarseningLevel(0);
+        LPInfo info;
+        info.setAgglomeration(agglomeration);
+        info.setConsolidation(consolidation);
+        info.setMaxCoarseningLevel(0);
 
 #ifdef AMREX_USE_EB
-    const auto& ebf = &(dynamic_cast<EBFArrayBoxFactory const&>(navier_stokes->Factory()));
-    MLEBABecLap mlabec({navier_stokes->Geom()}, {grids}, {dmap}, info, {ebf});
+        const auto& ebf = &(dynamic_cast<EBFArrayBoxFactory const&>(navier_stokes->Factory()));
+        MLEBABecLap mlabec({navier_stokes->Geom()}, {grids}, {dmap}, info, {ebf});
 #else
-    MLABecLaplacian mlabec({navier_stokes->Geom()},{grids},{dmap},info);
+        MLABecLaplacian mlabec({navier_stokes->Geom()},{grids},{dmap},info);
 #endif
 
-    mlabec.setMaxOrder(max_order);
+        mlabec.setMaxOrder(max_order);
 
-    {
-      // set BCs
+        {
+          // set BCs
 
-      std::array<LinOpBCType,AMREX_SPACEDIM> mlmg_lobc;
-      std::array<LinOpBCType,AMREX_SPACEDIM> mlmg_hibc;
-      setDomainBC(mlmg_lobc, mlmg_hibc, comp);
+          std::array<LinOpBCType,AMREX_SPACEDIM> mlmg_lobc;
+          std::array<LinOpBCType,AMREX_SPACEDIM> mlmg_hibc;
+          setDomainBC(mlmg_lobc, mlmg_hibc, comp);
 
-      mlabec.setDomainBC(mlmg_lobc, mlmg_hibc);
+          mlabec.setDomainBC(mlmg_lobc, mlmg_hibc);
 
-      MultiFab crsedata;
+          MultiFab crsedata;
 
-      if (level > 0) {
-        auto& crse_ns = *(coarser->navier_stokes);
-        crsedata.define(crse_ns.boxArray(), crse_ns.DistributionMap(), 1, ng,MFInfo(),crse_ns.Factory());
-        AmrLevel::FillPatch(crse_ns,crsedata,ng,time,State_Type,comp,1);
-        if (rho_flag == 2) {
-          // We want to evaluate (div beta grad) S, not rho*S.
-          const MultiFab& rhotime = crse_ns.get_rho(time);
-          MultiFab::Divide(crsedata,rhotime,0,0,1,ng);
+          if (level > 0) {
+            auto& crse_ns = *(coarser->navier_stokes);
+            crsedata.define(crse_ns.boxArray(), crse_ns.DistributionMap(), 1, ng,MFInfo(),crse_ns.Factory());
+            AmrLevel::FillPatch(crse_ns,crsedata,ng,time,State_Type,comp,1);
+            if (rho_flag == 2) {
+              // We want to evaluate (div beta grad) S, not rho*S.
+              const MultiFab& rhotime = crse_ns.get_rho(time);
+              MultiFab::Divide(crsedata,rhotime,0,0,1,ng);
+            }
+            mlabec.setCoarseFineBC(&crsedata, crse_ratio[0]);
+          }
+
+          AmrLevel::FillPatch(*navier_stokes,s_tmp,ng,time,State_Type,comp,1);
+          if (rho_flag == 2) {
+            const MultiFab& rhotime = navier_stokes->get_rho(time);
+            MultiFab::Divide(s_tmp,rhotime,0,0,1,ng);
+          }
+          mlabec.setLevelBC(0, &s_tmp);
         }
-        mlabec.setCoarseFineBC(&crsedata, crse_ratio[0]);
-      }
 
-      AmrLevel::FillPatch(*navier_stokes,s_tmp,ng,time,State_Type,comp,1);
-      if (rho_flag == 2) {
-        const MultiFab& rhotime = navier_stokes->get_rho(time);
-        MultiFab::Divide(s_tmp,rhotime,0,0,1,ng);
-      }
-      mlabec.setLevelBC(0, &s_tmp);
-    }
+        mlabec.setScalars(a,b);
+        // mlabec.setACoeffs() not needed since a = 0.0
 
-    mlabec.setScalars(a,b);
-    // mlabec.setACoeffs() not needed since a = 0.0
+        setBeta(mlabec, beta, betaComp);
 
 
-    setBeta(mlabec, beta, betaComp);
-
-    // Do we need something like this cribbed from mfix???
-    // This sets the coefficient on the wall and defines it as a homogeneous
-    // Dirichlet bc for the solve. mu_g is the viscosity at cc in mfix
-    // matches what's in bcoeff
-    //mlabec.setEBHomogDirichlet ( 0, (*mu_g[lev]) );
-
-    MLMG mgn(mlabec);
-    mgn.setVerbose(verbose);
-    mgn.apply({&visc_tmp},{&s_tmp});
+        MLMG mgn(mlabec);
+        mgn.setVerbose(verbose);
+        mgn.apply({&visc_tmp},{&s_tmp});
 
 #ifdef AMREX_USE_EB
+        // This would set coefficient on the wall and defines it as a homogeneous
+        // Dirichlet bc for the solve. mu_g is the viscosity at cc
+        // matches what's in bcoeff
+        // int mg_level = 0;
+        // mlabec.setEBHomogDirichlet ( mg_level, (*mu_g[lev]) );
+
         if (NavierStokesBase::getRedistType() != "NoRedist") {
             auto const& weights = ebf->getVolFrac();
             bool use_wts_in_divnc = true;
@@ -1730,14 +1733,6 @@ Diffusion::getTensorViscTerms (MultiFab&              visc_terms,
               }
               AmrLevel::FillPatch(*navier_stokes,s_tmp,ng,time,State_Type,Xvel,AMREX_SPACEDIM);
               tensorop.setLevelBC(0, &s_tmp);
-
-              // FIXME: check divergence of vel
-              // MLNodeLaplacian mllap({navier_stokes->Geom()}, {grids}, {dmap}, info);
-              // mllap.setDomainBC(mlmg_lobc[0], mlmg_hibc[0]);
-              // Rhs2.setVal(0.);
-              // mllap.compDivergence({&Rhs2}, {&s_tmp});
-              // amrex::WriteSingleLevelPlotfile("div_"+std::to_string(count), Rhs2, {AMREX_D_DECL("x","y","z")},navier_stokes->Geom(), 0.0, 0);
-              //
            }
 
            tensorop.setScalars(a, b);
@@ -1750,12 +1745,14 @@ Diffusion::getTensorViscTerms (MultiFab&              visc_terms,
 #endif
 
            MLMG mlmg(tensorop);
-           // FIXME -- consider making new parameters max_iter and bottom_verbose
-           //mlmg.setMaxIter(max_iter);
+           if (max_iter > 0) {
+               mlmg.setMaxIter(max_iter);
+           }
+           if (bottom_verbose > 0) {
+               mlmg.setBottomVerbose(bottom_verbose);
+           }
            mlmg.setMaxFmgIter(max_fmg_iter);
-           mlmg.setVerbose(10);
-           mlmg.setBottomVerbose(10);
-           //mlmg.setBottomVerbose(bottom_verbose);
+           mlmg.setVerbose(verbose);
 
            mlmg.apply({&visc_tmp}, {&s_tmp});
         }

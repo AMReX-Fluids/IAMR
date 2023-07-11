@@ -412,7 +412,6 @@ NavierStokesBase::initialize_eb2_structs() {
 
   // These are the data sources
   volfrac = &(ebfactory.getVolFrac());
-  bndrycent = &(ebfactory.getBndryCent());
   areafrac = ebfactory.getAreaFrac();
   facecent = ebfactory.getFaceCent();
 

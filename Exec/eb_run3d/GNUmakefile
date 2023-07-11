@@ -1,7 +1,6 @@
 #AMREX_HOME defines the directory in which we will find the AMReX directory
 AMREX_HOME       ?= ../../../amrex
 AMREX_HYDRO_HOME ?= ../../../AMReX-Hydro
-#../../../AMReX-Hydro
 
 #TOP defines the directory in which we will find Source, Exec, etc.
 TOP = ../..
@@ -15,13 +14,16 @@ PRECISION   = DOUBLE
 DIM         = 3
 COMP        = gnu
 
-DEBUG       = FALSE
 USE_MPI     = TRUE
 USE_OMP     = FALSE
 PROFILE     = FALSE
 
-
 USE_VELOCITY = FALSE
+
+DEBUG       = FALSE
+
+TEST          = TRUE
+USE_ASSERTION = TRUE
 
 USE_EB = TRUE
 

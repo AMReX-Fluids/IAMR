@@ -31,7 +31,6 @@ struct InitialConditions
   int direction = 0;
 
   // for Rayleigh-Taylor
-  // FIXME? perhaps this should be it's own struct
   amrex::Real rho_1 = 1.0;
   amrex::Real rho_2 = 2.0;
   amrex::Real tra_1 = 0.0;
@@ -125,8 +124,6 @@ static void init_ConvectedVortex (amrex::Box const& vbx,
               amrex::GpuArray<amrex::Real, AMREX_SPACEDIM> const& problo,
               amrex::GpuArray<amrex::Real, AMREX_SPACEDIM> const& probhi,
               InitialConditions IC);
-//FIXME - maybe make use of an enum like this?
-//enum struct Prob { HotSpot, bubble };
 
 //
 // Problems parameters, to be read from inputs file
