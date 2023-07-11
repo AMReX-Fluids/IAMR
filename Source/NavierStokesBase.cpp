@@ -1185,10 +1185,10 @@ NavierStokesBase::create_umac_grown (int nGrow,
 #ifdef AMREX_USE_OMP
 #pragma omp parallel if (Gpu::notInLaunchRegion())
 #endif
-        for (MFIter mfi(coarse_fine_mask,TilingIfNotGPU()); mfi.isValid(); ++mfi)
+        for (MFIter mfi(*coarse_fine_mask,TilingIfNotGPU()); mfi.isValid(); ++mfi)
         {
             const Box& tbx = mfi.tilebox();
-            auto const& maskarr = coarse_fine_mask.const_array(mfi);
+            auto const& maskarr = coarse_fine_mask->const_array(mfi);
             auto const& divu = (a_divu) ? a_divu->const_array(mfi) : Array4<const Real> {};
             auto const& umac = u_mac_fine[0]->array(mfi);
             auto const& vmac = u_mac_fine[1]->array(mfi);
@@ -5018,7 +5018,7 @@ NavierStokesBase::ComputeAofs ( MultiFab& advc, int a_comp, // Advection term "A
     // **********************************************************************************
     // Build mask to find the ghost cells we need to correct
     // **********************************************************************************
-    if (coarse_fine_mask == null_ptr) {
+    if (coarse_fine_mask == null_ptr_t) {
        coarse_fine_mask = std::make_unique<iMultiFab>(grids, dmap, 1, 2, MFInfo(), DefaultFabFactory<IArrayBox>());
        coarse_fine_mask->BuildMask(geom.Domain(), geom.periodicity(),
                    level_mask_covered, level_mask_notcovered, level_mask_physbnd, level_mask_interior);
@@ -5116,7 +5116,7 @@ NavierStokesBase::ComputeAofs ( MultiFab& advc, int a_comp, // Advection term "A
                                            AMREX_D_DECL(fcx,fcy,fcz), ccent_arr, bcrec_d,
                                            geom, dt, redistribution_type,
                                            as_crse, p_drho_as_crse->array(), p_rrflag_as_crse->array(),
-                                           as_fine, dm_as_fine.array(), coarse_fine_mask[mfi].const_array(),
+                                           as_fine, dm_as_fine.array(), coarse_fine_mask[mfi]->const_array(),
                                            level_mask_notcovered, use_wts_in_divnc);
                 } else {
                     bool use_wts_in_divnc = true;
