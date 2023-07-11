@@ -1171,8 +1171,8 @@ NavierStokesBase::create_umac_grown (int nGrow,
 
         // Need 2 ghost cells here so we can safely check the status of all faces of a
         // u_mac ghost cell
-        if (coarse_fine_mask == null_ptr) {
-            coarse_fine_mask = std::make_unique<iMultiFab(grids, dmap, 1, 2, MFInfo(), DefaultFabFactory<IArrayBox>())>;
+        if (coarse_fine_mask == null_ptr_t) {
+            coarse_fine_mask = std::make_unique<iMultiFab>(grids, dmap, 1, 2, MFInfo(), DefaultFabFactory<IArrayBox>());
             coarse_fine_mask->BuildMask(geom.Domain(), geom.periodicity(),
                                         level_mask_covered, level_mask_notcovered, level_mask_physbnd, level_mask_interior);
         }
