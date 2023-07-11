@@ -76,10 +76,12 @@ NavierStokes::Initialize_bcs ()
            m_bc_values[ori][1] = 0.0;,
            m_bc_values[ori][2] = 0.0;);
       m_bc_values[ori][Density] = 1.0;
-      for ( int nc = 0; nc < ntrac; nc++ )
-    m_bc_values[ori][Tracer+nc] = 0.0;
-      if (do_temp)
-    m_bc_values[ori][Temp] = 1.0;
+      for ( int nc = 0; nc < ntrac; nc++ ) {
+          m_bc_values[ori][Tracer+nc] = 0.0;
+      }
+      if (do_temp) {
+          m_bc_values[ori][Temp] = 1.0;
+      }
     }
 
     ParmParse pp("ns");
@@ -89,165 +91,172 @@ NavierStokes::Initialize_bcs ()
     //
     if ( pp.contains("lo_bc") )
     {
-      Vector<int> lo_bc(AMREX_SPACEDIM), hi_bc(AMREX_SPACEDIM);
-      pp.getarr("lo_bc",lo_bc,0,AMREX_SPACEDIM);
-      pp.getarr("hi_bc",hi_bc,0,AMREX_SPACEDIM);
-      for (int i = 0; i < AMREX_SPACEDIM; i++)
-      {
-      phys_bc.setLo(i,lo_bc[i]);
-      phys_bc.setHi(i,hi_bc[i]);
-      }
+        Vector<int> lo_bc(AMREX_SPACEDIM), hi_bc(AMREX_SPACEDIM);
+        pp.getarr("lo_bc",lo_bc,0,AMREX_SPACEDIM);
+        pp.getarr("hi_bc",hi_bc,0,AMREX_SPACEDIM);
+        for (int i = 0; i < AMREX_SPACEDIM; i++)
+        {
+            phys_bc.setLo(i,lo_bc[i]);
+            phys_bc.setHi(i,hi_bc[i]);
+        }
     }
 
     //
     // Read string BC specifications and BC values
     //
     {
-      int bc_tmp[2*AMREX_SPACEDIM];
+        int bc_tmp[2*AMREX_SPACEDIM];
 
-      auto f = [&bc_tmp] (std::string const& bcid, Orientation ori)
-      {
-      ParmParse pbc(bcid);
-      std::string bc_type_in = "null";
-      pbc.query("type", bc_type_in);
-      std::string bc_type = amrex::toLower(bc_type_in);
+        auto f = [&bc_tmp] (std::string const& bcid, Orientation ori)
+        {
+            ParmParse pbc(bcid);
+            std::string bc_type_in = "null";
+            pbc.query("type", bc_type_in);
+            std::string bc_type = amrex::toLower(bc_type_in);
 
-      if (bc_type == "no_slip_wall" or bc_type == "nsw"
-          or phys_bc.data()[ori] == PhysBCType::noslipwall)
-      {
-          amrex::Print() << bcid <<" set to no-slip wall.\n";
+            if (bc_type == "no_slip_wall" or bc_type == "nsw"
+                or phys_bc.data()[ori] == PhysBCType::noslipwall)
+            {
+                amrex::Print() << bcid <<" set to no-slip wall.\n";
 
-          bc_tmp[ori] = PhysBCType::noslipwall;
+                bc_tmp[ori] = PhysBCType::noslipwall;
 
-          // Note that m_bc_velocity defaults to 0 above so we are ok if
-          //      queryarr finds nothing
-          std::vector<Real> v;
-          if (pbc.queryarr("velocity", v, 0, AMREX_SPACEDIM)) {
-        // Here we make sure that we only use the tangential components
-        //      of a specified velocity field -- the wall is not allowed
-        //      to move in the normal direction
-                v[ori.coordDir()] = 0.0;
-                for (int i=0; i<AMREX_SPACEDIM; i++){
-          m_bc_values[ori][Xvel+i] = v[i];
+                // Note that m_bc_velocity defaults to 0 above so we are ok if
+                //      queryarr finds nothing
+                std::vector<Real> v;
+                if (pbc.queryarr("velocity", v, 0, AMREX_SPACEDIM)) {
+                    // Here we make sure that we only use the tangential components
+                    //      of a specified velocity field -- the wall is not allowed
+                    //      to move in the normal direction
+                    v[ori.coordDir()] = 0.0;
+                    for (int i=0; i<AMREX_SPACEDIM; i++){
+                        m_bc_values[ori][Xvel+i] = v[i];
+                    }
                 }
-          }
-      }
-      else if (bc_type == "slip_wall" or bc_type == "sw")
-      {
-          amrex::Print() << bcid <<" set to slip wall.\n";
-
-          bc_tmp[ori] = PhysBCType::slipwall;
-
-          // These values are set by default above -
-          //      note that we only actually use the zero value for the normal direction;
-          //      the tangential components are set to be first order extrap
-          // m_bc_velocity[ori] = {0.0, 0.0, 0.0};
-      }
-      else if (bc_type == "mass_inflow" or bc_type == "mi"
-           or phys_bc.data()[ori] == PhysBCType::inflow)
-      {
-          amrex::Print() << bcid << " set to mass inflow.\n";
-
-          bc_tmp[ori] = PhysBCType::inflow;
-
-          std::vector<Real> v;
-          if (pbc.queryarr("velocity", v, 0, AMREX_SPACEDIM)) {
-        for (int i=0; i<AMREX_SPACEDIM; i++){
-          m_bc_values[ori][Xvel+i] = v[i];
-        }
-          }
-
-          pbc.query("density", m_bc_values[ori][Density]);
-          pbc.query("tracer", m_bc_values[ori][Tracer]);
-          if (do_trac2) {
-        if ( pbc.countval("tracer") > 1 )
-          amrex::Abort("NavierStokes::Initialize_specific: Please set tracer 2 inflow bc value with it's own entry in inputs file, e.g. xlo.tracer2 = bc_value");
-        pbc.query("tracer2", m_bc_values[ori][Tracer2]);
-          }
-          if (do_temp)
-        pbc.query("temp", m_bc_values[ori][Temp]);
-      }
-      else if (bc_type == "pressure_inflow" or bc_type == "pi")
-      {
-          amrex::Abort("NavierStokes::Initialize_specific: Pressure inflow boundary condition not yet implemented. If needed for your simulation, please contact us.");
-
-          // amrex::Print() << bcid << " set to pressure inflow.\n";
-
-          // bc_tmp[ori] = PhysBCType::pressure_inflow;
-
-          // pbc.get("pressure", m_bc_pressure[ori]);
-      }
-      else if (bc_type == "pressure_outflow" or bc_type == "po"
-           or phys_bc.data()[ori] == PhysBCType::outflow)
-          {
-          amrex::Print() << bcid << " set to pressure outflow.\n";
-
-          bc_tmp[ori] = PhysBCType::outflow;
-
-          //pbc.query("pressure", m_bc_pressure[ori]);
-          Real tmp = 0.;
-          pbc.query("pressure", tmp);
-
-          if ( tmp != 0. )
-        amrex::Abort("NavierStokes::Initialize_specific: Pressure outflow boundary condition != 0 not yet implemented. If needed for your simulation, please contact us.");
-      }
-      else if (bc_type == "symmetry" or bc_type == "sym")
-      {
-          amrex::Print() << bcid <<" set to symmetry.\n";
-
-          bc_tmp[ori] = PhysBCType::symmetry;
-      }
-      else
-      {
-          bc_tmp[ori] = BCType::bogus;
-      }
-
-      if ( DefaultGeometry().isPeriodic(ori.coordDir()) ) {
-            if (bc_tmp[ori] == BCType::bogus || phys_bc.data()[ori] == PhysBCType::interior) {
-          bc_tmp[ori] = PhysBCType::interior;
-            } else {
-          std::cerr <<  " Wrong BC type for periodic boundary at "
-                    << bcid << ". Please correct inputs file."<<std::endl;
-          amrex::Abort();
             }
-      }
+            else if (bc_type == "slip_wall" or bc_type == "sw")
+            {
+                amrex::Print() << bcid <<" set to slip wall.\n";
 
-      if ( bc_tmp[ori] == BCType::bogus && phys_bc.data()[ori] == BCType::bogus ) {
-        std::cerr <<  " No valid BC type specificed for "
-                  << bcid  << ". Please correct inputs file."<<std::endl;
-        amrex::Abort();
-      }
+                bc_tmp[ori] = PhysBCType::slipwall;
 
-      if ( bc_tmp[ori] != BCType::bogus && phys_bc.data()[ori] != BCType::bogus
-           && bc_tmp[ori] != phys_bc.data()[ori] ) {
-        std::cerr<<" Multiple conflicting BCs specified for "
-                 << bcid << ": "<<bc_tmp[ori]<<", "<<phys_bc.data()[ori]
-                 <<". Please correct inputs file."<<std::endl;
-        amrex::Abort();
-      }
-      };
+                // These values are set by default above -
+                //      note that we only actually use the zero value for the normal direction;
+                //      the tangential components are set to be first order extrap
+                // m_bc_velocity[ori] = {0.0, 0.0, 0.0};
+            }
+            else if (bc_type == "mass_inflow" or bc_type == "mi"
+                     or phys_bc.data()[ori] == PhysBCType::inflow)
+            {
+                amrex::Print() << bcid << " set to mass inflow.\n";
 
-      f("xlo", Orientation(Direction::x,Orientation::low));
-      f("xhi", Orientation(Direction::x,Orientation::high));
-      f("ylo", Orientation(Direction::y,Orientation::low));
-      f("yhi", Orientation(Direction::y,Orientation::high));
+                bc_tmp[ori] = PhysBCType::inflow;
+
+                std::vector<Real> v;
+                if (pbc.queryarr("velocity", v, 0, AMREX_SPACEDIM)) {
+                    for (int i=0; i<AMREX_SPACEDIM; i++){
+                        m_bc_values[ori][Xvel+i] = v[i];
+                    }
+                }
+
+                pbc.query("density", m_bc_values[ori][Density]);
+                pbc.query("tracer", m_bc_values[ori][Tracer]);
+                if (do_trac2) {
+                    if ( pbc.countval("tracer") > 1 )
+                        amrex::Abort("NavierStokes::Initialize_specific: Please set tracer 2 inflow bc value with it's own entry in inputs file, e.g. xlo.tracer2 = bc_value");
+                    pbc.query("tracer2", m_bc_values[ori][Tracer2]);
+                }
+                if (do_temp)
+                    pbc.query("temp", m_bc_values[ori][Temp]);
+            }
+            else if (bc_type == "pressure_inflow" or bc_type == "pi")
+            {
+                amrex::Abort("NavierStokes::Initialize_specific: Pressure inflow boundary condition not yet implemented. If needed for your simulation, please contact us.");
+
+                // amrex::Print() << bcid << " set to pressure inflow.\n";
+
+                // bc_tmp[ori] = PhysBCType::pressure_inflow;
+
+                // pbc.get("pressure", m_bc_pressure[ori]);
+            }
+            else if (bc_type == "pressure_outflow" or bc_type == "po"
+                     or phys_bc.data()[ori] == PhysBCType::outflow)
+            {
+                amrex::Print() << bcid << " set to pressure outflow.\n";
+
+                bc_tmp[ori] = PhysBCType::outflow;
+
+                //pbc.query("pressure", m_bc_pressure[ori]);
+                Real tmp = 0.;
+                pbc.query("pressure", tmp);
+
+                if ( tmp != 0. )
+                    amrex::Abort("NavierStokes::Initialize_specific: Pressure outflow boundary condition != 0 not yet implemented. If needed for your simulation, please contact us.");
+            }
+            else if (bc_type == "symmetry" or bc_type == "sym")
+            {
+                amrex::Print() << bcid <<" set to symmetry.\n";
+
+                bc_tmp[ori] = PhysBCType::symmetry;
+            }
+            else
+            {
+                bc_tmp[ori] = BCType::bogus;
+            }
+
+            if ( DefaultGeometry().isPeriodic(ori.coordDir()) ) {
+                if (bc_tmp[ori] == BCType::bogus || phys_bc.data()[ori] == PhysBCType::interior) {
+                    bc_tmp[ori] = PhysBCType::interior;
+                } else {
+                    std::cerr <<  " Wrong BC type for periodic boundary at "
+                              << bcid << ". Please correct inputs file."<<std::endl;
+                    amrex::Abort();
+                }
+            }
+
+            if ( phys_bc.data()[ori] == PhysBCType::interior &&
+                 !DefaultGeometry().isPeriodic(ori.coordDir()) ) {
+                std::cerr <<  " Periodic BC specified at "<< bcid
+                          << " but geometry is not periodic. Please correct inputs file."<<std::endl;
+                amrex::Abort();
+            }
+
+            if ( bc_tmp[ori] == BCType::bogus && phys_bc.data()[ori] == BCType::bogus ) {
+                std::cerr <<  " No valid BC type specificed for "
+                          << bcid  << ". Please correct inputs file."<<std::endl;
+                amrex::Abort();
+            }
+
+            if ( bc_tmp[ori] != BCType::bogus && phys_bc.data()[ori] != BCType::bogus
+                 && bc_tmp[ori] != phys_bc.data()[ori] ) {
+                std::cerr<<" Multiple conflicting BCs specified for "
+                         << bcid << ": "<<bc_tmp[ori]<<", "<<phys_bc.data()[ori]
+                         <<". Please correct inputs file."<<std::endl;
+                amrex::Abort();
+            }
+        };
+
+        f("xlo", Orientation(Direction::x,Orientation::low));
+        f("xhi", Orientation(Direction::x,Orientation::high));
+        f("ylo", Orientation(Direction::y,Orientation::low));
+        f("yhi", Orientation(Direction::y,Orientation::high));
 #if (AMREX_SPACEDIM == 3)
-      f("zlo", Orientation(Direction::z,Orientation::low));
-      f("zhi", Orientation(Direction::z,Orientation::high));
+        f("zlo", Orientation(Direction::z,Orientation::low));
+        f("zhi", Orientation(Direction::z,Orientation::high));
 #endif
 
-      if ( phys_bc.lo(0) == BCType::bogus )
-      {
-    //
-    // Then valid BC types must be in bc_tmp.
-    // Load them into phys_bc.
-    //
-    for (int dir = 0; dir < AMREX_SPACEDIM; dir++)
-    {
-      phys_bc.setLo(dir,bc_tmp[dir]);
-      phys_bc.setHi(dir,bc_tmp[dir+AMREX_SPACEDIM]);
-    }
-      } // else, phys_bc already has valid BC types
+        if ( phys_bc.lo(0) == BCType::bogus )
+        {
+            //
+            // Then valid BC types must be in bc_tmp.
+            // Load them into phys_bc.
+            //
+            for (int dir = 0; dir < AMREX_SPACEDIM; dir++)
+            {
+                phys_bc.setLo(dir,bc_tmp[dir]);
+                phys_bc.setHi(dir,bc_tmp[dir+AMREX_SPACEDIM]);
+            }
+        } // else, phys_bc already has valid BC types
     }
 
     //fixme
