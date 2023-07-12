@@ -71,7 +71,8 @@ main (int   argc,
     AmrLevel::SetEBSupportLevel(EBSupport::full);
 
     // Set grow cells for basic, volume, full
-    AmrLevel::SetEBMaxGrowCells(4,4,4);
+    // Look in weighted SRSD paper for explanation for why this is 5
+    AmrLevel::SetEBMaxGrowCells(5,5,5);
 
     int max_coarsening_level = 100;
     pp.query("max_coarsening_level", max_coarsening_level);
