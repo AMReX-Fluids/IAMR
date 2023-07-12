@@ -324,7 +324,7 @@ void NavierStokes::init_jump (Box const& vbx,
 
     // Smooth the density interface just a bit
     scal(i,j,k,0) = //dens1 * (2. + std::tanh(100.*(-.2-x)/IC.interface_width) ) / 2.;
-        IC.rho_1 + ((IC.rho_2-IC.rho_1)/2.0)*(1.0+std::tanh((x_jump-x)/IC.interface_width));
+        IC.rho_1 + ((IC.rho_2-IC.rho_1)/2.0)*(1.0+std::tanh(-(x_jump-x)/IC.interface_width));
 
     if (x <= x_jump ) {
         //scal(i,j,k,0) = IC.rho_1;
