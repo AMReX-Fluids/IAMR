@@ -867,8 +867,8 @@ NavierStokes::scalar_diffusion_update (Real dt,
     const Real prev_time = state[State_Type].prevTime();
     const Real curr_time = state[State_Type].curTime();
 
-    FillPatch(*this,get_old_data(State_Type),ng,prev_time,State_Type,0,NUM_STATE);
-    FillPatch(*this,get_new_data(State_Type),ng,curr_time,State_Type,0,NUM_STATE);
+    FillPatch(*this,get_old_data(State_Type),ng,prev_time,State_Type,Density,NUM_SCALARS,Density);
+    FillPatch(*this,get_new_data(State_Type),ng,curr_time,State_Type,Density,NUM_SCALARS,Density);
 
     auto Snc = std::make_unique<MultiFab>();
     auto Snp1c = std::make_unique<MultiFab>();
