@@ -867,8 +867,8 @@ NavierStokes::scalar_diffusion_update (Real dt,
     const Real prev_time = state[State_Type].prevTime();
     const Real curr_time = state[State_Type].curTime();
 
-    FillPatch(*this,get_old_data(State_Type),ng,prev_time,State_Type,Density,NUM_SCALARS);
-    FillPatch(*this,get_new_data(State_Type),ng,curr_time,State_Type,Density,NUM_SCALARS);
+    FillPatch(*this,get_old_data(State_Type),ng,prev_time,State_Type,0,NUM_STATE);
+    FillPatch(*this,get_new_data(State_Type),ng,curr_time,State_Type,0,NUM_STATE);
 
     auto Snc = std::make_unique<MultiFab>();
     auto Snp1c = std::make_unique<MultiFab>();
@@ -940,7 +940,7 @@ NavierStokes::scalar_diffusion_update (Real dt,
                                    alpha,alphaComp,
                                    cmp_diffn,cmp_diffnp1,betaComp,
                                    crse_ratio,theBCs[bc_comp],geom,
-                   add_old_time_divFlux,
+                                   add_old_time_divFlux,
                                    diffuse_comp);
 
         delete alpha;
