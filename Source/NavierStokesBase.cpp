@@ -1171,7 +1171,7 @@ NavierStokesBase::create_umac_grown (int nGrow,
 
         // Need 2 ghost cells here so we can safely check the status of all faces of a
         // u_mac ghost cell
-        if (coarse_fine_mask == nullptr_t) {
+        if (coarse_fine_mask == nullptr) {
             coarse_fine_mask = std::make_unique<iMultiFab>(grids, dmap, 1, 2, MFInfo(), DefaultFabFactory<IArrayBox>());
             coarse_fine_mask->BuildMask(geom.Domain(), geom.periodicity(),
                                         level_mask_covered, level_mask_notcovered, level_mask_physbnd, level_mask_interior);
@@ -5018,7 +5018,7 @@ NavierStokesBase::ComputeAofs ( MultiFab& advc, int a_comp, // Advection term "A
     // **********************************************************************************
     // Build mask to find the ghost cells we need to correct
     // **********************************************************************************
-    if (coarse_fine_mask == nullptr_t) {
+    if (coarse_fine_mask == nullptr) {
        coarse_fine_mask = std::make_unique<iMultiFab>(grids, dmap, 1, 2, MFInfo(), DefaultFabFactory<IArrayBox>());
        coarse_fine_mask->BuildMask(geom.Domain(), geom.periodicity(),
                    level_mask_covered, level_mask_notcovered, level_mask_physbnd, level_mask_interior);
@@ -5116,7 +5116,7 @@ NavierStokesBase::ComputeAofs ( MultiFab& advc, int a_comp, // Advection term "A
                                            AMREX_D_DECL(fcx,fcy,fcz), ccent_arr, bcrec_d,
                                            geom, dt, redistribution_type,
                                            as_crse, p_drho_as_crse->array(), p_rrflag_as_crse->array(),
-                                           as_fine, dm_as_fine.array(), coarse_fine_mask[mfi]->const_array(),
+                                           as_fine, dm_as_fine.array(), coarse_fine_mask->const_array(mfi),
                                            level_mask_notcovered, use_wts_in_divnc);
                 } else {
                     bool use_wts_in_divnc = true;
