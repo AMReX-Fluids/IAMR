@@ -71,6 +71,7 @@ main (int   argc,
     AmrLevel::SetEBSupportLevel(EBSupport::full);
 
     // Set grow cells for basic, volume, full
+    // Look in weighted SRSD paper for explanation for why this is 5
     AmrLevel::SetEBMaxGrowCells(5,5,5);
 
     int max_coarsening_level = 100;
