@@ -70,6 +70,17 @@ static void init_constant_vel_rho (amrex::Box const& vbx,
                 amrex::GpuArray<amrex::Real, AMREX_SPACEDIM> const& probhi,
                 InitialConditions IC);
 
+static void init_jump (amrex::Box const& vbx,
+                amrex::Array4<amrex::Real> const& press,
+                amrex::Array4<amrex::Real> const& vel,
+                amrex::Array4<amrex::Real> const& scal,
+                int nscal,
+                amrex::Box const& domain,
+                amrex::GpuArray<amrex::Real, AMREX_SPACEDIM> const& dx,
+                amrex::GpuArray<amrex::Real, AMREX_SPACEDIM> const& problo,
+                amrex::GpuArray<amrex::Real, AMREX_SPACEDIM> const& probhi,
+                InitialConditions IC);
+
 static void init_DoubleShearLayer (amrex::Box const& vbx,
                 amrex::Array4<amrex::Real> const& press,
                 amrex::Array4<amrex::Real> const& vel,

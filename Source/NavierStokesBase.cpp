@@ -1163,12 +1163,6 @@ NavierStokesBase::create_umac_grown (int nGrow,
         // NOTE that this does not fill grid edges or corners.
         //
 
-#ifdef AMREX_USE_EB
-        if (!refine_cutcells) {
-            amrex::Abort("NSB::create_umac_grown not implemented for EB crossing the coarse-fine boundary.");
-        }
-#endif
-
         // Need 2 ghost cells here so we can safely check the status of all faces of a
         // u_mac ghost cell
         if (coarse_fine_mask == nullptr) {
@@ -1335,7 +1329,7 @@ NavierStokesBase::errorEst (TagBoxArray& tb,
     if ( !ebfactory.isAllRegular() )
     {
         if (!refine_cutcells) {
-            amrex::Abort("For now, cutcells must always exist at finest level.");
+            amrex::Warning("Partially refined EB is still under development. This is not garanteed to work! Please use ns.refine_cutcells=1 for now.");
         }
 
         // Refine on cut cells
