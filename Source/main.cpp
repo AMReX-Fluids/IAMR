@@ -67,20 +67,12 @@ main (int   argc,
     Amr* amrptr = new Amr(getLevelBld());
     //    Amr amr;
 #ifdef AMREX_USE_EB
-    // fixme? not sure what level of support should be default
-    // levels explianed in user guide
-    // Ann suggested we need vol and area frac, and face and area centroid => full
+    // EB should calculate centroids as well as volume and area fractions
     AmrLevel::SetEBSupportLevel(EBSupport::full);
-    // set grow cells for basic, volume, full
-    // fixme? not sure what these numbers should be
-    // AmrLevel.cpp defaults 5, 4, 2
-    // CNS::numGrow()= 5
-    //AmrLevel::SetEBMaxGrowCells(CNS::numGrow(),4,2);
-    // NavierStokesBase GEOM_GROW=1 currently. Change it? Make new var?
-    // 6 ghost nodes are necessary for EB-godunov with StateRedist so we use 6.
-    AmrLevel::SetEBMaxGrowCells(6,6,6);
 
-    //decide who should own max_coasening_level later
+    // Set grow cells for basic, volume, full
+    AmrLevel::SetEBMaxGrowCells(4,4,4);
+
     int max_coarsening_level = 100;
     pp.query("max_coarsening_level", max_coarsening_level);
     initialize_EB2(amrptr->Geom(amrptr->maxLevel()), amrptr->maxLevel(),

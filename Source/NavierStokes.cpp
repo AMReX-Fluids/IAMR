@@ -1,7 +1,3 @@
-//fixme, for writesingle level plotfile
-//#include<AMReX_PlotFileUtil.H>
-//
-
 #include <unistd.h>
 #include <AMReX_Geometry.H>
 #include <AMReX_Extrapolater.H>
@@ -32,7 +28,6 @@ namespace
 }
 
 Vector<AMRErrorTag> NavierStokes::errtags;
-//FIXME - see NS.H
 GpuArray<GpuArray<Real, NavierStokes::NUM_STATE_MAX>, AMREX_SPACEDIM*2> NavierStokes::m_bc_values;
 
 void
@@ -51,6 +46,11 @@ NavierStokes::Initialize ()
         Tracer2 = NUM_STATE++;
     if (do_temp)
         Temp = NUM_STATE++;
+
+    // NUM_STATE_MAX is defined in NavierStokes.H
+    // to be AMREX_SPACEDIM + 4 (for Density, 2 scalars, Temp)
+    AMREX_ALWAYS_ASSERT(NUM_STATE <= NUM_STATE_MAX);
+
     NUM_SCALARS = NUM_STATE - Density;
 
     NavierStokes::Initialize_bcs();
@@ -250,23 +250,6 @@ NavierStokes::Initialize_bcs ()
       } // else, phys_bc already has valid BC types
     }
 
-    //fixme
-    // for (OrientationIter face; face; ++face)
-    // {
-    //   int ori = int(face());
-    //   Print()<<face()<<" : \n"
-    //          <<"   typ = "<<phys_bc.data()[ori]<<"\n"
-    //          <<"   vel = "<<m_bc_values[ori][0]<<" "<<m_bc_values[ori][1]<<"\n"
-    //          <<"   den = "<<m_bc_values[ori][Density]<<"\n";
-    //   for ( int nc = 0; nc < ntrac; nc++ )
-    //     Print()<<"   trc = "<<m_bc_values[ori][Tracer+nc]<<"\n";
-    //   if (do_temp)
-    //     Print()<<"   tmp = "<<m_bc_values[ori][Temp];
-    //   Print()<<std::endl;
-    //   Print()<<std::endl;
-    // }
-
-
     //
     // This checks for RZ and makes sure phys_bc is consistent with that.
     //
@@ -279,8 +262,6 @@ NavierStokes::Initialize_diffusivities ()
     //
     // Read viscous/diffusive coeffs.
     //
-// fixme - visc_coeffs should probably be owned by NS, not NSB...
-
     ParmParse pp("ns");
 
     const int n_vel_visc_coef   = pp.countval("vel_visc_coef");
@@ -607,20 +588,14 @@ NavierStokes::advance (Real time,
     //
     if (do_mac_proj)
     {
-#ifdef AMREX_USE_EB
-    int ng_rhs = 4;
-#else
-    //FIXME?? should this match umac_n_grow??? or is this a requirement of the proj???
-    // I think we might not need any now, proj may create it's own temps and fill ghosts itself
-    // To enforce div constraint on coarse-fine boundary, need 1 ghost cell
-    // maybe need to make sure divu_type get it's ghost cell s FP'ed
-    int ng_rhs = 1;
-#endif
-    MultiFab mac_rhs(grids,dmap,1,ng_rhs,MFInfo(),Factory());
-    create_mac_rhs(mac_rhs,ng_rhs,time,dt);
-        MultiFab& S_old = get_old_data(State_Type);
+        // To enforce div constraint on coarse-fine boundary, need 1 ghost cell
+        int ng_rhs = 1;
 
+        MultiFab mac_rhs(grids,dmap,1,ng_rhs,MFInfo(),Factory());
+        create_mac_rhs(mac_rhs,ng_rhs,time,dt);
+        MultiFab& S_old = get_old_data(State_Type);
         mac_project(time,dt,S_old,&mac_rhs,umac_n_grow,true);
+
     } else {
         // Use interpolation from coarse to fill grow cells.
         create_umac_grown(umac_n_grow, nullptr);
@@ -892,7 +867,6 @@ NavierStokes::scalar_diffusion_update (Real dt,
     const Real prev_time = state[State_Type].prevTime();
     const Real curr_time = state[State_Type].curTime();
 
-    //fixme? why fillpatch all of state when only doing scalars?
     FillPatch(*this,get_old_data(State_Type),ng,prev_time,State_Type,0,NUM_STATE);
     FillPatch(*this,get_new_data(State_Type),ng,curr_time,State_Type,0,NUM_STATE);
 
@@ -936,8 +910,9 @@ NavierStokes::scalar_diffusion_update (Real dt,
 
     for (int sigma = first_scalar; sigma <= last_scalar; sigma++)
     {
-      if (verbose)
+      if (verbose) {
           Print()<<"scalar_diffusion_update "<<sigma<<" of "<<last_scalar<<"\n";
+      }
 
       if (is_diffusive[sigma])
       {
@@ -965,7 +940,7 @@ NavierStokes::scalar_diffusion_update (Real dt,
                                    alpha,alphaComp,
                                    cmp_diffn,cmp_diffnp1,betaComp,
                                    crse_ratio,theBCs[bc_comp],geom,
-                   add_old_time_divFlux,
+                                   add_old_time_divFlux,
                                    diffuse_comp);
 
         delete alpha;
@@ -975,53 +950,55 @@ NavierStokes::scalar_diffusion_update (Real dt,
         //
         if (do_reflux)
         {
+            FArrayBox fluxtot;
+            for (int d = 0; d < AMREX_SPACEDIM; d++)
+            {
+                MultiFab fluxes;
 
-      FArrayBox fluxtot;
-      for (int d = 0; d < AMREX_SPACEDIM; d++)
-          {
-        MultiFab fluxes;
+                if (level < parent->finestLevel())
+                {
+                    fluxes.define(fluxn[d]->boxArray(), fluxn[d]->DistributionMap(), 1, 0, MFInfo(), Factory());
+                }
 
-        if (level < parent->finestLevel())
-        {
-          fluxes.define(fluxn[d]->boxArray(), fluxn[d]->DistributionMap(), 1, 0, MFInfo(), Factory());
+                for (MFIter fmfi(*fluxn[d]); fmfi.isValid(); ++fmfi)
+                {
+                    const Box& ebox = (*fluxn[d])[fmfi].box();
+
+                    fluxtot.resize(ebox,1);
+                    Elixir fdata_i = fluxtot.elixir();
+
+                    auto const& ftot = fluxtot.array();
+                    auto const& fn   = fluxn[d]->array(fmfi);
+                    auto const& fnp1 = fluxnp1[d]->array(fmfi);
+
+                    amrex::ParallelFor(ebox, [ftot, fn, fnp1 ]
+                    AMREX_GPU_DEVICE (int i, int j, int k) noexcept
+                    {
+                        ftot(i,j,k) = fn(i,j,k) + fnp1(i,j,k);
+                    });
+
+                    if (level < parent->finestLevel()) {
+                        fluxes[fmfi].copy<RunOn::Gpu>(fluxtot);
+                    }
+
+                    if (level > 0) {
+                        getViscFluxReg().FineAdd(fluxtot,d,fmfi.index(),0,sigma,1,dt,RunOn::Gpu);
+                    }
+                  } // mfi
+
+                  if (level < parent->finestLevel()) {
+                    getLevel(level+1).getViscFluxReg().CrseInit(fluxes,d,0,sigma,1,-dt);
+                  }
+
+            } // d
+        } // do_reflux
+
+        if (be_cn_theta != 1) {
+            fb_diffn.clear();
         }
+        fb_diffnp1.clear();
 
-        for (MFIter fmfi(*fluxn[d]); fmfi.isValid(); ++fmfi)
-        {
-          const Box& ebox = (*fluxn[d])[fmfi].box();
-
-          fluxtot.resize(ebox,1);
-          Elixir fdata_i = fluxtot.elixir();
-
-          auto const& ftot = fluxtot.array();
-          auto const& fn   = fluxn[d]->array(fmfi);
-          auto const& fnp1 = fluxnp1[d]->array(fmfi);
-
-          amrex::ParallelFor(ebox, [ftot, fn, fnp1 ]
-          AMREX_GPU_DEVICE (int i, int j, int k) noexcept
-          {
-        ftot(i,j,k) = fn(i,j,k) + fnp1(i,j,k);
-          });
-
-          if (level < parent->finestLevel())
-        fluxes[fmfi].copy<RunOn::Gpu>(fluxtot);
-
-          //fixme - not sure what FineAdd does exactly, presumable okay wo sync here
-          if (level > 0)
-        getViscFluxReg().FineAdd(fluxtot,d,fmfi.index(),0,sigma,1,dt,RunOn::Gpu);
-        }
-
-        if (level < parent->finestLevel())
-          getLevel(level+1).getViscFluxReg().CrseInit(fluxes,d,0,sigma,1,-dt);
-
-      }
-    }
-
-    if (be_cn_theta != 1)
-      fb_diffn.clear();
-    fb_diffnp1.clear();
-
-      }//end if(is_diffusive)
+    }//end if(is_diffusive)
     }
 }
 void
@@ -1389,11 +1366,6 @@ NavierStokes::post_init_press (Real&        dt_init,
                                           strt_time,have_divu);
         }
 
-    // FIXME? -- TODO check if this is really needed here.
-    // All of State_type and Divu_Type gets reset.
-    // NodalProj averages down phi (sync is an increment) and Pnew coming in
-        // has been averaged down, so with linearity of average, P & Gp shouldn't need it
-    // Think we really only need to average down dsdt
         for (int k = finest_level-1; k >= 0; k--)
         {
             getLevel(k).avgDown();
@@ -1485,13 +1457,10 @@ NavierStokes::mac_sync ()
     MultiFab&  Rh             = get_rho_half_time();
 
 #ifdef AMREX_USE_EB
-    // fixme? unsure how many ghost cells...
-    // for now, match umac
     const int nghost = umac_n_grow;
 #else
     const int nghost = 0;
 #endif
-
 
     Array<MultiFab*,AMREX_SPACEDIM> Ucorr;
     for (int idim = 0; idim < AMREX_SPACEDIM; ++idim)

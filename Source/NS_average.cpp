@@ -1,12 +1,4 @@
-//fixme, for writesingle level plotfile
-#include<AMReX_PlotFileUtil.H>
-//
-
 #include <NavierStokesBase.H>
-
-#include <AMReX_VisMF.H>
-
-
 
 using namespace amrex;
 

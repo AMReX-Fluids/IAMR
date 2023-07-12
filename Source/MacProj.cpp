@@ -12,10 +12,6 @@
 #include <hydro_godunov.H>
 #include <hydro_bds.H>
 
-
-//fixme, for writesingle level plotfile
-//#include<AMReX_PlotFileUtil.H>
-
 using namespace amrex;
 
 namespace
@@ -424,8 +420,7 @@ MacProj::mac_sync_solve (int       level,
 #ifdef _OPENMP
 #pragma omp parallel if (Gpu::notInLaunchRegion())
 #endif
-    // fixme? Should do some real tests to see if tiling here is a win or not
-    for (MFIter mfi(Rhs,TilingIfNotGPU()); mfi.isValid(); ++mfi)
+    for (MFIter mfi(Rhs,false); mfi.isValid(); ++mfi)
     {
         AMREX_ASSERT(grids[mfi.index()].contains(mfi.tilebox()) );
 

@@ -274,18 +274,12 @@ NavierStokesBase::NavierStokesBase (Amr&            papa,
         p_avg.define(P_grids,dmap,1,0,MFInfo(),Factory());
     }
 
-    // FIXME -
-    // rho_half is passed into level_project to be used as sigma in the MLMG
-    // solve, but MLMG doesn't copy any ghost cells, it fills what it needs itself.
-    // does rho_half still need any ghost cells?
-    //
-    // Also, don't really need rho_ptime, only rho_half uses it.
-    // rho_ctime is used in PeleLM (there are other options though), and rho_half.
     rho_half.define (grids,dmap,1,1,MFInfo(),Factory());
     rho_ptime.define(grids,dmap,1,1,MFInfo(),Factory());
     rho_ctime.define(grids,dmap,1,1,MFInfo(),Factory());
     rho_qtime  = nullptr;
     rho_tqtime = nullptr;
+
     //
     // Build metric coefficients for RZ calculations.
     // Build volume and areas.
@@ -296,8 +290,6 @@ NavierStokesBase::NavierStokesBase (Amr&            papa,
 #ifdef AMREX_USE_EB
     init_eb(level_geom, bl, dm);
 #endif
-
-    //FIXME --- this fn is really similar to restart()... work on that later
 
     //
     // Set up reflux registers.
@@ -1177,13 +1169,13 @@ NavierStokesBase::create_umac_grown (int nGrow,
         }
 #endif
 
-        // Build mask to find the ghost cells we need to correct
         // Need 2 ghost cells here so we can safely check the status of all faces of a
         // u_mac ghost cell
-        iMultiFab mask(grids, u_mac_fine[0]->DistributionMap(), 1, 2, MFInfo(),
-                       DefaultFabFactory<IArrayBox>());
-        mask.BuildMask(fine_geom->Domain(), fine_geom->periodicity(),
-                       level_mask_covered, level_mask_notcovered, level_mask_physbnd, level_mask_interior);
+        if (coarse_fine_mask == nullptr) {
+            coarse_fine_mask = std::make_unique<iMultiFab>(grids, dmap, 1, 2, MFInfo(), DefaultFabFactory<IArrayBox>());
+            coarse_fine_mask->BuildMask(geom.Domain(), geom.periodicity(),
+                                        level_mask_covered, level_mask_notcovered, level_mask_physbnd, level_mask_interior);
+        }
 
         const GpuArray<Real,AMREX_SPACEDIM> dx = fine_geom->CellSizeArray();
         const GpuArray<Real,AMREX_SPACEDIM> dxinv = fine_geom->InvCellSizeArray();
@@ -1193,10 +1185,10 @@ NavierStokesBase::create_umac_grown (int nGrow,
 #ifdef AMREX_USE_OMP
 #pragma omp parallel if (Gpu::notInLaunchRegion())
 #endif
-        for (MFIter mfi(mask,TilingIfNotGPU()); mfi.isValid(); ++mfi)
+        for (MFIter mfi(*coarse_fine_mask,TilingIfNotGPU()); mfi.isValid(); ++mfi)
         {
             const Box& tbx = mfi.tilebox();
-            auto const& maskarr = mask.const_array(mfi);
+            auto const& maskarr = coarse_fine_mask->const_array(mfi);
             auto const& divu = (a_divu) ? a_divu->const_array(mfi) : Array4<const Real> {};
             auto const& umac = u_mac_fine[0]->array(mfi);
             auto const& vmac = u_mac_fine[1]->array(mfi);
@@ -1342,11 +1334,6 @@ NavierStokesBase::errorEst (TagBoxArray& tb,
     const auto& ebfactory = dynamic_cast<amrex::EBFArrayBoxFactory const&>(Factory());
     if ( !ebfactory.isAllRegular() )
     {
-        //
-        // FIXME - For now, always refine cut cells
-        //   Later, figure out a slick way to check if EB and CFB cross
-        //   and allow !refine_cutcells
-        //
         if (!refine_cutcells) {
             amrex::Abort("For now, cutcells must always exist at finest level.");
         }
@@ -2056,9 +2043,6 @@ NavierStokesBase::level_sync (int crse_iteration)
                  0, 0, AMREX_SPACEDIM, 1 , dt, fine_sync_bc.dataPtr());
       SyncProjInterp(phi, level+1, P_new, P_old, lev, ratio);
 
-      // Update Gradp old and new, since both are corrected in SyncProjInterp
-      // FIXME? Unsure that updating old is really necessary
-      // NOTE this will fill ghost cells with FillPatch
       flev.computeGradP(flev.state[Gradp_Type].prevTime());
       flev.computeGradP(flev.state[Gradp_Type].curTime());
 
@@ -2545,7 +2529,6 @@ NavierStokesBase::post_restart ()
     }
   }
 
-// FIXME - should remove ifdef and use runtime parameter instead...
 #ifdef AMREX_USE_TURBULENT_FORCING
   //
   // Initialize data structures used for homogenous isentropic forced turbulence.
@@ -2795,7 +2778,6 @@ NavierStokesBase::restart (Amr&          papa,
         rho_avg.define(grids,dmap,1,1,MFInfo(),Factory());
         p_avg.define(P_grids,dmap,1,0,MFInfo(),Factory());
     }
-    //FIXME see similar stuff in constructor
     rho_half.define (grids,dmap,1,1,MFInfo(),Factory());
     rho_ptime.define(grids,dmap,1,1,MFInfo(),Factory());
     rho_ctime.define(grids,dmap,1,1,MFInfo(),Factory());
@@ -2951,7 +2933,7 @@ NavierStokesBase::scalar_advection_update (Real dt,
         //
         MultiFab Vel(grids, dmap, AMREX_SPACEDIM, 0, MFInfo(), Factory());
 #ifdef AMREX_USE_EB
-        // FIXME - this isn't quite right because it's face-centers to cell-centers
+        // This isn't quite right because it's face-centers to cell-centers
         // what's really wanted is face-centroid to cell-centroid
         EB_average_face_to_cellcenter(Vel, 0, Array<MultiFab const*,AMREX_SPACEDIM>{{AMREX_D_DECL(&u_mac[0],&u_mac[1],&u_mac[2])}});
 #else
@@ -3318,9 +3300,6 @@ NavierStokesBase::SyncInterp (MultiFab&      CrseSync,
 
 
 #ifdef AMREX_USE_EB
-    //FIXME?
-    // there's currently no way to reassign the EBCellFlagFab for a EBFArrayBox,
-    // so the non-EB strategy of creating one FAB and resizing it for MFiters doens't work
     const FabArray<EBCellFlagFab>& flags = dynamic_cast<EBFArrayBoxFactory const&>(getLevel(f_lev).Factory()).getMultiEBCellFlagFab();
 #endif
 
@@ -3457,9 +3436,6 @@ NavierStokesBase::SyncProjInterp (MultiFab& phi,
     crse_phi.ParallelCopy(phi,0,0,1);
 
 #ifdef AMREX_USE_EB
-    // FIXME -
-    // For now, just zero covered fine cells. Better interpolation to come...
-    ///
     EB_set_covered(crse_phi,0.);
 #endif
 
@@ -3487,7 +3463,6 @@ NavierStokesBase::SyncProjInterp (MultiFab& phi,
     }
 
 #ifdef AMREX_USE_EB
-    // FIXME? - this can probably go after new interpolation is implemented
     EB_set_covered(P_new,0.);
     EB_set_covered(P_old,0.);
 #endif
@@ -3692,7 +3667,7 @@ NavierStokesBase::velocity_advection_update (Real dt)
     // forcing function for that case.
     //
 #ifdef AMREX_USE_EB
-    // FIXME - this isn't quite right because it's face-centers to cell-centers
+    // This isn't quite right because it's face-centers to cell-centers
     // what's really wanted is face-centroid to cell-centroid
     EB_average_face_to_cellcenter(Vel, 0, Array<MultiFab const*,AMREX_SPACEDIM>{{AMREX_D_DECL(&u_mac[0],&u_mac[1],&u_mac[2])}});
 #else
@@ -4088,7 +4063,6 @@ NavierStokesBase::post_timestep_particle (int crse_iteration)
                         const Box& box = mfi.growntilebox();
                         for (int i = 0; i < n; ++i)
                         {
-                          //FIXME - isn't there a MF fn for this?
                           tfab.copy<RunOn::Host>(sfab, box, timestamp_indices[i], box, i, 1);
                         }
                       }
@@ -4165,9 +4139,6 @@ NavierStokesBase::ParticleDerive (const std::string& name,
 
                 ba.coarsen(trr);
 
-                // FIXME? Won't work because ba has been coarsened. But don't actually need
-                //  facotry here anyway...
-                //MultiFab ctemp_dat(ba,parent->DistributionMap(lev),1,0,MFInfo(),Factory());
                 MultiFab ctemp_dat(ba,parent->DistributionMap(lev),1,0);
 
                 temp_dat.setVal(0);
@@ -4254,7 +4225,6 @@ NavierStokesBase::fetchBCArray (int State_Type, int scomp, int ncomp)
 //
 // Compute gradient of P and fill ghost cells with FillPatch
 //
-// FIXME --- perhaps these computeGradP fns belong in Projection.cpp?
 void
 NavierStokesBase::computeGradP(Real time)
 {
@@ -4329,16 +4299,11 @@ NavierStokesBase::average_down(const MultiFab& S_fine, MultiFab& S_crse,
   //
 
 #ifdef AMREX_USE_EB
-  //
-  // FIXME?
-  // Assume we want EB to behave the same as non-EB in regards to dimensionality
-  // Note that 3D volume weighting doesn't exist for non-EB
-  //
 #if (AMREX_SPACEDIM == 3)
-    // no volume weighting
+    // Don't need volume weighting for EB -- EB is only used in Cartesian
     amrex::EB_average_down(S_fine, S_crse, scomp, ncomp, fine_ratio);
 #else
-    // volume weighting
+    // Volume weighting
     amrex::EB_average_down(S_fine, S_crse, this->getLevel(level+1).Volume(),
                            *(this->getLevel(level+1).VolFrac()),
                            scomp, ncomp, fine_ratio);
@@ -5052,11 +5017,12 @@ NavierStokesBase::ComputeAofs ( MultiFab& advc, int a_comp, // Advection term "A
 
     // **********************************************************************************
     // Build mask to find the ghost cells we need to correct
-    // FIXME FIXME: we could build this once and keep it rather than re-making it here
     // **********************************************************************************
-    iMultiFab mask(grids, dmap, 1, 1, MFInfo(), DefaultFabFactory<IArrayBox>());
-    mask.BuildMask(geom.Domain(), geom.periodicity(),
+    if (coarse_fine_mask == nullptr) {
+       coarse_fine_mask = std::make_unique<iMultiFab>(grids, dmap, 1, 2, MFInfo(), DefaultFabFactory<IArrayBox>());
+       coarse_fine_mask->BuildMask(geom.Domain(), geom.periodicity(),
                    level_mask_covered, level_mask_notcovered, level_mask_physbnd, level_mask_interior);
+    }
 
 #ifdef _OPENMP
 #pragma omp parallel if (Gpu::notInLaunchRegion())
@@ -5083,8 +5049,6 @@ NavierStokesBase::ComputeAofs ( MultiFab& advc, int a_comp, // Advection term "A
             FArrayBox   fab_drho_as_crse(Box::TheUnitBox(),ncomp);
             IArrayBox fab_rrflag_as_crse(Box::TheUnitBox());
 
-            // FIXME? not sure if 4 is really needed or if 3 could do
-            // But this is a safe choice
             if (flagfab.getType(grow(bx,4)) != FabType::regular)
             {
                 AMREX_D_TERM( auto apx = ebfact.getAreaFrac()[0]->const_array(mfi);,
@@ -5152,7 +5116,7 @@ NavierStokesBase::ComputeAofs ( MultiFab& advc, int a_comp, // Advection term "A
                                            AMREX_D_DECL(fcx,fcy,fcz), ccent_arr, bcrec_d,
                                            geom, dt, redistribution_type,
                                            as_crse, p_drho_as_crse->array(), p_rrflag_as_crse->array(),
-                                           as_fine, dm_as_fine.array(), mask[mfi].const_array(),
+                                           as_fine, dm_as_fine.array(), coarse_fine_mask->const_array(mfi),
                                            level_mask_notcovered, use_wts_in_divnc);
                 } else {
                     bool use_wts_in_divnc = true;
@@ -5300,8 +5264,6 @@ NavierStokesBase::InitialRedistribution ()
         EBCellFlagFab const& flagfab = fact.getMultiEBCellFlagFab()[mfi];
         Array4<EBCellFlag const> const& flag = flagfab.const_array();
 
-        // FIXME? not sure if 4 is really needed or if 3 could do
-        // But this is a safe choice
         if ( (flagfab.getType(bx) != FabType::covered) &&
              (flagfab.getType(amrex::grow(bx,4)) != FabType::regular) )
         {
@@ -5319,7 +5281,6 @@ NavierStokesBase::InitialRedistribution ()
 
             vfrac = fact.getVolFrac().const_array(mfi);
 
-            //FIXME: this is a hack due to separate bcrecs Maybe want to put in single array.
             ApplyInitialRedistribution( bx, AMREX_SPACEDIM,
                                         Smf.array(mfi), tmp.array(mfi),
                                         flag, AMREX_D_DECL(apx, apy, apz), vfrac,
