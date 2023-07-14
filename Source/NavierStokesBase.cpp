@@ -259,18 +259,25 @@ NavierStokesBase::NavierStokesBase (Amr&            papa,
         init_additional_state_types();
     }
 
-    const BoxArray& P_grids = state[Press_Type].boxArray();
     //
     // Alloc old_time pressure.
     //
     state[Press_Type].allocOldData();
     state[Gradp_Type].allocOldData();
+
+    define_workspace();
+}
+
+void NavierStokesBase::define_workspace()
+{
     //
     // Alloc space for density and temporary pressure variables.
     //
     if (level > 0)
     {
         rho_avg.define(grids,dmap,1,1,MFInfo(),Factory());
+
+        const BoxArray& P_grids = state[Press_Type].boxArray();
         p_avg.define(P_grids,dmap,1,0,MFInfo(),Factory());
     }
 
@@ -286,17 +293,13 @@ NavierStokesBase::NavierStokesBase (Amr&            papa,
     //
     buildMetrics();
 
-
-#ifdef AMREX_USE_EB
-    init_eb(level_geom, bl, dm);
-#endif
-
     //
     // Set up reflux registers.
     //
         sync_reg = nullptr;
     viscflux_reg = nullptr;
 
+    AMREX_ASSERT(sync_reg == nullptr);
     if (level > 0 && do_sync_proj)
     {
         sync_reg = new SyncRegister(grids,dmap,crse_ratio);
@@ -311,7 +314,7 @@ NavierStokesBase::NavierStokesBase (Amr&            papa,
 #endif
 
         NavierStokesBase& clevel = getLevel(level-1);
-        advflux_reg->define(grids, clevel.boxArray(), dm, clevel.DistributionMap(),
+        advflux_reg->define(grids, clevel.boxArray(), dmap, clevel.DistributionMap(),
                             parent->Geom(level),                 parent->Geom(level-1),
                             parent->refRatio(level-1),level,NUM_STATE);
 
@@ -321,13 +324,9 @@ NavierStokesBase::NavierStokesBase (Amr&            papa,
         }
 #endif
 
+        AMREX_ASSERT(viscflux_reg == nullptr);
         viscflux_reg = new FluxRegister(grids,dmap,crse_ratio,level,NUM_STATE);
     }
-    //
-    // Initialize work multifabs.
-    //
-    u_mac   = nullptr;
-    aofs    = nullptr;
 
     //
     // Set up the level projector.
@@ -340,20 +339,6 @@ NavierStokesBase::NavierStokesBase (Amr&            papa,
     projector->install_level(level,this,&radius);
 
     //
-    // Set up diffusion.
-    //
-    diffusion = new Diffusion(parent,this,
-                              (level > 0) ? getLevel(level-1).diffusion : nullptr,
-                              NUM_STATE,viscflux_reg,is_diffusive);
-    //
-    // Allocate the storage for variable viscosity and diffusivity
-    //
-    diffn_cc = new MultiFab(grids, dmap, NUM_STATE-Density-1, 1, MFInfo(), Factory());
-    diffnp1_cc = new MultiFab(grids, dmap, NUM_STATE-Density-1, 1, MFInfo(), Factory());
-    viscn_cc = new MultiFab(grids, dmap, 1, 1, MFInfo(), Factory());
-    viscnp1_cc = new MultiFab(grids, dmap, 1, 1, MFInfo(), Factory());
-
-    //
     // Set up the mac projector.
     //
     if (mac_projector == nullptr)
@@ -362,6 +347,21 @@ NavierStokesBase::NavierStokesBase (Amr&            papa,
                                     &phys_bc,radius_grow);
     }
     mac_projector->install_level(level,this);
+
+    //
+    // Set up diffusion.
+    //
+    diffusion = std::make_unique<Diffusion>(parent,this,
+                                            (level > 0) ? getLevel(level-1).diffusion.get()
+                                                        : nullptr,
+                                            NUM_STATE,viscflux_reg,is_diffusive);
+    //
+    // Allocate the storage for variable viscosity and diffusivity
+    //
+    diffn_cc = new MultiFab(grids, dmap, NUM_STATE-Density-1, 1, MFInfo(), Factory());
+    diffnp1_cc = new MultiFab(grids, dmap, NUM_STATE-Density-1, 1, MFInfo(), Factory());
+    viscn_cc = new MultiFab(grids, dmap, 1, 1, MFInfo(), Factory());
+    viscnp1_cc = new MultiFab(grids, dmap, 1, 1, MFInfo(), Factory());
 
     //
     // Initialize BCRec for use with advection
@@ -377,6 +377,7 @@ NavierStokesBase::NavierStokesBase (Amr&            papa,
 
     m_bcrec_scalars_d.resize(NUM_SCALARS);
     m_bcrec_scalars_d = convertToDeviceVector(m_bcrec_scalars);
+
 }
 
 NavierStokesBase::~NavierStokesBase ()
@@ -399,7 +400,7 @@ NavierStokesBase::~NavierStokesBase ()
     delete diffn_cc;
     delete diffnp1_cc;
 
-    delete diffusion;
+    diffusion.reset();
 }
 
 void
@@ -653,7 +654,7 @@ NavierStokesBase::advance_setup (Real /*time*/,
     //
     if (do_reflux && level < finest_level)
     {
-         getAdvFluxReg(level+1).reset();
+        getAdvFluxReg(level+1).reset();
         getViscFluxReg(level+1).setVal(0.);
     }
     //
@@ -1755,8 +1756,6 @@ NavierStokesBase::init (AmrLevel &old)
             FillPatch(old,Dsdt_new,0,cur_time,Dsdt_Type,0,1);
         }
     }
-
-    old_intersect_new          = amrex::intersect(grids,oldns->boxArray());
 }
 
 //
@@ -1810,7 +1809,6 @@ NavierStokesBase::init ()
         if (have_dsdt)
             FillCoarsePatch(get_new_data(Dsdt_Type),0,cur_time,Dsdt_Type,0,1);
     }
-    old_intersect_new = grids;
 }
 
 void
@@ -2601,8 +2599,6 @@ NavierStokesBase::post_timestep (int crse_iteration)
 
     if (level > 0) incrPAvg();
 
-    old_intersect_new          = grids;
-
     if (level == 0 && dump_plane >= 0)
     {
         Box bx = geom.Domain();
@@ -2727,132 +2723,13 @@ NavierStokesBase::restart (Amr&          papa,
              <<std::endl;
 
       //
-      // define state[Gradp_Type] and
       // Compute GradP from the Pressure
       //
-      Real cur_time = state[Press_Type].curTime();
-      Real prev_time = state[Press_Type].prevTime();
-      Real dt = cur_time - prev_time;
-      // Because P and Gp are Interval type, this is the time for define()
-      Real time = 0.5 * (prev_time + cur_time);
-
-      state[Gradp_Type].define(geom.Domain(), grids, dmap, desc_lst[Gradp_Type],
-                               time, dt, Factory());
-      computeGradP(cur_time);
-
-      // now allocate the old data and fill
-      state[Gradp_Type].allocOldData();
-      computeGradP(prev_time);
+      computeGradP(state[Press_Type].curTime());
+      computeGradP(state[Press_Type].prevTime());
     }
 
-    //
-    // Build metric coefficients for RZ calculations.
-    // Build volume and areas.
-    //
-    buildMetrics();
-
-    if (projector == nullptr)
-    {
-        projector = new Projection(parent,&phys_bc,do_sync_proj,
-                                   parent->finestLevel(),radius_grow);
-    }
-    projector->install_level(level, this, &radius);
-
-    if (mac_projector == nullptr)
-    {
-        mac_projector = new MacProj(parent,parent->finestLevel(),
-                                    &phys_bc,radius_grow);
-    }
-    mac_projector->install_level(level,this);
-
-    const BoxArray& P_grids = state[Press_Type].boxArray();
-#ifdef AMREX_USE_EB
-    init_eb(parent->Geom(level), grids, dmap);
-#endif
-
-    //
-    // Alloc space for density and temporary pressure variables.
-    //
-    if (level > 0)
-    {
-        rho_avg.define(grids,dmap,1,1,MFInfo(),Factory());
-        p_avg.define(P_grids,dmap,1,0,MFInfo(),Factory());
-    }
-    rho_half.define (grids,dmap,1,1,MFInfo(),Factory());
-    rho_ptime.define(grids,dmap,1,1,MFInfo(),Factory());
-    rho_ctime.define(grids,dmap,1,1,MFInfo(),Factory());
-    rho_qtime  = nullptr;
-    rho_tqtime = nullptr;
-
-    if (level > 0 && do_reflux)
-    {
-#ifdef AMREX_USE_EB
-        advflux_reg  = std::make_unique<EBFluxRegister>();
-#else
-        advflux_reg  = std::make_unique<YAFluxRegister>();
-#endif
-        NavierStokesBase& clevel = getLevel(level-1);
-        advflux_reg->define(grids, clevel.boxArray(), dmap, clevel.DistributionMap(),
-                            parent->Geom(level),               parent->Geom(level-1),
-                            parent->refRatio(level-1),level,NUM_STATE);
-
-#ifndef AMREX_USE_EB
-        if (parent->Geom(level-1).IsRZ()) {
-            advflux_reg->setCrseVolume(&(clevel.Volume()));
-        }
-#endif
-    }
-
-    AMREX_ASSERT(sync_reg == nullptr);
-    if (level > 0 && do_sync_proj)
-    {
-        sync_reg = new SyncRegister(grids,dmap,crse_ratio);
-    }
-    AMREX_ASSERT(viscflux_reg == nullptr);
-    if (level > 0 && do_reflux)
-    {
-        viscflux_reg = new FluxRegister(grids,dmap,crse_ratio,level,NUM_STATE);
-    }
-
-    if (level < parent->finestLevel())
-    {
-#ifdef AMREX_USE_EB
-        int ng_sync = (redistribution_type == "StateRedist") ? nghost_state() : 1;
-#else
-        int ng_sync = 1;
-#endif
-
-        Vsync.define(grids,dmap,AMREX_SPACEDIM,ng_sync,MFInfo(),Factory());
-        Ssync.define(grids,dmap,NUM_STATE-AMREX_SPACEDIM,ng_sync,MFInfo(),Factory());
-    }
-
-    diffusion = new Diffusion(parent, this,
-                              (level > 0) ? getLevel(level-1).diffusion : nullptr,
-                              NUM_STATE, viscflux_reg,is_diffusive);
-    //
-    // Allocate the storage for variable viscosity and diffusivity
-    //
-    diffn_cc = new MultiFab(grids, dmap, NUM_STATE-Density-1, 1, MFInfo(), Factory());
-    diffnp1_cc = new MultiFab(grids, dmap, NUM_STATE-Density-1, 1, MFInfo(), Factory());
-    viscn_cc = new MultiFab(grids, dmap, 1, 1, MFInfo(), Factory());
-    viscnp1_cc = new MultiFab(grids, dmap, 1, 1, MFInfo(), Factory());
-
-    old_intersect_new          = grids;
-
-    //
-    // Initialize BCRec for use with advection
-    //
-    m_bcrec_velocity.resize(AMREX_SPACEDIM);
-    m_bcrec_velocity = fetchBCArray(State_Type,Xvel,AMREX_SPACEDIM);
-
-    m_bcrec_velocity_d.resize(AMREX_SPACEDIM);
-    m_bcrec_velocity_d = convertToDeviceVector(m_bcrec_velocity);
-
-    m_bcrec_scalars.resize(NUM_SCALARS);
-    m_bcrec_scalars = fetchBCArray(State_Type,Density,NUM_SCALARS);
-
-    m_bcrec_scalars_d.resize(NUM_SCALARS);
-    m_bcrec_scalars_d = convertToDeviceVector(m_bcrec_scalars);
+    define_workspace();
 }
 
 void

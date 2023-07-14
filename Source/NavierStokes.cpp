@@ -477,8 +477,6 @@ NavierStokes::initData ()
             get_new_data(Dsdt_Type).setVal(0);
     }
 
-    old_intersect_new          = grids;
-
 #ifdef AMREX_PARTICLES
     initParticleData ();
 #endif

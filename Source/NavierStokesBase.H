@@ -80,6 +80,8 @@ public:
     NavierStokesBase& operator= (NavierStokesBase const&) = delete;
     NavierStokesBase& operator= (NavierStokesBase &&) = delete;
 
+    void define_workspace ();
+
     ////////////////////////////////////////////////////////////////////////////
     //    AmrLevel virtual functions                                          //
     ////////////////////////////////////////////////////////////////////////////
@@ -649,7 +651,7 @@ public:
     amrex::Gpu::DeviceVector<amrex::BCRec> m_bcrec_velocity_d;
     amrex::Gpu::DeviceVector<amrex::BCRec> m_bcrec_scalars_d;
 
-    Diffusion* diffusion = nullptr;
+    std::unique_ptr<Diffusion> diffusion;
     //
     // arrays for variable viscosity and diffusivity
     //
@@ -702,10 +704,6 @@ public:
     // Radii for r-z calculations.
     //
     amrex::Vector< amrex::Vector<amrex::Real> > radius;
-    //
-    // Intersection of current amrex::BoxArray with that from before regrid.
-    //
-    amrex::BoxArray old_intersect_new;
     //
     // Static objects.
     //
