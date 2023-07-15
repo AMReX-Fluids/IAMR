@@ -11,6 +11,11 @@
 
 using namespace amrex;
 
+SyncRegister::SyncRegister ()
+{
+    ratio = IntVect::TheUnitVector();
+}
+
 SyncRegister::SyncRegister (const BoxArray& fine_boxes,
                             const DistributionMapping& dmap,
                             const IntVect&  ref_ratio)

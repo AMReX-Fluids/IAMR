@@ -15,6 +15,19 @@ class SyncRegister
 {
 public:
 
+    /**
+    * \brief The default constructor.
+    */
+    SyncRegister ();
+
+    /**
+    * \brief The constructor. This version allows setting the DistributionMapping.
+    *
+    *
+    * \param fine_boxes
+    * \param dmap
+    * \param ref_ratio
+    */
     SyncRegister (const amrex::BoxArray& fine_boxes,
                   const amrex::DistributionMapping& dmap,
                   const amrex::IntVect& ref_ratio);
@@ -29,6 +42,17 @@ public:
           const amrex::BoxArray& Pgrids, amrex::Real mult);
 
     void InitRHS (amrex::MultiFab& rhs, const amrex::Geometry& geom, const amrex::BCRec& phys_bc);
+
+    /**
+    * \brief The destructor.
+    */
+    ~SyncRegister () = default;
+
+    SyncRegister (SyncRegister&& rhs) noexcept = default;
+
+    SyncRegister            (const SyncRegister& rhs) = delete;
+    SyncRegister& operator= (const SyncRegister& rhs) = delete;
+    SyncRegister& operator= (     SyncRegister&& rhs) = delete;
 
 private:
 
