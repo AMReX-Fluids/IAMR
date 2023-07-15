@@ -113,6 +113,12 @@ void NavierStokes::prob_initData ()
                         S_new.array(mfi, Density), nscal,
                         domain, dx, problo, probhi, IC);
         }
+        else if ( 3 == probtype )
+        {
+            init_jump(vbx, P_new.array(mfi), S_new.array(mfi, Xvel),
+                      S_new.array(mfi, Density), nscal,
+                      domain, dx, problo, probhi, IC);
+        }
         else if ( 4 == probtype )
         {
             init_constant_vel_rho(vbx, P_new.array(mfi), S_new.array(mfi, Xvel),
@@ -270,6 +276,69 @@ void NavierStokes::init_constant_vel_rho (Box const& vbx,
     {
       // scal(i,j,k,nt) = dist < IC.blob_radius ? 1.0 : 0.0;
       scal(i,j,k,nt) = 0.0;
+    }
+  });
+}
+
+void NavierStokes::init_jump (Box const& vbx,
+                      Array4<Real> const& /*press*/,
+                      Array4<Real> const& vel,
+                      Array4<Real> const& scal,
+                      const int nscal,
+                      Box const& domain,
+                      GpuArray<Real, AMREX_SPACEDIM> const& dx,
+                      GpuArray<Real, AMREX_SPACEDIM> const& problo,
+                      GpuArray<Real, AMREX_SPACEDIM> const& /*probhi*/,
+                      InitialConditions IC)
+{
+  const auto domlo = amrex::lbound(domain);
+
+  amrex::ParallelFor(vbx, [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
+  {
+    Real x = problo[0] + (i - domlo.x + 0.5)*dx[0];
+    Real y = problo[1] + (j - domlo.y + 0.5)*dx[1];
+
+    //
+    // Fill Velocity
+    //
+    vel(i,j,k,0) = IC.v_x;
+    vel(i,j,k,1) = IC.v_y;
+
+#if (AMREX_SPACEDIM == 3)
+    Real z = problo[2] + (k - domlo.z + 0.5)*dx[2];
+
+    vel(i,j,k,2) = IC.v_z;
+#endif
+
+    Real dist = std::sqrt( (x-IC.blob_x)*(x-IC.blob_x)
+              + (y-IC.blob_y)*(y-IC.blob_y)
+#if (AMREX_SPACEDIM == 3)
+              + (z-IC.blob_z)*(z-IC.blob_z)
+#endif
+              );
+    //
+    // Scalars, ordered as Density, Tracer(s), Temp (if using)
+    //
+
+    Real x_jump = -0.1;
+
+    // Smooth the density interface just a bit
+    scal(i,j,k,0) = //dens1 * (2. + std::tanh(100.*(-.2-x)/IC.interface_width) ) / 2.;
+        IC.rho_1 + ((IC.rho_2-IC.rho_1)/2.0)*(1.0+std::tanh(-(x_jump-x)/IC.interface_width));
+
+    if (x <= x_jump ) {
+        //scal(i,j,k,0) = IC.rho_1;
+        scal(i,j,k,1) = IC.tra_1;
+    } else {
+        //scal(i,j,k,0) = IC.rho_2;
+        scal(i,j,k,1) = IC.tra_2;
+    }
+
+    for ( int nt=2; nt<nscal; nt++)
+    {
+        scal(i,j,k,nt) = 0.5*(1.0-std::tanh(25.*(dist-IC.blob_radius)/IC.interface_width));
+        // scal(i,j,k,nt) = dist < IC.blob_radius ? 1.0 : 0.0;
+        // scal(i,j,k,nt) = 0.0;
     }
   });
 }
