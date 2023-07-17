@@ -605,3 +605,14 @@ SyncRegister::FineAdd (MultiFab& Sync_resid_fine, const Geometry& crse_geom, Rea
         bndry[face()].plusFrom(Sync_resid_crse,0,0,0,1,crse_geom.periodicity());
     }
 }
+
+void
+SyncRegister::clear ()
+{
+    BndryRegister::clear();
+
+    for (auto & i : bndry_mask) {
+        i.clear();
+    }
+
+}

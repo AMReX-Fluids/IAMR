@@ -32,6 +32,11 @@ public:
                   const amrex::DistributionMapping& dmap,
                   const amrex::IntVect& ref_ratio);
 
+    /**
+    * \brief The destructor.
+    */
+    ~SyncRegister () = default;
+
     void CrseInit (amrex::MultiFab& Sync_resid_crse, const amrex::Geometry& crse_geom, amrex::Real mult);
 
     void FineAdd (amrex::MultiFab& Sync_resid_fine, const amrex::Geometry& crse_geom, amrex::Real mult);
@@ -39,20 +44,17 @@ public:
     void CompAdd (amrex::MultiFab& Sync_resid_fine,
                   const amrex::Geometry& fine_geom,
                   const amrex::Geometry& crse_geom,
-          const amrex::BoxArray& Pgrids, amrex::Real mult);
+                  const amrex::BoxArray& Pgrids, amrex::Real mult);
 
     void InitRHS (amrex::MultiFab& rhs, const amrex::Geometry& geom, const amrex::BCRec& phys_bc);
-
-    /**
-    * \brief The destructor.
-    */
-    ~SyncRegister () = default;
 
     SyncRegister (SyncRegister&& rhs) noexcept = default;
 
     SyncRegister            (const SyncRegister& rhs) = delete;
     SyncRegister& operator= (const SyncRegister& rhs) = delete;
     SyncRegister& operator= (     SyncRegister&& rhs) = delete;
+
+    void clear ();
 
 private:
 
