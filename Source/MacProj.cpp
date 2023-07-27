@@ -53,7 +53,7 @@ MacProj::Initialize ()
     //
     // Only check umac periodicity when debugging.  Can be overridden on input.
     //
-#ifndef AMREX_DEBUG
+#if !defined(AMREX_DEBUG) || defined(AMREX_USE_GPU)
     MacProj::check_umac_periodicity = 0;
 #else
     MacProj::check_umac_periodicity = 1;

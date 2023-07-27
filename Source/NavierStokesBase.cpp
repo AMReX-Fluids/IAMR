@@ -2954,7 +2954,7 @@ NavierStokesBase::scalar_advection_update (Real dt,
 
     //         IntVect mpt(D_DECL(-100,100,-100));
     //         for (MFIter mfi(S_old); mfi.isValid(); ++mfi){
-    //             if ( S_old[mfi].contains_nan<RunOn::Host>(mpt) )
+    //             if ( S_old[mfi].contains_nan<RunOn::Device>(mpt) )
     //                 amrex::Print() << " Nans at " << mpt << std::endl;
     //         }
     //     }
@@ -2964,7 +2964,7 @@ NavierStokesBase::scalar_advection_update (Real dt,
 
     //         IntVect mpt(D_DECL(-100,100,-100));
     //         for (MFIter mfi(S_new); mfi.isValid(); ++mfi){
-    //             if ( S_new[mfi].contains_nan<RunOn::Host>(mpt) )
+    //             if ( S_new[mfi].contains_nan<RunOn::Device>(mpt) )
     //                 amrex::Print() << " Nans at " << mpt << std::endl;
     //         }
     //     }
@@ -3636,7 +3636,7 @@ NavierStokesBase::velocity_advection_update (Real dt)
          IntVect mpt(D_DECL(-100,100,-100));
          for (MFIter mfi(U_old); mfi.isValid(); ++mfi){
            const Box& bx = mfi.tilebox();
-           if ( U_old[mfi].contains_nan<RunOn::Host>(bx, sigma, 1, mpt) )
+           if ( U_old[mfi].contains_nan<RunOn::Device>(bx, sigma, 1, mpt) )
              amrex::Print() << " Nans at " << mpt << std::endl;
          }
        }
@@ -3647,7 +3647,7 @@ NavierStokesBase::velocity_advection_update (Real dt)
          IntVect mpt(D_DECL(-100,100,-100));
          for (MFIter mfi(U_new); mfi.isValid(); ++mfi){
            const Box& bx = mfi.tilebox();
-           if ( U_new[mfi].contains_nan<RunOn::Host>(bx, sigma, 1, mpt) )
+           if ( U_new[mfi].contains_nan<RunOn::Device>(bx, sigma, 1, mpt) )
              amrex::Print() << " Nans at " << mpt << std::endl;
          }
        }
@@ -3934,7 +3934,7 @@ NavierStokesBase::post_timestep_particle (int crse_iteration)
                         const Box& box = mfi.growntilebox();
                         for (int i = 0; i < n; ++i)
                         {
-                          tfab.copy<RunOn::Host>(sfab, box, timestamp_indices[i], box, i, 1);
+                          tfab.copy<RunOn::Device>(sfab, box, timestamp_indices[i], box, i, 1);
                         }
                       }
                     }
