@@ -1883,10 +1883,11 @@ Projection::set_outflow_bcs_at_level (int          /*which_call*/,
                                                 outFacesAtThisLevel[iface],
                                                 ncStripWidth));
         phi_fine_strip[iface].resize(phi_strip,1);
-        phi_fine_strip[iface].setVal<RunOn::Cpu>(0.);
+        phi_fine_strip[iface].setVal<RunOn::Gpu>(0.);
 
         rho[iface].resize(state_strip[iface],1);
         (*Sig_in).copyTo(rho[iface],0,0,1,ngrow);
+        Gpu::streamSynchronize();
     }
 
     if (std::fabs(gravity) > 0.)
