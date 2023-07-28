@@ -1961,8 +1961,22 @@ Projection::computeRhoG(FArrayBox*         rhoFab,
       {
           const auto   lo = amrex::lbound(phiFab[iface].box());
           const auto   hi = amrex::ubound(phiFab[iface].box());
+#ifdef AMREX_USE_GPU
+          FArrayBox h_phiFab(phiFab[iface].box(), phiFab[iface].nComp(),
+                             The_Pinned_Arena());
+          FArrayBox h_rhoFab(rhoFab[iface].box(), rhoFab[iface].nComp(),
+                             The_Pinned_Arena());
+          Gpu::dtoh_memcpy_async(h_phiFab.dataPtr(), phiFab[iface].dataPtr(),
+                                 h_phiFab.nBytes());
+          Gpu::dtoh_memcpy_async(h_rhoFab.dataPtr(), rhoFab[iface].dataPtr(),
+                                 h_rhoFab.nBytes());
+          Gpu::streamSynchronize();
+          const auto& phi = h_phiFab.array();
+          const auto& rho = h_rhoFab.array();
+#else
           const auto& phi = phiFab[iface].array();
           const auto& rho = rhoFab[iface].array();
+#endif
           const Real dh = geom.CellSize(AMREX_SPACEDIM-1);
 
           auto add_rhog = [gravity, dh] ( Real rho1, Real rho2,
@@ -2351,6 +2365,14 @@ Projection::computeRhoG(FArrayBox*         rhoFab,
                 }
               } // endif over hi/low sides
           } // endif over directions
+#endif
+
+#ifdef AMREX_USE_GPU
+          Gpu::htod_memcpy_async(phiFab[iface].dataPtr(), h_phiFab.dataPtr(),
+                                 phiFab[iface].nBytes());
+          Gpu::htod_memcpy_async(rhoFab[iface].dataPtr(), h_rhoFab.dataPtr(),
+                                 rhoFab[iface].nBytes());
+          Gpu::streamSynchronize();
 #endif
       } // endif integrate rho*g*dh
     } // end loop over outflow faces
