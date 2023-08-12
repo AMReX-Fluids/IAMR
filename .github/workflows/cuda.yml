@@ -39,7 +39,7 @@ jobs:
              ccache-${{ github.workflow }}-${{ github.job }}-git-
     - name: Load Dependencies
       run: |
-        amrex/.github/workflows/dependencies/dependencies_nvcc11.sh
+        amrex/.github/workflows/dependencies/dependencies_nvcc.sh 11.2
         amrex/.github/workflows/dependencies/dependencies_ccache.sh
     - name: Build
       run: |
@@ -87,7 +87,7 @@ jobs:
              ccache-${{ github.workflow }}-${{ github.job }}-git-
     - name: Load Dependencies
       run: |
-        amrex/.github/workflows/dependencies/dependencies_nvcc11.sh
+        amrex/.github/workflows/dependencies/dependencies_nvcc.sh 11.2
         amrex/.github/workflows/dependencies/dependencies_ccache.sh
     - name: Build
       run: |
