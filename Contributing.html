@@ -4,7 +4,7 @@
   <meta charset="utf-8" /><meta name="generator" content="Docutils 0.18.1: http://docutils.sourceforge.net/" />
 
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Contributing &mdash; IAMR 23.09-dev documentation</title>
+  <title>Contributing &mdash; IAMR 23.10-dev documentation</title>
       <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
       <link rel="stylesheet" href="_static/css/theme.css" type="text/css" />
       <link rel="stylesheet" href="_static/theme_overrides.css" type="text/css" />
@@ -12,11 +12,11 @@
     <script src="_static/js/html5shiv.min.js"></script>
   <![endif]-->
   
-        <script src="_static/jquery.js"></script>
-        <script src="_static/_sphinx_javascript_frameworks_compat.js"></script>
-        <script data-url_root="./" id="documentation_options" src="_static/documentation_options.js"></script>
-        <script src="_static/doctools.js"></script>
-        <script src="_static/sphinx_highlight.js"></script>
+        <script src="_static/jquery.js?v=5d32c60e"></script>
+        <script src="_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+        <script src="_static/documentation_options.js?v=94759461"></script>
+        <script src="_static/doctools.js?v=888ff710"></script>
+        <script src="_static/sphinx_highlight.js?v=dc90522c"></script>
     <script src="_static/js/theme.js"></script>
     <link rel="index" title="Index" href="genindex.html" />
     <link rel="search" title="Search" href="search.html" />
@@ -36,7 +36,7 @@
             IAMR
           </a>
               <div class="version">
-                23.09-dev
+                23.10-dev
               </div>
 <div role="search">
   <form id="rtd-search-form" class="wy-form" action="search.html" method="get">
@@ -101,9 +101,9 @@
            <div itemprop="articleBody">
              
   <section id="contributing">
-<span id="chap-contributing"></span><h1>Contributing<a class="headerlink" href="#contributing" title="Permalink to this heading"></a></h1>
+<span id="chap-contributing"></span><h1>Contributing<a class="headerlink" href="#contributing" title="Link to this heading"></a></h1>
 <section id="development-model">
-<h2>Development Model<a class="headerlink" href="#development-model" title="Permalink to this heading"></a></h2>
+<h2>Development Model<a class="headerlink" href="#development-model" title="Link to this heading"></a></h2>
 <p>Development generally follows the following ideas:</p>
 <ul>
 <li><p>New features are merged into to the <code class="docutils literal notranslate"><span class="pre">development</span></code> branch using
@@ -144,7 +144,7 @@ reopens.</p></li>
 </ul>
 </section>
 <section id="git-workflow">
-<h2>Git workflow<a class="headerlink" href="#git-workflow" title="Permalink to this heading"></a></h2>
+<h2>Git workflow<a class="headerlink" href="#git-workflow" title="Link to this heading"></a></h2>
 <p>IAMR uses <a class="reference external" href="https://git-scm.com">git</a> for version control. If you
 are new to git, you can follow one of these tutorials:</p>
 <ul class="simple">
@@ -160,7 +160,7 @@ your fork. Don’t forget to push.</p></li>
 <code class="docutils literal notranslate"><span class="pre">development</span></code> on the main IAMR repository.</p></li>
 </ul>
 <section id="make-your-own-fork">
-<span id="sec-forking"></span><h3>Make your own fork<a class="headerlink" href="#make-your-own-fork" title="Permalink to this heading"></a></h3>
+<span id="sec-forking"></span><h3>Make your own fork<a class="headerlink" href="#make-your-own-fork" title="Link to this heading"></a></h3>
 <p>First, setup your local git repo. To make your own fork of the main
 (<cite>upstream</cite>) repository, press the fork button on the <a class="reference external" href="https://github.com/IAMR-Codes/IAMR">IAMR Github page</a>.</p>
 <p>Then, clone your fork on your local computer. If you plan on doing a lot of IAMR development,
@@ -203,7 +203,7 @@ git<span class="w"> </span>pull
 <a class="reference external" href="https://help.github.com/en/articles/fork-a-repo">Github fork help page</a>.</p>
 </section>
 <section id="making-code-changes">
-<h3>Making code changes<a class="headerlink" href="#making-code-changes" title="Permalink to this heading"></a></h3>
+<h3>Making code changes<a class="headerlink" href="#making-code-changes" title="Link to this heading"></a></h3>
 <p>We do <cite>not</cite> reccomend making any changes within the <code class="docutils literal notranslate"><span class="pre">development</span></code> branch. Doing so
 will make your local <code class="docutils literal notranslate"><span class="pre">development</span></code> branch diverge from the matching branch in the
 main IAMR repository.
@@ -243,7 +243,7 @@ because it will make your local <code class="docutils literal notranslate"><span
 matching branch in the main repository. Instead, create a Pull Request (PR).</p>
 </section>
 <section id="submitting-a-pull-request">
-<h3>Submitting a Pull Request<a class="headerlink" href="#submitting-a-pull-request" title="Permalink to this heading"></a></h3>
+<h3>Submitting a Pull Request<a class="headerlink" href="#submitting-a-pull-request" title="Link to this heading"></a></h3>
 <p>A Pull Request is the way to efficiently visualize the changes you made
 and to propose your new feature/improvement/fix to the IAMR project.
 Right after you push changes, a banner should appear on the Github page of
@@ -329,9 +329,9 @@ Don’t worry, if something goes wrong during the rebase, you an always <code cl
 </section>
 </section>
 <section id="iamr-coding-style-guide">
-<h2>IAMR Coding Style Guide<a class="headerlink" href="#iamr-coding-style-guide" title="Permalink to this heading"></a></h2>
+<h2>IAMR Coding Style Guide<a class="headerlink" href="#iamr-coding-style-guide" title="Link to this heading"></a></h2>
 <section id="code-guidelines">
-<h3>Code Guidelines<a class="headerlink" href="#code-guidelines" title="Permalink to this heading"></a></h3>
+<h3>Code Guidelines<a class="headerlink" href="#code-guidelines" title="Link to this heading"></a></h3>
 <p>IAMR developers should adhere to the following coding guidelines:</p>
 <ul>
 <li><p>Indentations should use 4 spaces, not tabs.</p></li>
@@ -373,7 +373,7 @@ not when simply calling the function). For example:</p>
 please refrain from making stylistic changes to unrelated sections of code in your PRs.</p>
 </section>
 <section id="api-documentation-using-doxygen">
-<h3>API Documentation Using Doxygen<a class="headerlink" href="#api-documentation-using-doxygen" title="Permalink to this heading"></a></h3>
+<h3>API Documentation Using Doxygen<a class="headerlink" href="#api-documentation-using-doxygen" title="Link to this heading"></a></h3>
 <p>The Doxygen documentation is designed for advanced user-developers. It aims
 to maximize the efficiency of a search-and-find style of locating information.
 Doxygen style comment blocks should proceed the namespace, class, function, etc.

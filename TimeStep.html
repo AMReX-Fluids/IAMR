@@ -4,7 +4,7 @@
   <meta charset="utf-8" /><meta name="generator" content="Docutils 0.18.1: http://docutils.sourceforge.net/" />
 
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Time Step – MOL &mdash; IAMR 23.09-dev documentation</title>
+  <title>Time Step – MOL &mdash; IAMR 23.10-dev documentation</title>
       <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
       <link rel="stylesheet" href="_static/css/theme.css" type="text/css" />
       <link rel="stylesheet" href="_static/theme_overrides.css" type="text/css" />
@@ -12,11 +12,11 @@
     <script src="_static/js/html5shiv.min.js"></script>
   <![endif]-->
   
-        <script src="_static/jquery.js"></script>
-        <script src="_static/_sphinx_javascript_frameworks_compat.js"></script>
-        <script data-url_root="./" id="documentation_options" src="_static/documentation_options.js"></script>
-        <script src="_static/doctools.js"></script>
-        <script src="_static/sphinx_highlight.js"></script>
+        <script src="_static/jquery.js?v=5d32c60e"></script>
+        <script src="_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+        <script src="_static/documentation_options.js?v=94759461"></script>
+        <script src="_static/doctools.js?v=888ff710"></script>
+        <script src="_static/sphinx_highlight.js?v=dc90522c"></script>
         <script>window.MathJax = {"tex": {"macros": {"Ab": "{{\\bf A}}", "eb": "{{\\bf e}}", "Fb": "{{\\bf F}}", "gb": "{{\\bf g}}", "Hb": "{{\\bf H}}", "ib": "{{\\bf i}}", "Ib": "{{\\bf I}}", "Kb": "{{\\bf K}}", "lb": "{{\\bf l}}", "Lb": "{{\\bf L}}", "nb": "{{\\bf n}}", "Pb": "{{\\bf P}}", "Qb": "{{\\bf Q}}", "rb": "{{\\bf r}}", "Rb": "{{\\bf R}}", "Sb": "{{\\bf S}}", "ub": "{{\\bf u}}", "Ub": "{{\\bf U}}", "xb": "{{\\bf x}}", "dt": "{\\Delta t}", "omegadot": "{\\dot\\omega}", "inp": "{{\\rm in}}", "outp": "{{\\rm out}}", "sync": "{{\\rm sync}}", "half": "{\\frac{1}{2}}", "myhalf": "{\\half}", "nph": "{{n+\\myhalf}}", "vb": "{\\boldsymbol{v}}", "vbt": "{\\widetilde{\\vb}}", "rbt": "{\\widetilde{\\rb}}", "ob": "{\\boldsymbol{\\omega}}", "nablab": "{\\boldsymbol{\\nabla}}", "avg": ["{{\\left \\langle #1 \\right \\rangle}}", 1]}}}</script>
         <script defer="defer" src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
     <script src="_static/js/theme.js"></script>
@@ -38,7 +38,7 @@
             IAMR
           </a>
               <div class="version">
-                23.09-dev
+                23.10-dev
               </div>
 <div role="search">
   <form id="rtd-search-form" class="wy-form" action="search.html" method="get">
@@ -111,7 +111,7 @@
 \newcommand{\shalf}{\sfrac{1}{2}}\end{aligned}\end{align} \]</div>
 <p>To learn how the convective terms are constructed, see <a class="reference external" href="https://amrex-codes.github.io/amrex/hydro_html">AMReX-Hydro</a></p>
 <section id="time-step-mol">
-<h1>Time Step – MOL<a class="headerlink" href="#time-step-mol" title="Permalink to this heading"></a></h1>
+<h1>Time Step – MOL<a class="headerlink" href="#time-step-mol" title="Link to this heading"></a></h1>
 <p>In the predictor</p>
 <ul class="simple">
 <li><p>Define <span class="math notranslate nohighlight">\(U^{MAC,n}\)</span>, the face-centered (staggered) MAC velocity which is used for advection, using <span class="math notranslate nohighlight">\(U^n\)</span></p></li>
@@ -153,7 +153,7 @@ U^{\ast}+ \frac{1}{\rho} \nabla {p}^{n-1/2} \right)\]</div>
 \[{p}^{n+1/2} = \phi\]</div>
 </section>
 <section id="time-step-godunov">
-<h1>Time Step – Godunov<a class="headerlink" href="#time-step-godunov" title="Permalink to this heading"></a></h1>
+<h1>Time Step – Godunov<a class="headerlink" href="#time-step-godunov" title="Link to this heading"></a></h1>
 <p>When we use the time-centered Godunov advection, we no longer need the predictor and corrector steps.</p>
 <ul>
 <li><p>Define the time-centered face-centered (staggered) MAC velocity which is used for advection: <span class="math notranslate nohighlight">\(U^{MAC,n+1/2}\)</span></p></li>
@@ -186,7 +186,7 @@ J. Comp. Phys., 142, pp. 1-46, 1998.
 </ul>
 </section>
 <section id="time-step-bds">
-<h1>Time Step – BDS<a class="headerlink" href="#time-step-bds" title="Permalink to this heading"></a></h1>
+<h1>Time Step – BDS<a class="headerlink" href="#time-step-bds" title="Link to this heading"></a></h1>
 <p>When we use the Bell-Dawson-Shubin (BDS) algorithm, we advance the solution in time using a
 three step procedure described below. In the notation,
 <span class="math notranslate nohighlight">\(s\)</span> is a scalar field of the form <span class="math notranslate nohighlight">\(s=s(x,y,z,t)\)</span>
@@ -217,7 +217,7 @@ s_{ijk}^{n+1} = s_{ijk}^n &amp;&amp;
 &amp;&amp; - \frac{\dt}{\Delta y}(v_{i,j+\half,k}s_{i,j+\half,k} - v_{i,j-\half,k}s_{i,j-\half,k}) \nonumber \\
 &amp;&amp; - \frac{\dt}{\Delta z}(w_{i,j,k+\half}s_{i,j,k+\half} - w_{i,j,k-\half}s_{i,j,k-\half}).
 \end{eqnarray}\end{split}\]</div>
-<p>Addition details are located in the <span class="xref std std-ref">BDS section of the AMReX-Hydro docs</span> and in the following paper:</p>
+<p>Addition details are located in the <a class="reference external" href="https://amrex-codes.github.io/amrex-hydro/docs_html/BDS.html#bds-algorithm" title="(in amrex-hydro v23.10-dev)"><span class="xref std std-ref">BDS section of the AMReX-Hydro docs</span></a> and in the following paper:</p>
 <ul class="simple">
 <li><p><em>A Three-Dimensional, Unsplut Godunov Method For Scalar Conservation Laws</em>,
 A. Nonaka, S. May, A. S. Almgren, and J. B. Bell,

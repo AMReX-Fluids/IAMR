@@ -4,7 +4,7 @@
   <meta charset="utf-8" /><meta name="generator" content="Docutils 0.18.1: http://docutils.sourceforge.net/" />
 
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Brief Overview of Low Speed Approximations &mdash; IAMR 23.09-dev documentation</title>
+  <title>Brief Overview of Low Speed Approximations &mdash; IAMR 23.10-dev documentation</title>
       <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
       <link rel="stylesheet" href="_static/css/theme.css" type="text/css" />
       <link rel="stylesheet" href="_static/theme_overrides.css" type="text/css" />
@@ -12,11 +12,11 @@
     <script src="_static/js/html5shiv.min.js"></script>
   <![endif]-->
   
-        <script src="_static/jquery.js"></script>
-        <script src="_static/_sphinx_javascript_frameworks_compat.js"></script>
-        <script data-url_root="./" id="documentation_options" src="_static/documentation_options.js"></script>
-        <script src="_static/doctools.js"></script>
-        <script src="_static/sphinx_highlight.js"></script>
+        <script src="_static/jquery.js?v=5d32c60e"></script>
+        <script src="_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+        <script src="_static/documentation_options.js?v=94759461"></script>
+        <script src="_static/doctools.js?v=888ff710"></script>
+        <script src="_static/sphinx_highlight.js?v=dc90522c"></script>
         <script>window.MathJax = {"tex": {"macros": {"Ab": "{{\\bf A}}", "eb": "{{\\bf e}}", "Fb": "{{\\bf F}}", "gb": "{{\\bf g}}", "Hb": "{{\\bf H}}", "ib": "{{\\bf i}}", "Ib": "{{\\bf I}}", "Kb": "{{\\bf K}}", "lb": "{{\\bf l}}", "Lb": "{{\\bf L}}", "nb": "{{\\bf n}}", "Pb": "{{\\bf P}}", "Qb": "{{\\bf Q}}", "rb": "{{\\bf r}}", "Rb": "{{\\bf R}}", "Sb": "{{\\bf S}}", "ub": "{{\\bf u}}", "Ub": "{{\\bf U}}", "xb": "{{\\bf x}}", "dt": "{\\Delta t}", "omegadot": "{\\dot\\omega}", "inp": "{{\\rm in}}", "outp": "{{\\rm out}}", "sync": "{{\\rm sync}}", "half": "{\\frac{1}{2}}", "myhalf": "{\\half}", "nph": "{{n+\\myhalf}}", "vb": "{\\boldsymbol{v}}", "vbt": "{\\widetilde{\\vb}}", "rbt": "{\\widetilde{\\rb}}", "ob": "{\\boldsymbol{\\omega}}", "nablab": "{\\boldsymbol{\\nabla}}", "avg": ["{{\\left \\langle #1 \\right \\rangle}}", 1]}}}</script>
         <script defer="defer" src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
     <script src="_static/js/theme.js"></script>
@@ -38,7 +38,7 @@
             IAMR
           </a>
               <div class="version">
-                23.09-dev
+                23.10-dev
               </div>
 <div role="search">
   <form id="rtd-search-form" class="wy-form" action="search.html" method="get">
@@ -101,7 +101,7 @@
            <div itemprop="articleBody">
              
   <section id="brief-overview-of-low-speed-approximations">
-<h1>Brief Overview of Low Speed Approximations<a class="headerlink" href="#brief-overview-of-low-speed-approximations" title="Permalink to this heading"></a></h1>
+<h1>Brief Overview of Low Speed Approximations<a class="headerlink" href="#brief-overview-of-low-speed-approximations" title="Link to this heading"></a></h1>
 <p>The IAMR code can be used as a basis for more
 general low Mach number flow algorithms (e.g., low Mach number combustion,
 low Mach number astrophysics, porous media flow)
@@ -136,7 +136,7 @@ velocities are used to construct the fluxes through the interfaces to
 advance the solution to the new time. The second/final projection
 operates on the cell-centered velocities at the new time, again
 enforcing the divergence constraint. Additional information on the projections
-is in AMReX-Hydro’s documentation: <span class="xref std std-ref">hydro:projections</span>.</p>
+is in AMReX-Hydro’s documentation: <a class="reference external" href="https://amrex-codes.github.io/amrex-hydro/docs_html/Projections.html#projections" title="(in amrex-hydro v23.10-dev)"><span>Projection Methods</span></a>.</p>
 </section>
 
 

@@ -4,7 +4,7 @@
   <meta charset="utf-8" /><meta name="generator" content="Docutils 0.18.1: http://docutils.sourceforge.net/" />
 
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>An Overview of IAMR Code &mdash; IAMR 23.09-dev documentation</title>
+  <title>An Overview of IAMR Code &mdash; IAMR 23.10-dev documentation</title>
       <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
       <link rel="stylesheet" href="_static/css/theme.css" type="text/css" />
       <link rel="stylesheet" href="_static/theme_overrides.css" type="text/css" />
@@ -12,11 +12,11 @@
     <script src="_static/js/html5shiv.min.js"></script>
   <![endif]-->
   
-        <script src="_static/jquery.js"></script>
-        <script src="_static/_sphinx_javascript_frameworks_compat.js"></script>
-        <script data-url_root="./" id="documentation_options" src="_static/documentation_options.js"></script>
-        <script src="_static/doctools.js"></script>
-        <script src="_static/sphinx_highlight.js"></script>
+        <script src="_static/jquery.js?v=5d32c60e"></script>
+        <script src="_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+        <script src="_static/documentation_options.js?v=94759461"></script>
+        <script src="_static/doctools.js?v=888ff710"></script>
+        <script src="_static/sphinx_highlight.js?v=dc90522c"></script>
         <script>window.MathJax = {"tex": {"macros": {"Ab": "{{\\bf A}}", "eb": "{{\\bf e}}", "Fb": "{{\\bf F}}", "gb": "{{\\bf g}}", "Hb": "{{\\bf H}}", "ib": "{{\\bf i}}", "Ib": "{{\\bf I}}", "Kb": "{{\\bf K}}", "lb": "{{\\bf l}}", "Lb": "{{\\bf L}}", "nb": "{{\\bf n}}", "Pb": "{{\\bf P}}", "Qb": "{{\\bf Q}}", "rb": "{{\\bf r}}", "Rb": "{{\\bf R}}", "Sb": "{{\\bf S}}", "ub": "{{\\bf u}}", "Ub": "{{\\bf U}}", "xb": "{{\\bf x}}", "dt": "{\\Delta t}", "omegadot": "{\\dot\\omega}", "inp": "{{\\rm in}}", "outp": "{{\\rm out}}", "sync": "{{\\rm sync}}", "half": "{\\frac{1}{2}}", "myhalf": "{\\half}", "nph": "{{n+\\myhalf}}", "vb": "{\\boldsymbol{v}}", "vbt": "{\\widetilde{\\vb}}", "rbt": "{\\widetilde{\\rb}}", "ob": "{\\boldsymbol{\\omega}}", "nablab": "{\\boldsymbol{\\nabla}}", "avg": ["{{\\left \\langle #1 \\right \\rangle}}", 1]}}}</script>
         <script defer="defer" src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
     <script src="_static/js/theme.js"></script>
@@ -38,7 +38,7 @@
             IAMR
           </a>
               <div class="version">
-                23.09-dev
+                23.10-dev
               </div>
 <div role="search">
   <form id="rtd-search-form" class="wy-form" action="search.html" method="get">
@@ -117,12 +117,12 @@
            <div itemprop="articleBody">
              
   <section id="an-overview-of-iamr-code">
-<h1>An Overview of IAMR Code<a class="headerlink" href="#an-overview-of-iamr-code" title="Permalink to this heading"></a></h1>
+<h1>An Overview of IAMR Code<a class="headerlink" href="#an-overview-of-iamr-code" title="Link to this heading"></a></h1>
 <p>IAMR is built upon the AMReX C++ framework. This provides
 high-level classes for managing an adaptive mesh refinement simulation,
 including the core data structures required in AMR calculations.
 Since IAMR leaverages heavily from the AMReX library,
-it’s documentation <a class="reference external" href="https://amrex-codes.github.io/amrex/docs_html/index.html#amrex-doc-indx" title="(in amrex v23.09-dev)"><span>Welcome to AMReX’s documentation</span></a>
+it’s documentation <a class="reference external" href="https://amrex-codes.github.io/amrex/docs_html/index.html#amrex-doc-indx" title="(in amrex v23.10-dev)"><span>Welcome to AMReX’s documentation</span></a>
 is a useful resource in addition to this User’s Guide.</p>
 <p>The IAMR simulation begins in IAMR/Source/main.cpp where an instance
 of the AMReX Amr class is created:</p>
@@ -152,7 +152,7 @@ desired simulation time is reached:</p>
 including synchronization between levels, to advance the level hierarchy
 forward in time.</p>
 <section id="state-data">
-<h2>State Data<a class="headerlink" href="#state-data" title="Permalink to this heading"></a></h2>
+<h2>State Data<a class="headerlink" href="#state-data" title="Link to this heading"></a></h2>
 <p>The StateData class structure defined by AMReX is the data container
 used to store the field data associated with the state on a single AMR level
 during an IAMR run. The entire state consists of a dynamic union, or hierarchy, of
@@ -230,7 +230,7 @@ a more array like manner using operator()
 <a class="reference external" href="https://amrex-codes.github.io/amrex/docs_html/GPU.html#sec-gpu-for">https://amrex-codes.github.io/amrex/docs_html/GPU.html#sec-gpu-for</a> ).</p>
 </section>
 <section id="boundaries">
-<span id="sec-boundaries"></span><h2>Boundaries<a class="headerlink" href="#boundaries" title="Permalink to this heading"></a></h2>
+<span id="sec-boundaries"></span><h2>Boundaries<a class="headerlink" href="#boundaries" title="Link to this heading"></a></h2>
 <p>In AMReX, we are primarily concerned with enabling structured-grid
 computations. A key aspect of this is the use of “grow” cells
 around the “valid box” of cells over which we wish to apply stencil operations.
@@ -240,7 +240,7 @@ data containers that allow us to separate the steps of data preparation
 from stencil application. The steps that are required to fill grow cells
 depends on where the cells “live” in the computational domain.</p>
 <section id="boundaries-between-grids-and-levels">
-<h3>Boundaries Between Grids and Levels<a class="headerlink" href="#boundaries-between-grids-and-levels" title="Permalink to this heading"></a></h3>
+<h3>Boundaries Between Grids and Levels<a class="headerlink" href="#boundaries-between-grids-and-levels" title="Link to this heading"></a></h3>
 <p>Most of our state data is cell-centered, and often the grow cells are
 as well. When the cells lie directly over cells of a neighboring box
 at the same AMR refinement level, these are “fine-fine” cells, and are
@@ -269,7 +269,7 @@ example.) A number of interpolators are provided with AMReX and
 user-customizable ones can be added on the fly.</p>
 </section>
 <section id="physical-boundaries">
-<span id="sec-physicalbcs"></span><h3>Physical Boundaries<a class="headerlink" href="#physical-boundaries" title="Permalink to this heading"></a></h3>
+<span id="sec-physicalbcs"></span><h3>Physical Boundaries<a class="headerlink" href="#physical-boundaries" title="Link to this heading"></a></h3>
 <p>The last type of grow cell exists at physical boundaries. These are special for
 a couple of reasons. First, the user must explicitly specify how they are to be
 filled, consistent with the problem being run. AMReX provides a number of
@@ -329,7 +329,7 @@ by adjusting the corresponding translations in <code class="docutils literal not
 </section>
 </section>
 <section id="derived-variables">
-<span id="sec-derivedvariables"></span><h2>Derived Variables<a class="headerlink" href="#derived-variables" title="Permalink to this heading"></a></h2>
+<span id="sec-derivedvariables"></span><h2>Derived Variables<a class="headerlink" href="#derived-variables" title="Link to this heading"></a></h2>
 <p>IAMR has the ability to created new variables derived from the state variables.
 A few derived variables are provided with IAMR, which can be used as examples for
 creating user defined derived variables.
@@ -370,7 +370,7 @@ A multifab filled with the magnitude of the vorticity can be obtained via</p>
 </div>
 </section>
 <section id="the-fillpatchiterator">
-<h2>The FillPatchIterator<a class="headerlink" href="#the-fillpatchiterator" title="Permalink to this heading"></a></h2>
+<h2>The FillPatchIterator<a class="headerlink" href="#the-fillpatchiterator" title="Link to this heading"></a></h2>
 <p>A FillPatchIterator is a AMReX object tasked with the job of
 filling rectangular patches of state data, possibly including grow cells,
 and, if so, utilizing all the metadata discussed above that is provided by
@@ -412,7 +412,7 @@ number of successively coarser AMR levels), this key operation can hide an
 enormous amount of code and algorithm complexity.</p>
 </section>
 <section id="parallelization">
-<span id="chap-parallel"></span><h2>Parallelization<a class="headerlink" href="#parallelization" title="Permalink to this heading"></a></h2>
+<span id="chap-parallel"></span><h2>Parallelization<a class="headerlink" href="#parallelization" title="Link to this heading"></a></h2>
 <p>AMReX uses a hybrid MPI + X approach to parallelism,
 where X = OpenMP for multicore machines, and CUDA/HIP/DCP++ for CPU/GPU systems.
 The basic idea is that MPI is used to distribute individual boxes across
@@ -420,9 +420,9 @@ nodes while X is used to distribute the work in local boxes
 within a node. The OpenMP approach in AMReX is optionally
 based on <em>tiling</em> the box-based data structures. Both the tiling and
 non-tiling approaches to work distribution are discussed below. Also see
-the discussion of tiling in AMReX’s documentation, <a class="reference external" href="https://amrex-codes.github.io/amrex/docs_html/Basics.html#sec-basics-mfiter" title="(in amrex v23.09-dev)"><span>MFIter and Tiling</span></a>.</p>
+the discussion of tiling in AMReX’s documentation, <a class="reference external" href="https://amrex-codes.github.io/amrex/docs_html/Basics.html#sec-basics-mfiter" title="(in amrex v23.10-dev)"><span>MFIter and Tiling</span></a>.</p>
 <section id="amrexs-non-tiling-approach">
-<h3>AMReX’s Non-Tiling Approach<a class="headerlink" href="#amrexs-non-tiling-approach" title="Permalink to this heading"></a></h3>
+<h3>AMReX’s Non-Tiling Approach<a class="headerlink" href="#amrexs-non-tiling-approach" title="Link to this heading"></a></h3>
 <p>At the highest abstraction level, we have MultiFab (mulitple
 FArrayBoxes). A MultiFab contains an array of Boxes (a Box contains integers specifying the index space it
 covers), including Boxes owned by other processors for the
@@ -452,7 +452,7 @@ ghost cells. We can get the indices of the valid zones as box.loVect and box.hiV
 </ul>
 </section>
 <section id="amrexs-tiling-approach">
-<h3>AMReX’s Tiling Approach<a class="headerlink" href="#amrexs-tiling-approach" title="Permalink to this heading"></a></h3>
+<h3>AMReX’s Tiling Approach<a class="headerlink" href="#amrexs-tiling-approach" title="Link to this heading"></a></h3>
 <p>There are two types of tiling that people discuss. In <em>logical
 tiling</em>, the data storage in memory is unchanged from how we do things
 now in pure MPI. In a given box, the data region is stored
@@ -496,7 +496,7 @@ Box (and corresponding lo and hi) for the <em>current tile</em>, not the entire 
 <figure class="align-default" id="id1">
 <img alt="A simple domain showing 4 Boxes labeled 0–3, and their tiling regions (dotted lines)" src="_images/domain-tile.png" />
 <figcaption>
-<p><span class="caption-number">Fig. 8 </span><span class="caption-text">Boxes labeled 0–3, and their tiling regions (dotted lines)</span><a class="headerlink" href="#id1" title="Permalink to this image"></a></p>
+<p><span class="caption-number">Fig. 8 </span><span class="caption-text">Boxes labeled 0–3, and their tiling regions (dotted lines)</span><a class="headerlink" href="#id1" title="Link to this image"></a></p>
 </figcaption>
 </figure>
 <p>The first box is divided into 4 logical tiles, the second and third
@@ -556,7 +556,7 @@ burning in cells by an implicit solver. Tiling can also create extra
 work in the ghost cells of tiles.</p>
 </section>
 <section id="practical-details-in-working-with-tiling">
-<h3>Practical Details in Working with Tiling<a class="headerlink" href="#practical-details-in-working-with-tiling" title="Permalink to this heading"></a></h3>
+<h3>Practical Details in Working with Tiling<a class="headerlink" href="#practical-details-in-working-with-tiling" title="Link to this heading"></a></h3>
 <p>It is the responsibility of the coder to make sure that the routines within
 a tiled region are safe to use with OpenMP. In particular, note that:</p>
 <ul class="simple">
@@ -582,7 +582,7 @@ the tile region, not for the entire box.</p></li>
 </section>
 </section>
 <section id="particles">
-<h2>Particles<a class="headerlink" href="#particles" title="Permalink to this heading"></a></h2>
+<h2>Particles<a class="headerlink" href="#particles" title="Link to this heading"></a></h2>
 <p>IAMR has the ability to include data-parallel particle simulations.
 Our particles can interact with data defined on a (possibly adaptive)
 block-structured hierarchy of meshes. Example applications include
@@ -592,30 +592,30 @@ drag forces onto a fluid, such as in multi-phase flow calculations.</p>
 <code class="docutils literal notranslate"><span class="pre">IAMR/Tutorials/Particles</span></code>.</p>
 <p>We provide a brief introduction to using particles in IAMR in <a class="reference internal" href="SetupAndRunning.html#chap-setupandrunning"><span class="std std-ref">Creating and Running Your Own Problem</span></a>.
 For more detailed information
-on particles, see AMReX’s documentation: <a class="reference external" href="https://amrex-codes.github.io/amrex/docs_html/Particle_Chapter.html#chap-particles" title="(in amrex v23.09-dev)"><span>Particles</span></a>.</p>
+on particles, see AMReX’s documentation: <a class="reference external" href="https://amrex-codes.github.io/amrex/docs_html/Particle_Chapter.html#chap-particles" title="(in amrex v23.10-dev)"><span>Particles</span></a>.</p>
 </section>
 <section id="gridding-and-load-balancing">
-<h2>Gridding and Load Balancing<a class="headerlink" href="#gridding-and-load-balancing" title="Permalink to this heading"></a></h2>
+<h2>Gridding and Load Balancing<a class="headerlink" href="#gridding-and-load-balancing" title="Link to this heading"></a></h2>
 <p>IAMR has a great deal of flexibility when it comes to how to decompose the
 computational domain into individual rectangular grids, and how to distribute
 those grids to MPI ranks.  There can be grids of different sizes,
 more than one grid per MPI rank, and different strategies for distributing the grids to MPI ranks.
 IAMR relies on AMReX for the implementation. For more information, please see AMReX’s documentation,
-found here: <a class="reference external" href="https://amrex-codes.github.io/amrex/docs_html/ManagingGridHierarchy_Chapter.html#chap-managinggridhierarchy" title="(in amrex v23.09-dev)"><span>Gridding and Load Balancing</span></a>.</p>
-<p>See <a class="reference internal" href="#sec-gridcreation"><span class="std std-ref">AMR Grids</span></a> and <a class="reference external" href="https://amrex-codes.github.io/amrex/docs_html/InputsLoadBalancing.html#chap-inputsloadbalancing" title="(in amrex v23.09-dev)"><span>Gridding and Load Balancing</span></a> for how grids are created,
+found here: <a class="reference external" href="https://amrex-codes.github.io/amrex/docs_html/ManagingGridHierarchy_Chapter.html#chap-managinggridhierarchy" title="(in amrex v23.10-dev)"><span>Gridding and Load Balancing</span></a>.</p>
+<p>See <a class="reference internal" href="#sec-gridcreation"><span class="std std-ref">AMR Grids</span></a> and <a class="reference external" href="https://amrex-codes.github.io/amrex/docs_html/InputsLoadBalancing.html#chap-inputsloadbalancing" title="(in amrex v23.10-dev)"><span>Gridding and Load Balancing</span></a> for how grids are created,
 i.e. how the <code class="code highlight cpp c++ docutils literal highlight-c++"><span class="n">BoxArray</span></code> on which
 <code class="code highlight cpp c++ docutils literal highlight-c++"><span class="n">MultiFabs</span></code> will be built is defined at each level.</p>
-<p>See <a class="reference external" href="https://amrex-codes.github.io/amrex/docs_html/LoadBalancing.html#sec-load-balancing" title="(in amrex v23.09-dev)"><span>Load Balancing</span></a> for the strategies AMReX supports for distributing
+<p>See <a class="reference external" href="https://amrex-codes.github.io/amrex/docs_html/LoadBalancing.html#sec-load-balancing" title="(in amrex v23.10-dev)"><span>Load Balancing</span></a> for the strategies AMReX supports for distributing
 grids to MPI ranks, i.e. defining the <code class="code highlight cpp c++ docutils literal highlight-c++"><span class="n">DistributionMapping</span></code> with which
 <code class="code highlight cpp c++ docutils literal highlight-c++"><span class="n">MultiFabs</span></code> at that level will be built.</p>
 <p>When running on multicore machines with OpenMP, we can also control the distribution of
 work by setting the size of grid tiles (by defining <code class="code highlight cpp c++ docutils literal highlight-c++"><span class="n">fabarray</span><span class="p">.</span><span class="n">mfiter_tile_size</span></code>,
 see <a class="reference internal" href="RunningProblems.html#sec-tilinginputs"><span class="std std-ref">Tiling</span></a>).
 We can also specify the strategy for assigning tiles to OpenMP threads.
-See <a class="reference internal" href="#chap-parallel"><span class="std std-ref">Parallelization</span></a> and AMReX’s docmumentation (<a class="reference external" href="https://amrex-codes.github.io/amrex/docs_html/Basics.html#sec-basics-mfiter-tiling" title="(in amrex v23.09-dev)"><span>MFIter with Tiling</span></a>) for more about tiling.</p>
+See <a class="reference internal" href="#chap-parallel"><span class="std std-ref">Parallelization</span></a> and AMReX’s docmumentation (<a class="reference external" href="https://amrex-codes.github.io/amrex/docs_html/Basics.html#sec-basics-mfiter-tiling" title="(in amrex v23.10-dev)"><span>MFIter with Tiling</span></a>) for more about tiling.</p>
 </section>
 <section id="amr-grids">
-<span id="sec-gridcreation"></span><h2>AMR Grids<a class="headerlink" href="#amr-grids" title="Permalink to this heading"></a></h2>
+<span id="sec-gridcreation"></span><h2>AMR Grids<a class="headerlink" href="#amr-grids" title="Link to this heading"></a></h2>
 <p>Our approach to adaptive refinement in IAMR uses a nested
 hierarchy of logically-rectangular grids with simultaneous refinement
 of the grids in both space and time. The integration algorithm on the grid hierarchy
@@ -645,15 +645,15 @@ which will define a new finer level (or set of levels). State data is filled ove
 possible, and interpolating from coarser level when no fine data is available. Once this process is complete,
 the existing Amr level(s) is removed, the new one is inserted into the hierarchy, and the time integration
 continues.</p>
-<p>Further details on grid generation are in AMReX’s documentation: <a class="reference external" href="https://amrex-codes.github.io/amrex/docs_html/GridCreation.html#sec-grid-creation" title="(in amrex v23.09-dev)"><span>Grid Creation</span></a>.</p>
+<p>Further details on grid generation are in AMReX’s documentation: <a class="reference external" href="https://amrex-codes.github.io/amrex/docs_html/GridCreation.html#sec-grid-creation" title="(in amrex v23.10-dev)"><span>Grid Creation</span></a>.</p>
 <section id="tagging-for-refinement">
-<span id="sec-tagging"></span><h3>Tagging for Refinement<a class="headerlink" href="#tagging-for-refinement" title="Permalink to this heading"></a></h3>
+<span id="sec-tagging"></span><h3>Tagging for Refinement<a class="headerlink" href="#tagging-for-refinement" title="Link to this heading"></a></h3>
 <p>This section describes the process
 by which cells are tagged during regridding, and describes how to add customized tagging criteria.
 IAMR provides two methods for creating error estimation functions: dynamic generation and explicit or
 hard-coded. First dynamic generation is discussed, followed by how to explicitly define error functions.</p>
 <section id="dynamically-generated-tagging-functions">
-<h4>Dynamically generated tagging functions<a class="headerlink" href="#dynamically-generated-tagging-functions" title="Permalink to this heading"></a></h4>
+<h4>Dynamically generated tagging functions<a class="headerlink" href="#dynamically-generated-tagging-functions" title="Link to this heading"></a></h4>
 <p>Dynamically created error functions are based on runtime data specified in the
 inputs (ParmParse) data.
 These dynamically generated error functions can tag a specified region of the domain and/or test on a field
@@ -707,7 +707,7 @@ scheduled regrid operation. Alternatively, the user may restart with amr.regrid_
 do a full (all-levels) regrid after reading the checkpoint data and before advancing any cells.</p>
 </section>
 <section id="explicitly-defined-tagging-functions">
-<h4>Explicitly defined tagging functions<a class="headerlink" href="#explicitly-defined-tagging-functions" title="Permalink to this heading"></a></h4>
+<h4>Explicitly defined tagging functions<a class="headerlink" href="#explicitly-defined-tagging-functions" title="Link to this heading"></a></h4>
 <p>Explicitly defined error estimation functions can be used either instead of or in addition to
 dynmaically generated funtions. These functions can be added to NavierStokes::errorEst() in
 NS_error.cpp. Any dynamically generated error functions will operate first.
@@ -717,7 +717,7 @@ may not have the desired effect.</p>
 </section>
 </section>
 <section id="parallel-i-o">
-<span id="sec-parallelio"></span><h2>Parallel I/O<a class="headerlink" href="#parallel-i-o" title="Permalink to this heading"></a></h2>
+<span id="sec-parallelio"></span><h2>Parallel I/O<a class="headerlink" href="#parallel-i-o" title="Link to this heading"></a></h2>
 <p>Both checkpoint files and plotfiles are actually folders containing
 subfolders: one subfolder for each level of the AMR hierarchy.
 The fundamental data structure we read/write to disk is a MultiFab,
