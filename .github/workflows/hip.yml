@@ -13,6 +13,7 @@ concurrency:
 
 jobs:
   hip_eb_3d:
+    if: ${{ github.repository == 'AMReX-Codes/IAMR' || github.event_name != 'schedule' }}
     name: HIP EB 3D
     runs-on: ubuntu-20.04
     steps:
