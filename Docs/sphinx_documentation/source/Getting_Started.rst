@@ -29,7 +29,7 @@ First, make sure that git is installed on your machine.
 
    .. code:: shell
 
-         git clone https://github.com/AMReX-Codes/AMReX-Hydro.git
+         git clone https://github.com/AMReX-Fluids/AMReX-Hydro.git
 
    This will create a folder called ``AMReX-Hydro/`` on your machine.
 
@@ -37,7 +37,7 @@ First, make sure that git is installed on your machine.
 
    .. code:: shell
 
-         git clone https://github.com/AMReX-Codes/IAMR.git
+         git clone https://github.com/AMReX-Fluids/IAMR.git
 
    This will create a folder called ``IAMR/`` on your machine.
 
@@ -229,4 +229,3 @@ for visualization, please see the :ref:`Visualization` Section.
    looking at and/or select a region and click “Dataset” (under View)
    in order to look at the actual numbers. You can also export the
    pictures in several different formats under “File/Export”.
-

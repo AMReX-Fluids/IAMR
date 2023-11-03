@@ -44,7 +44,7 @@ you.  We assume REGTEST_SCRATCH is defined to point to this location.
     ```
     git clone https://github.com/AMReX-Codes/amrex.git ${REGTEST_SCRATCH}/amrex
     git clone https://github.com/AMReX-Codes/regression_testing.git ${REGTEST_SCRATCH}/regression_testing
-    git clone https://github.com/AMReX-Codes/IAMR.git ${REGTEST_SCRATCH}/IAMR
+    git clone https://github.com/AMReX-Fluids/IAMR.git ${REGTEST_SCRATCH}/IAMR
     ```
 
 3.  Move to the location where the tests will be built/run, create

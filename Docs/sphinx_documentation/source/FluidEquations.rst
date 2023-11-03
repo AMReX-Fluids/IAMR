@@ -68,4 +68,4 @@ IAMR also has the option to solve for temperature, along with a modified diverge
 Here, the divergence constraint captures compressibily effects due to thermal diffusion.
 To enable the temperature solve, use ``ns.do_temp = 1`` and set ``ns.temp_cond_coef`` to represent :math:`\lambda / c_p`,
 which is taken to be constant. More sophiticated treatments are possible; if interested, please open an issue on github:
-https://github.com/AMReX-Codes/IAMR/issues
+https://github.com/AMReX-Fluids/IAMR/issues
