@@ -4,4 +4,4 @@ The initial conditions are relatively quickly washed away due to the action of t
 An AMReX tool for deriving the spectrum from a plotfile can be found here:
 AmrDeriveSpectrum (https://github.com/AMReX-Astro/AmrDeriveSpectrum)
 
-For questions or help, please visit IAMR's documentation (https://amrex-codes.github.io/IAMR/docs_html/index.html) or post an issue on IAMR's github page (https://github.com/AMReX-Codes/IAMR).
+For questions or help, please visit IAMR's documentation (https://amrex-fluids.github.io/IAMR/docs_html/index.html) or post an issue on IAMR's github page (https://github.com/AMReX-Fluids/IAMR).

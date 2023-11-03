@@ -14,5 +14,5 @@ The subdirectories group together tests:
    using an EB is possible
 
 For further help, please see IAMR's documentation at
-https://amrex-codes.github.io/IAMR/
+https://amrex-fluids.github.io/IAMR/
 

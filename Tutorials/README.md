@@ -1,6 +1,6 @@
 These tutorials provide problem setups to help familiarize you with running
 IAMR. Below we provide a quick overview. For more information,
-please see IAMR's documentation at https://amrex-codes.github.io/IAMR/
+please see IAMR's documentation at https://amrex-fluids.github.io/IAMR/
 or open an issue on github.
 
 There are a large number of options which can be specified from the inputs,

@@ -16,10 +16,10 @@ building massively parallel block-structured adaptive mesh refinement (AMR)
 applications.
 
 The IAMR source code is available at
-https://amrex-codes.github.io/IAMR/
+https://amrex-fluids.github.io/IAMR/
 
 For an AMReX-based incompressible flow code without subcycling in time,
-see incflo (https://amrex-codes.github.io/incflo/)
+see incflo (https://amrex-fluids.github.io/incflo/)
 
 .. note::
    **This documentation is a work in progress. Please check back later for more content.**

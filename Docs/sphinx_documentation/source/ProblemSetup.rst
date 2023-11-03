@@ -354,7 +354,7 @@ Physics Parameters
 
 IAMR provides support for gravity, viscosity, and diffusivity. Default treatment is given in the table below.
 More sophiticated treatments are possible;
-if interested, please open an issue on github: https://github.com/AMReX-Codes/IAMR/issues
+if interested, please open an issue on github: https://github.com/AMReX-Fluids/IAMR/issues
 
 The following inputs must be preceded by "ns." For information on units, see :ref:`sec:units`.
 
@@ -367,4 +367,3 @@ The following inputs must be preceded by "ns." For information on units, see :re
 +----------------------+-------------------------------------------------------------------------+----------+-----------+
 | scal_diff_coefs      | Diffusivity of tracer(s). Must specify one value for each tracer.       |  Real    |  None     |
 +----------------------+-------------------------------------------------------------------------+----------+-----------+
-

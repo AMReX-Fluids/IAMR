@@ -56,7 +56,7 @@ for more information and tips.
 
 
 If you believe you've encountered a bug or incorrect behavior in IAMR, please report the issue
-on IAMR's github page `here <https://github.com/AMReX-Codes/IAMR/issues>`_ .
+on IAMR's github page `here <https://github.com/AMReX-Fluids/IAMR/issues>`_ .
 
 ..
   If the issues is ``MLMG failed to converge``

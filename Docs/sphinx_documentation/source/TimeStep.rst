@@ -1,6 +1,6 @@
 .. include:: CustomCommands.rst
 
-To learn how the convective terms are constructed, see `AMReX-Hydro <https://amrex-codes.github.io/amrex/hydro_html>`_
+To learn how the convective terms are constructed, see `AMReX-Hydro <https://amrex-fluids.github.io/amrex-hydro/docs_html>`_
 
 Time Step -- MOL
 ~~~~~~~~~~~~~~~~
@@ -131,4 +131,3 @@ Addition details are located in the :ref:`BDS section of the AMReX-Hydro docs <h
   A. Nonaka, S. May, A. S. Almgren, and J. B. Bell,
   SIAM Journal of Scientific Computation, Vol. 33, No.4, pp. 2039-2062.
   https://ccse.lbl.gov/Publications/nonaka/BDS_3d.pdf :cite:`BDS_3d`
-
