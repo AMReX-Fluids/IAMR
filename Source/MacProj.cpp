@@ -59,14 +59,6 @@ MacProj::Initialize ()
     MacProj::check_umac_periodicity = 1;
 #endif
 
-    // NOTE: IAMR uses a different max_order default than hydro::MacProjector,
-    // which uses a default of 3
-    static int max_order = 4;
-    static int agglomeration = 1;
-    static int consolidation = 1;
-    static int max_fmg_iter = -1;
-
-
     ParmParse pp("mac_proj");
 
     pp.query("verbose",                verbose);
