@@ -805,19 +805,19 @@ MacProj::check_div_cond (int      level,
     {
         const Box& bx = mfi.tilebox();
         auto const& cc_divu   = dmac.array(mfi);
-        D_TERM(auto const& ux_e = U_edge[0].array(mfi);,
+        AMREX_D_TERM(auto const& ux_e = U_edge[0].array(mfi);,
                auto const& uy_e = U_edge[1].array(mfi);,
                auto const& uz_e = U_edge[2].array(mfi););
-        D_TERM(auto const& xarea  = area[0].array(mfi);,
+        AMREX_D_TERM(auto const& xarea  = area[0].array(mfi);,
                auto const& yarea  = area[1].array(mfi);,
                auto const& zarea  = area[2].array(mfi););
         auto const& vol       = volume.array(mfi);
 
-        amrex::ParallelFor(bx, [cc_divu,D_DECL(ux_e,uy_e,uz_e),
-                                        D_DECL(xarea,yarea,zarea), vol]
+        amrex::ParallelFor(bx, [cc_divu,AMREX_D_DECL(ux_e,uy_e,uz_e),
+                                        AMREX_D_DECL(xarea,yarea,zarea), vol]
         AMREX_GPU_DEVICE (int i, int j, int k) noexcept
         {
-            cc_divu(i,j,k) = D_TERM(  xarea(i+1,j,k)*ux_e(i+1,j,k) - xarea(i,j,k)*ux_e(i,j,k),
+            cc_divu(i,j,k) = AMREX_D_TERM(  xarea(i+1,j,k)*ux_e(i+1,j,k) - xarea(i,j,k)*ux_e(i,j,k),
                                     + yarea(i,j+1,k)*uy_e(i,j+1,k) - yarea(i,j,k)*uy_e(i,j,k),
                                     + zarea(i,j,k+1)*uz_e(i,j,k+1) - zarea(i,j,k)*uz_e(i,j,k));
             cc_divu(i,j,k) /= vol(i,j,k);
@@ -1193,12 +1193,12 @@ MacProj::set_mac_solve_bc (Array<MLLinOp::BCType,AMREX_SPACEDIM>& mlmg_lobc,
             mlmg_lobc[idim] = MLLinOp::BCType::Periodic;
             mlmg_hibc[idim] = MLLinOp::BCType::Periodic;
         } else {
-            if (a_phys_bc.lo(idim) == Outflow) {
+            if (a_phys_bc.lo(idim) == PhysBCType::outflow) {
                 mlmg_lobc[idim] = MLLinOp::BCType::Dirichlet;
             } else {
                 mlmg_lobc[idim] = MLLinOp::BCType::Neumann;
             }
-            if (a_phys_bc.hi(idim) == Outflow) {
+            if (a_phys_bc.hi(idim) == PhysBCType::outflow) {
                 mlmg_hibc[idim] = MLLinOp::BCType::Dirichlet;
             } else {
                 mlmg_hibc[idim] = MLLinOp::BCType::Neumann;

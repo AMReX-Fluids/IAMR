@@ -187,14 +187,14 @@ main (int   argc,
             FORT_VISCBENCH(&time, &mu, &unifDir,
                            lo, hi, &nComp,
                            ((*dataE[iLevel])[iGrid]).dataPtr(),
-                           ARLIM(lo), ARLIM(hi),
+                           AMREX_ARLIM(lo), AMREX_ARLIM(hi),
                            delI.dataPtr(),
                            xlo.dataPtr(), xhi.dataPtr());
 #else
             FORT_VISCBENCH(&time, &mu,
                            lo, hi, &nComp,
                            ((*dataE[iLevel])[iGrid]).dataPtr(),
-                           ARLIM(lo), ARLIM(hi),
+                           AMREX_ARLIM(lo), AMREX_ARLIM(hi),
                            delI.dataPtr(),
                            xlo.dataPtr(), xhi.dataPtr());
 #endif
@@ -269,4 +269,3 @@ amrDatasHaveSameDerives(const AmrData& amrd1,
             return false;
     return true;
 }
-
