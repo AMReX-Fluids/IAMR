@@ -242,17 +242,17 @@ NavierStokesBase::LES_setDomainBC (std::array<LinOpBCType,AMREX_SPACEDIM>& mlmg_
         else
         {
             int pbc = bc.lo(idim);
-            if (pbc == EXT_DIR)
+            if (pbc == BCType::ext_dir)
             {
                 mlmg_lobc[idim] = LinOpBCType::Dirichlet;
             }
-            else if (pbc == FOEXTRAP      ||
-                     pbc == HOEXTRAP      ||
-                     pbc == REFLECT_EVEN)
+            else if (pbc == BCType::foextrap      ||
+                     pbc == BCType::hoextrap      ||
+                     pbc == BCType::reflect_even)
             {
                 mlmg_lobc[idim] = LinOpBCType::Neumann;
             }
-            else if (pbc == REFLECT_ODD)
+            else if (pbc == BCType::reflect_odd)
             {
                 mlmg_lobc[idim] = LinOpBCType::reflect_odd;
             }
@@ -262,17 +262,17 @@ NavierStokesBase::LES_setDomainBC (std::array<LinOpBCType,AMREX_SPACEDIM>& mlmg_
             }
 
             pbc = bc.hi(idim);
-            if (pbc == EXT_DIR)
+            if (pbc == BCType::ext_dir)
             {
                 mlmg_hibc[idim] = LinOpBCType::Dirichlet;
             }
-            else if (pbc == FOEXTRAP      ||
-                     pbc == HOEXTRAP      ||
-                     pbc == REFLECT_EVEN)
+            else if (pbc == BCType::foextrap      ||
+                     pbc == BCType::hoextrap      ||
+                     pbc == BCType::reflect_even)
             {
                 mlmg_hibc[idim] = LinOpBCType::Neumann;
             }
-            else if (pbc == REFLECT_ODD)
+            else if (pbc == BCType::reflect_odd)
             {
                 mlmg_hibc[idim] = LinOpBCType::reflect_odd;
             }

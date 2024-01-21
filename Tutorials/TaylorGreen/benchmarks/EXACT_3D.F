@@ -9,6 +9,24 @@
 #include <AMReX_ArrayLim.H>
 #include <EXACT_F.H>
 
+#ifdef BL_USE_FLOAT
+#define REAL_T  real
+#define zero    0.0e0
+#define one     1.0e0
+#define two     2.0e0
+#define four    4.0e0
+#define half    0.5e0
+#define Pi      3.1415926535897932e0
+#else
+#define REAL_T  double precision
+#define zero    0.0d0
+#define one     1.0d0
+#define two     2.0d0
+#define four    4.0d0
+#define half    0.5d0
+#define Pi      3.1415926535897932d0
+#endif
+
 #define SDIM 3
 c
 c ::: -----------------------------------------------------------
@@ -25,21 +43,26 @@ c ::: (Intl. J. Num. Meth. Fluids, Vol. 19, pp. 369-375, 1994) give
 c ::: the pressure field.
 c
       subroutine FORT_VISCBENCH(time, nu, unifdir, lo, hi,
-     &                          ncomp, state, DIMS(state),
+     &                          ncomp, state,
+     &                          state_l1,state_l2,state_l3,
+     &                          state_h1,state_h2,state_h3,
      &                          dx, xlo, xhi)
 
       implicit none
 
       integer    ncomp, unifdir
       integer    lo(SDIM), hi(SDIM)
-      integer    DIMDEC(state)
+      integer    state_l1,state_l2,state_l3
+      integer    state_h1,state_h2,state_h3
       REAL_T     time, nu, dx(SDIM)
       REAL_T     xlo(SDIM), xhi(SDIM)
-      REAL_T     state(DIMV(state),ncomp)
+      REAL_T     state(state_l1:state_h1,
+     &                 state_l2:state_h2,
+     &                 state_l3:state_h3,ncomp)
 c
 c     ::::: local variables
 c
-      integer i, j, k, n
+      integer i, j, k
       REAL_T  x, y, z
       REAL_T  hx, hy, hz
       REAL_T  spx, spy, spz, cpx, cpy, cpz

@@ -990,14 +990,14 @@ Diffusion::diffuse_Vsync (MultiFab&              Vsync,
 
         for (int k = 0; k < AMREX_SPACEDIM; k++)
         {
-            if (velbc.hi(k) == EXT_DIR)
+            if (velbc.hi(k) == BCType::ext_dir)
             {
                 IntVect smallend = domain.smallEnd();
                 smallend.setVal(k,domain.bigEnd(k));
                 Box top_strip(smallend,domain.bigEnd(),IntVect::TheCellVector());
                 Vsync.setVal(0,top_strip,n-Xvel,1,1);
             }
-            if (velbc.lo(k) == EXT_DIR)
+            if (velbc.lo(k) == BCType::ext_dir)
             {
                 IntVect bigend = domain.bigEnd();
                 bigend.setVal(k,domain.smallEnd(k));
@@ -1488,15 +1488,15 @@ Diffusion::computeExtensiveFluxes(MLMG& a_mg, MultiFab& Soln,
 #endif
    for (MFIter mfi(Soln, mfi_info); mfi.isValid(); ++mfi)
    {
-      D_TERM( const auto& fx = flxx.array(mfi);,
+      AMREX_D_TERM( const auto& fx = flxx.array(mfi);,
               const auto& fy = flxy.array(mfi);,
               const auto& fz = flxz.array(mfi););
 
-      D_TERM( const Box ubx = mfi.nodaltilebox(0);,
+      AMREX_D_TERM( const Box ubx = mfi.nodaltilebox(0);,
               const Box vbx = mfi.nodaltilebox(1);,
               const Box wbx = mfi.nodaltilebox(2););
 
-      D_TERM( const auto& areax = area[0].array(mfi);,
+      AMREX_D_TERM( const auto& areax = area[0].array(mfi);,
               const auto& areay = area[1].array(mfi);,
               const auto& areaz = area[2].array(mfi););
 
@@ -1512,24 +1512,24 @@ Diffusion::computeExtensiveFluxes(MLMG& a_mg, MultiFab& Soln,
          // For now, set to very large num so we know if you accidentally use it
          // MLMG will set covered fluxes to zero
          //
-         D_TERM(AMREX_PARALLEL_FOR_4D(ubx, ncomp, i, j, k, n, {fx(i,j,k,n) = COVERED_VAL;});,
+         AMREX_D_TERM(AMREX_PARALLEL_FOR_4D(ubx, ncomp, i, j, k, n, {fx(i,j,k,n) = COVERED_VAL;});,
                 AMREX_PARALLEL_FOR_4D(vbx, ncomp, i, j, k, n, {fy(i,j,k,n) = COVERED_VAL;});,
                 AMREX_PARALLEL_FOR_4D(wbx, ncomp, i, j, k, n, {fz(i,j,k,n) = COVERED_VAL;}););
       }
       else if ( flags.getType(amrex::grow(bx,0)) != FabType::regular )
       {
-     D_TERM( const auto& afrac_x = areafrac[0]->array(mfi);,
+     AMREX_D_TERM( const auto& afrac_x = areafrac[0]->array(mfi);,
          const auto& afrac_y = areafrac[1]->array(mfi);,
          const auto& afrac_z = areafrac[2]->array(mfi););
 
-     D_TERM(AMREX_PARALLEL_FOR_4D(ubx, ncomp, i, j, k, n, {fx(i,j,k,n) *= fac*areax(i,j,k)*afrac_x(i,j,k);});,
+     AMREX_D_TERM(AMREX_PARALLEL_FOR_4D(ubx, ncomp, i, j, k, n, {fx(i,j,k,n) *= fac*areax(i,j,k)*afrac_x(i,j,k);});,
         AMREX_PARALLEL_FOR_4D(vbx, ncomp, i, j, k, n, {fy(i,j,k,n) *= fac*areay(i,j,k)*afrac_y(i,j,k);});,
                 AMREX_PARALLEL_FOR_4D(wbx, ncomp, i, j, k, n, {fz(i,j,k,n) *= fac*areaz(i,j,k)*afrac_z(i,j,k);}););
       }
       else
 #endif
       {
-    D_TERM(AMREX_PARALLEL_FOR_4D(ubx, ncomp, i, j, k, n, {fx(i,j,k,n) *= fac*areax(i,j,k);});,
+    AMREX_D_TERM(AMREX_PARALLEL_FOR_4D(ubx, ncomp, i, j, k, n, {fx(i,j,k,n) *= fac*areax(i,j,k);});,
            AMREX_PARALLEL_FOR_4D(vbx, ncomp, i, j, k, n, {fy(i,j,k,n) *= fac*areay(i,j,k);});,
            AMREX_PARALLEL_FOR_4D(wbx, ncomp, i, j, k, n, {fz(i,j,k,n) *= fac*areaz(i,j,k);}););
       }
@@ -1898,17 +1898,17 @@ Diffusion::setDomainBC (std::array<LinOpBCType,AMREX_SPACEDIM>& mlmg_lobc,
         else
         {
             int pbc = bc.lo(idim);
-            if (pbc == EXT_DIR)
+            if (pbc == BCType::ext_dir)
             {
                 mlmg_lobc[idim] = LinOpBCType::Dirichlet;
             }
-            else if (pbc == FOEXTRAP      ||
-                     pbc == HOEXTRAP      ||
-                     pbc == REFLECT_EVEN)
+            else if (pbc == BCType::foextrap      ||
+                     pbc == BCType::hoextrap      ||
+                     pbc == BCType::reflect_even)
             {
                 mlmg_lobc[idim] = LinOpBCType::Neumann;
             }
-            else if (pbc == REFLECT_ODD)
+            else if (pbc == BCType::reflect_odd)
             {
                 mlmg_lobc[idim] = LinOpBCType::reflect_odd;
             }
@@ -1918,17 +1918,17 @@ Diffusion::setDomainBC (std::array<LinOpBCType,AMREX_SPACEDIM>& mlmg_lobc,
             }
 
             pbc = bc.hi(idim);
-            if (pbc == EXT_DIR)
+            if (pbc == BCType::ext_dir)
             {
                 mlmg_hibc[idim] = LinOpBCType::Dirichlet;
             }
-            else if (pbc == FOEXTRAP      ||
-                     pbc == HOEXTRAP      ||
-                     pbc == REFLECT_EVEN)
+            else if (pbc == BCType::foextrap      ||
+                     pbc == BCType::hoextrap      ||
+                     pbc == BCType::reflect_even)
             {
                 mlmg_hibc[idim] = LinOpBCType::Neumann;
             }
-            else if (pbc == REFLECT_ODD)
+            else if (pbc == BCType::reflect_odd)
             {
                 mlmg_hibc[idim] = LinOpBCType::reflect_odd;
             }
@@ -1956,17 +1956,17 @@ Diffusion::setDomainBC (std::array<LinOpBCType,AMREX_SPACEDIM>& mlmg_lobc,
         else
         {
             int pbc = bc.lo(idim);
-            if (pbc == EXT_DIR)
+            if (pbc == BCType::ext_dir)
             {
                 mlmg_lobc[idim] = LinOpBCType::Dirichlet;
             }
-            else if (pbc == FOEXTRAP      ||
-                     pbc == HOEXTRAP      ||
-                     pbc == REFLECT_EVEN)
+            else if (pbc == BCType::foextrap      ||
+                     pbc == BCType::hoextrap      ||
+                     pbc == BCType::reflect_even)
             {
                 mlmg_lobc[idim] = LinOpBCType::Neumann;
             }
-            else if (pbc == REFLECT_ODD)
+            else if (pbc == BCType::reflect_odd)
             {
                 mlmg_lobc[idim] = LinOpBCType::reflect_odd;
             }
@@ -1976,17 +1976,17 @@ Diffusion::setDomainBC (std::array<LinOpBCType,AMREX_SPACEDIM>& mlmg_lobc,
             }
 
             pbc = bc.hi(idim);
-            if (pbc == EXT_DIR)
+            if (pbc == BCType::ext_dir)
             {
                 mlmg_hibc[idim] = LinOpBCType::Dirichlet;
             }
-            else if (pbc == FOEXTRAP      ||
-                     pbc == HOEXTRAP      ||
-                     pbc == REFLECT_EVEN)
+            else if (pbc == BCType::foextrap      ||
+                     pbc == BCType::hoextrap      ||
+                     pbc == BCType::reflect_even)
             {
                 mlmg_hibc[idim] = LinOpBCType::Neumann;
             }
-            else if (pbc == REFLECT_ODD)
+            else if (pbc == BCType::reflect_odd)
             {
                 mlmg_hibc[idim] = LinOpBCType::reflect_odd;
             }

@@ -1,54 +1,55 @@
 #include <RegType.H>
+#include <AMReX_BC_TYPES.H>
 
 //
 // Components are  Interior, Inflow, Outflow, Symmetry, SlipWall, NoSlipWall.
 //
 static int norm_vel_bc[] =
 {
-    INT_DIR, EXT_DIR, FOEXTRAP, REFLECT_ODD, EXT_DIR, EXT_DIR
+    amrex::BCType::int_dir, amrex::BCType::ext_dir, amrex::BCType::foextrap, amrex::BCType::reflect_odd, amrex::BCType::ext_dir, amrex::BCType::ext_dir
 };
 
 static int tang_vel_bc[] =
 {
-    INT_DIR, EXT_DIR, FOEXTRAP, REFLECT_EVEN, HOEXTRAP, EXT_DIR
+    amrex::BCType::int_dir, amrex::BCType::ext_dir, amrex::BCType::foextrap, amrex::BCType::reflect_even, amrex::BCType::hoextrap, amrex::BCType::ext_dir
 };
 
 static int scalar_bc[] =
 {
-    INT_DIR, EXT_DIR, FOEXTRAP, REFLECT_EVEN, FOEXTRAP, FOEXTRAP
+    amrex::BCType::int_dir, amrex::BCType::ext_dir, amrex::BCType::foextrap, amrex::BCType::reflect_even, amrex::BCType::foextrap, amrex::BCType::foextrap
 };
 
 static int press_bc[] =
 {
-    INT_DIR, FOEXTRAP, FOEXTRAP, REFLECT_EVEN, FOEXTRAP, FOEXTRAP
+    amrex::BCType::int_dir, amrex::BCType::foextrap, amrex::BCType::foextrap, amrex::BCType::reflect_even, amrex::BCType::foextrap, amrex::BCType::foextrap
 };
 
 static int norm_gradp_bc[] =
 {
-    INT_DIR, FOEXTRAP, FOEXTRAP, REFLECT_ODD, FOEXTRAP, FOEXTRAP
+    amrex::BCType::int_dir, amrex::BCType::foextrap, amrex::BCType::foextrap, amrex::BCType::reflect_odd, amrex::BCType::foextrap, amrex::BCType::foextrap
 };
 
 static int tang_gradp_bc[] =
 {
-    INT_DIR, FOEXTRAP, FOEXTRAP, REFLECT_EVEN, FOEXTRAP, FOEXTRAP
+    amrex::BCType::int_dir, amrex::BCType::foextrap, amrex::BCType::foextrap, amrex::BCType::reflect_even, amrex::BCType::foextrap, amrex::BCType::foextrap
 };
 
 static int temp_bc[] =
 {
-    INT_DIR, EXT_DIR, HOEXTRAP, REFLECT_EVEN, REFLECT_EVEN, REFLECT_EVEN
+    amrex::BCType::int_dir, amrex::BCType::ext_dir, amrex::BCType::hoextrap, amrex::BCType::reflect_even, amrex::BCType::reflect_even, amrex::BCType::reflect_even
 };
 
 static int divu_bc[] =
 {
-    INT_DIR, REFLECT_EVEN, REFLECT_EVEN, REFLECT_EVEN, REFLECT_EVEN, REFLECT_EVEN
+    amrex::BCType::int_dir, amrex::BCType::reflect_even, amrex::BCType::reflect_even, amrex::BCType::reflect_even, amrex::BCType::reflect_even, amrex::BCType::reflect_even
 };
 
 static int dsdt_bc[] =
 {
-    INT_DIR, EXT_DIR, EXT_DIR, REFLECT_EVEN, REFLECT_EVEN, REFLECT_EVEN
+    amrex::BCType::int_dir, amrex::BCType::ext_dir, amrex::BCType::ext_dir, amrex::BCType::reflect_even, amrex::BCType::reflect_even, amrex::BCType::reflect_even
 };
 
 static int average_bc[] =
 {
-    INT_DIR, INT_DIR, INT_DIR, INT_DIR,      INT_DIR,      INT_DIR
+    amrex::BCType::int_dir, amrex::BCType::int_dir, amrex::BCType::int_dir, amrex::BCType::int_dir,      amrex::BCType::int_dir,      amrex::BCType::int_dir
 };

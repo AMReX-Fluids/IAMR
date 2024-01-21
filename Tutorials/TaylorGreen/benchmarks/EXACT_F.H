@@ -22,7 +22,7 @@ c
 #endif
 
 //
-// Use ARLIM in the following.
+// Use AMREX_ARLIM in the following.
 //
 
 extern "C"
@@ -31,14 +31,14 @@ extern "C"
   void FORT_VISCBENCH(const amrex::Real *time, const amrex::Real *nu, const int *unifdir,
                       const int *lo, const int *hi,
                       const int *ncomp,
-                      const amrex::Real *state, ARLIM_P(lo), ARLIM_P(hi),
+                      const amrex::Real *state, AMREX_ARLIM_P(lo), AMREX_ARLIM_P(hi),
                       const amrex::Real *delta,
                       const amrex::Real *xlo, const amrex::Real *xhi);
 #else
   void FORT_VISCBENCH(const amrex::Real *time, const amrex::Real *nu,
                       const int *lo, const int *hi,
                       const int *ncomp,
-                      const amrex::Real *state, ARLIM_P(lo), ARLIM_P(hi),
+                      const amrex::Real *state, AMREX_ARLIM_P(lo), AMREX_ARLIM_P(hi),
                       const amrex::Real *delta,
                       const amrex::Real *xlo, const amrex::Real *xhi);
 #endif
