@@ -449,18 +449,20 @@ NavierStokes::variableSetUp ()
     derive_lst.addComponent("avg_pressure",desc_lst,Press_Type,Pressure,1);
 
 #ifdef AMREX_PARTICLES
-    //
-    // The particle count at this level.
-    //
-    derive_lst.add("particle_count",IndexType::TheCellType(),1,
-                   dernull,the_same_box);
-    derive_lst.addComponent("particle_count",desc_lst,State_Type,Density,1);
-    //
-    // The total # of particles at our level or above.
-    //
-    derive_lst.add("total_particle_count",IndexType::TheCellType(),1,
-                   dernull,the_same_box);
-    derive_lst.addComponent("total_particle_count",desc_lst,State_Type,Density,1);
+    if (do_nspc) {
+        //
+        // The particle count at this level.
+        //
+        derive_lst.add("particle_count",IndexType::TheCellType(),1,
+                       dernull,the_same_box);
+        derive_lst.addComponent("particle_count",desc_lst,State_Type,Density,1);
+        //
+        // The total # of particles at our level or above.
+        //
+        derive_lst.add("total_particle_count",IndexType::TheCellType(),1,
+                       dernull,the_same_box);
+        derive_lst.addComponent("total_particle_count",desc_lst,State_Type,Density,1);
+    }
 #endif
 
     //
