@@ -478,7 +478,9 @@ NavierStokes::initData ()
     }
 
 #ifdef AMREX_PARTICLES
-    initParticleData ();
+    if (do_nspc) {
+        initParticleData ();
+    }
 #endif
 }
 
