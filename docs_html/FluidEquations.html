@@ -1,22 +1,24 @@
 <!DOCTYPE html>
-<html class="writer-html5" lang="en" >
+<html class="writer-html5" lang="en" data-content_root="./">
 <head>
-  <meta charset="utf-8" />
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Fluid Variables &mdash; IAMR 23.03-dev documentation</title>
-      <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
-      <link rel="stylesheet" href="_static/css/theme.css" type="text/css" />
-      <link rel="stylesheet" href="_static/theme_overrides.css" type="text/css" />
+  <title>Fluid Variables &mdash; IAMR 24.05-dev documentation</title>
+      <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=fa44fd50" />
+      <link rel="stylesheet" type="text/css" href="_static/css/theme.css?v=19f00094" />
+      <link rel="stylesheet" type="text/css" href="_static/theme_overrides.css?v=681a4282" />
+
+  
   <!--[if lt IE 9]>
     <script src="_static/js/html5shiv.min.js"></script>
   <![endif]-->
   
-        <script data-url_root="./" id="documentation_options" src="_static/documentation_options.js"></script>
-        <script src="_static/jquery.js"></script>
-        <script src="_static/underscore.js"></script>
-        <script src="_static/_sphinx_javascript_frameworks_compat.js"></script>
-        <script src="_static/doctools.js"></script>
-        <script src="_static/sphinx_highlight.js"></script>
+        <script src="_static/jquery.js?v=5d32c60e"></script>
+        <script src="_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+        <script src="_static/documentation_options.js?v=18739dcb"></script>
+        <script src="_static/doctools.js?v=888ff710"></script>
+        <script src="_static/sphinx_highlight.js?v=dc90522c"></script>
         <script>window.MathJax = {"tex": {"macros": {"Ab": "{{\\bf A}}", "eb": "{{\\bf e}}", "Fb": "{{\\bf F}}", "gb": "{{\\bf g}}", "Hb": "{{\\bf H}}", "ib": "{{\\bf i}}", "Ib": "{{\\bf I}}", "Kb": "{{\\bf K}}", "lb": "{{\\bf l}}", "Lb": "{{\\bf L}}", "nb": "{{\\bf n}}", "Pb": "{{\\bf P}}", "Qb": "{{\\bf Q}}", "rb": "{{\\bf r}}", "Rb": "{{\\bf R}}", "Sb": "{{\\bf S}}", "ub": "{{\\bf u}}", "Ub": "{{\\bf U}}", "xb": "{{\\bf x}}", "dt": "{\\Delta t}", "omegadot": "{\\dot\\omega}", "inp": "{{\\rm in}}", "outp": "{{\\rm out}}", "sync": "{{\\rm sync}}", "half": "{\\frac{1}{2}}", "myhalf": "{\\half}", "nph": "{{n+\\myhalf}}", "vb": "{\\boldsymbol{v}}", "vbt": "{\\widetilde{\\vb}}", "rbt": "{\\widetilde{\\rb}}", "ob": "{\\boldsymbol{\\omega}}", "nablab": "{\\boldsymbol{\\nabla}}", "avg": ["{{\\left \\langle #1 \\right \\rangle}}", 1]}}}</script>
         <script defer="defer" src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
     <script src="_static/js/theme.js"></script>
@@ -38,7 +40,7 @@
             IAMR
           </a>
               <div class="version">
-                23.03-dev
+                24.05-dev
               </div>
 <div role="search">
   <form id="rtd-search-form" class="wy-form" action="search.html" method="get">
@@ -100,14 +102,10 @@
           <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
            <div itemprop="articleBody">
              
-  <div class="section" id="fluid-variables">
-<h1>Fluid Variables<a class="headerlink" href="#fluid-variables" title="Permalink to this heading"></a></h1>
+  <section id="fluid-variables">
+<h1>Fluid Variables<a class="headerlink" href="#fluid-variables" title="Link to this heading"></a></h1>
 <blockquote>
 <div><table class="docutils align-default">
-<colgroup>
-<col style="width: 32%" />
-<col style="width: 68%" />
-</colgroup>
 <thead>
 <tr class="row-odd"><th class="head"><p>Variable</p></th>
 <th class="head"><p>Definition</p></th>
@@ -132,9 +130,9 @@
 </tbody>
 </table>
 </div></blockquote>
-</div>
-<div class="section" id="fluid-equations">
-<span id="sec-fluidequations"></span><h1>Fluid Equations<a class="headerlink" href="#fluid-equations" title="Permalink to this heading"></a></h1>
+</section>
+<section id="fluid-equations">
+<span id="sec-fluidequations"></span><h1>Fluid Equations<a class="headerlink" href="#fluid-equations" title="Link to this heading"></a></h1>
 <p>Conservation of fluid mass:</p>
 <div class="math notranslate nohighlight">
 \[\frac{\partial \rho}{\partial t} + \nabla \cdot (\rho U)  = 0\]</div>
@@ -168,8 +166,8 @@ conservatively advected with <code class="docutils literal notranslate"><span cl
 <p>Here, the divergence constraint captures compressibily effects due to thermal diffusion.
 To enable the temperature solve, use <code class="docutils literal notranslate"><span class="pre">ns.do_temp</span> <span class="pre">=</span> <span class="pre">1</span></code> and set <code class="docutils literal notranslate"><span class="pre">ns.temp_cond_coef</span></code> to represent <span class="math notranslate nohighlight">\(\lambda / c_p\)</span>,
 which is taken to be constant. More sophiticated treatments are possible; if interested, please open an issue on github:
-<a class="reference external" href="https://github.com/AMReX-Codes/IAMR/issues">https://github.com/AMReX-Codes/IAMR/issues</a></p>
-</div>
+<a class="reference external" href="https://github.com/AMReX-Fluids/IAMR/issues">https://github.com/AMReX-Fluids/IAMR/issues</a></p>
+</section>
 
 
            </div>

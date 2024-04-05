@@ -1,22 +1,24 @@
 <!DOCTYPE html>
-<html class="writer-html5" lang="en" >
+<html class="writer-html5" lang="en" data-content_root="./">
 <head>
-  <meta charset="utf-8" />
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Tutorials &mdash; IAMR 23.03-dev documentation</title>
-      <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
-      <link rel="stylesheet" href="_static/css/theme.css" type="text/css" />
-      <link rel="stylesheet" href="_static/theme_overrides.css" type="text/css" />
+  <title>Tutorials &mdash; IAMR 24.05-dev documentation</title>
+      <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=fa44fd50" />
+      <link rel="stylesheet" type="text/css" href="_static/css/theme.css?v=19f00094" />
+      <link rel="stylesheet" type="text/css" href="_static/theme_overrides.css?v=681a4282" />
+
+  
   <!--[if lt IE 9]>
     <script src="_static/js/html5shiv.min.js"></script>
   <![endif]-->
   
-        <script data-url_root="./" id="documentation_options" src="_static/documentation_options.js"></script>
-        <script src="_static/jquery.js"></script>
-        <script src="_static/underscore.js"></script>
-        <script src="_static/_sphinx_javascript_frameworks_compat.js"></script>
-        <script src="_static/doctools.js"></script>
-        <script src="_static/sphinx_highlight.js"></script>
+        <script src="_static/jquery.js?v=5d32c60e"></script>
+        <script src="_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+        <script src="_static/documentation_options.js?v=18739dcb"></script>
+        <script src="_static/doctools.js?v=888ff710"></script>
+        <script src="_static/sphinx_highlight.js?v=dc90522c"></script>
         <script>window.MathJax = {"tex": {"macros": {"Ab": "{{\\bf A}}", "eb": "{{\\bf e}}", "Fb": "{{\\bf F}}", "gb": "{{\\bf g}}", "Hb": "{{\\bf H}}", "ib": "{{\\bf i}}", "Ib": "{{\\bf I}}", "Kb": "{{\\bf K}}", "lb": "{{\\bf l}}", "Lb": "{{\\bf L}}", "nb": "{{\\bf n}}", "Pb": "{{\\bf P}}", "Qb": "{{\\bf Q}}", "rb": "{{\\bf r}}", "Rb": "{{\\bf R}}", "Sb": "{{\\bf S}}", "ub": "{{\\bf u}}", "Ub": "{{\\bf U}}", "xb": "{{\\bf x}}", "dt": "{\\Delta t}", "omegadot": "{\\dot\\omega}", "inp": "{{\\rm in}}", "outp": "{{\\rm out}}", "sync": "{{\\rm sync}}", "half": "{\\frac{1}{2}}", "myhalf": "{\\half}", "nph": "{{n+\\myhalf}}", "vb": "{\\boldsymbol{v}}", "vbt": "{\\widetilde{\\vb}}", "rbt": "{\\widetilde{\\rb}}", "ob": "{\\boldsymbol{\\omega}}", "nablab": "{\\boldsymbol{\\nabla}}", "avg": ["{{\\left \\langle #1 \\right \\rangle}}", 1]}}}</script>
         <script defer="defer" src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
     <script src="_static/js/theme.js"></script>
@@ -38,7 +40,7 @@
             IAMR
           </a>
               <div class="version">
-                23.03-dev
+                24.05-dev
               </div>
 <div role="search">
   <form id="rtd-search-form" class="wy-form" action="search.html" method="get">
@@ -95,8 +97,8 @@
           <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
            <div itemprop="articleBody">
              
-  <div class="section" id="tutorials">
-<span id="chap-tutorials"></span><h1>Tutorials<a class="headerlink" href="#tutorials" title="Permalink to this heading"></a></h1>
+  <section id="tutorials">
+<span id="chap-tutorials"></span><h1>Tutorials<a class="headerlink" href="#tutorials" title="Link to this heading"></a></h1>
 <p>These tutorials provide problem setups to help familiarize you with running
 IAMR. First we provide some useful pointers to relevant sections of this guide
 where you can get more detailed information on how IAMR works,
@@ -125,14 +127,14 @@ if you would like help modifying the code supplied here for your
 own calculations.  There is extensive but undocumented capability.</p>
 <p>That said, we welcome your comments, suggestions, and other feedback.
 Again, please open an issue on github.</p>
-<div class="section" id="problem-descriptions">
-<h2>Problem Descriptions<a class="headerlink" href="#problem-descriptions" title="Permalink to this heading"></a></h2>
+<section id="problem-descriptions">
+<h2>Problem Descriptions<a class="headerlink" href="#problem-descriptions" title="Link to this heading"></a></h2>
 <p>Each problem is its own directory within <code class="docutils literal notranslate"><span class="pre">/Tutorials</span></code>. Many contain both 2D
 and 3D inputs files. Note that running a 2D inputs file requires building
 and using a 2D executable. Similarly, 3D inputs files require a 3D executable.
 Dimensionality is set in the GNUmakefile.</p>
-<div class="section" id="embedded-boundaries">
-<h3>Embedded Boundaries:<a class="headerlink" href="#embedded-boundaries" title="Permalink to this heading"></a></h3>
+<section id="embedded-boundaries">
+<h3>Embedded Boundaries:<a class="headerlink" href="#embedded-boundaries" title="Link to this heading"></a></h3>
 <ul class="simple">
 <li><p><strong>DoubleShearLayer</strong>:
 This test case is a fully periodic double shear layer in a constant
@@ -144,9 +146,9 @@ advected with the flow.
 <code class="docutils literal notranslate"><span class="pre">inputs.2d.flow_past_cylinder-x</span></code> and <code class="docutils literal notranslate"><span class="pre">inputs.3d.flow_past_cylinder-x</span></code> use AMR
 around the tracer and EB.</p></li>
 </ul>
-</div>
-<div class="section" id="non-eb">
-<h3>Non-EB:<a class="headerlink" href="#non-eb" title="Permalink to this heading"></a></h3>
+</section>
+<section id="non-eb">
+<h3>Non-EB:<a class="headerlink" href="#non-eb" title="Link to this heading"></a></h3>
 <ul>
 <li><p><strong>Bubble</strong>: This test case is a falling drop in a closed box with a density of
 twice the surrounding medium.  The calculation allows two levels of factor
@@ -204,9 +206,9 @@ to select any local versions of files and ignore the corresponding verions in
 and fixed grids. With fixed grids, a grid file (called <code class="docutils literal notranslate"><span class="pre">fixed_grids_ml</span></code> here) is
 used to define the grids for levels &gt;= 1.</p></li>
 </ul>
-</div>
-</div>
-</div>
+</section>
+</section>
+</section>
 
 
            </div>

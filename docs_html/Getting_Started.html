@@ -1,22 +1,24 @@
 <!DOCTYPE html>
-<html class="writer-html5" lang="en" >
+<html class="writer-html5" lang="en" data-content_root="./">
 <head>
-  <meta charset="utf-8" />
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Getting Started &mdash; IAMR 23.03-dev documentation</title>
-      <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
-      <link rel="stylesheet" href="_static/css/theme.css" type="text/css" />
-      <link rel="stylesheet" href="_static/theme_overrides.css" type="text/css" />
+  <title>Getting Started &mdash; IAMR 24.05-dev documentation</title>
+      <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=fa44fd50" />
+      <link rel="stylesheet" type="text/css" href="_static/css/theme.css?v=19f00094" />
+      <link rel="stylesheet" type="text/css" href="_static/theme_overrides.css?v=681a4282" />
+
+  
   <!--[if lt IE 9]>
     <script src="_static/js/html5shiv.min.js"></script>
   <![endif]-->
   
-        <script data-url_root="./" id="documentation_options" src="_static/documentation_options.js"></script>
-        <script src="_static/jquery.js"></script>
-        <script src="_static/underscore.js"></script>
-        <script src="_static/_sphinx_javascript_frameworks_compat.js"></script>
-        <script src="_static/doctools.js"></script>
-        <script src="_static/sphinx_highlight.js"></script>
+        <script src="_static/jquery.js?v=5d32c60e"></script>
+        <script src="_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+        <script src="_static/documentation_options.js?v=18739dcb"></script>
+        <script src="_static/doctools.js?v=888ff710"></script>
+        <script src="_static/sphinx_highlight.js?v=dc90522c"></script>
     <script src="_static/js/theme.js"></script>
     <link rel="index" title="Index" href="genindex.html" />
     <link rel="search" title="Search" href="search.html" />
@@ -36,7 +38,7 @@
             IAMR
           </a>
               <div class="version">
-                23.03-dev
+                24.05-dev
               </div>
 <div role="search">
   <form id="rtd-search-form" class="wy-form" action="search.html" method="get">
@@ -92,11 +94,11 @@
           <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
            <div itemprop="articleBody">
              
-  <div class="section" id="getting-started">
-<span id="chap-gettingstarted"></span><h1>Getting Started<a class="headerlink" href="#getting-started" title="Permalink to this heading"></a></h1>
+  <section id="getting-started">
+<span id="chap-gettingstarted"></span><h1>Getting Started<a class="headerlink" href="#getting-started" title="Link to this heading"></a></h1>
 <p>This section walks you through a brief introduction to using IAMR.</p>
-<div class="section" id="downloading-the-code">
-<h2>Downloading the code<a class="headerlink" href="#downloading-the-code" title="Permalink to this heading"></a></h2>
+<section id="downloading-the-code">
+<h2>Downloading the code<a class="headerlink" href="#downloading-the-code" title="Link to this heading"></a></h2>
 <p>IAMR is built on top of the AMReX framework.  In order to run
 IAMR, you must download separate git modules for IAMR, AMReX
 and AMReX-Hydro.</p>
@@ -109,13 +111,13 @@ and AMReX-Hydro.</p>
 <p>This will create a folder called <code class="docutils literal notranslate"><span class="pre">amrex/</span></code> on your machine.</p>
 </li>
 <li><p>Download the AMReX-Hydro repository by typing:</p>
-<div class="highlight-shell notranslate"><div class="highlight"><pre><span></span>git<span class="w"> </span>clone<span class="w"> </span>https://github.com/AMReX-Codes/AMReX-Hydro.git
+<div class="highlight-shell notranslate"><div class="highlight"><pre><span></span>git<span class="w"> </span>clone<span class="w"> </span>https://github.com/AMReX-Fluids/AMReX-Hydro.git
 </pre></div>
 </div>
 <p>This will create a folder called <code class="docutils literal notranslate"><span class="pre">AMReX-Hydro/</span></code> on your machine.</p>
 </li>
 <li><p>Download the IAMR repository by typing:</p>
-<div class="highlight-shell notranslate"><div class="highlight"><pre><span></span>git<span class="w"> </span>clone<span class="w"> </span>https://github.com/AMReX-Codes/IAMR.git
+<div class="highlight-shell notranslate"><div class="highlight"><pre><span></span>git<span class="w"> </span>clone<span class="w"> </span>https://github.com/AMReX-Fluids/IAMR.git
 </pre></div>
 </div>
 <p>This will create a folder called <code class="docutils literal notranslate"><span class="pre">IAMR/</span></code> on your machine.</p>
@@ -123,9 +125,9 @@ and AMReX-Hydro.</p>
 </ol>
 <p>You will want to periodically update each of these repositories
 by typing <code class="docutils literal notranslate"><span class="pre">git</span> <span class="pre">pull</span></code> within each repository.</p>
-</div>
-<div class="section" id="building-the-code">
-<h2>Building the code<a class="headerlink" href="#building-the-code" title="Permalink to this heading"></a></h2>
+</section>
+<section id="building-the-code">
+<h2>Building the code<a class="headerlink" href="#building-the-code" title="Link to this heading"></a></h2>
 <p>Here, we walk you through compiling an IAMR executable.
 We’ll build the source code in one of the <code class="docutils literal notranslate"><span class="pre">IAMR/Tutorials</span></code> directories.
 A description of the included problems is given in <code class="docutils literal notranslate"><span class="pre">Tutorials/README.md</span></code>
@@ -145,12 +147,6 @@ or in the <a class="reference internal" href="Tutorials.html#tutorials"><span cl
 </div>
 <p>Other options that you can set in the GNUMakefile include</p>
 <table class="docutils align-default">
-<colgroup>
-<col style="width: 22%" />
-<col style="width: 38%" />
-<col style="width: 23%" />
-<col style="width: 17%" />
-</colgroup>
 <thead>
 <tr class="row-odd"><th class="head"><p>Option name</p></th>
 <th class="head"><p>Description</p></th>
@@ -226,9 +222,9 @@ like <code class="docutils literal notranslate"><span class="pre">amr3d.gnu.MPI.
 <code class="docutils literal notranslate"><span class="pre">COMP=gnu</span></code>, and <code class="docutils literal notranslate"><span class="pre">USE_MPI=TRUE</span></code>.</p>
 </li>
 </ol>
-</div>
-<div class="section" id="running-the-code">
-<h2>Running the code<a class="headerlink" href="#running-the-code" title="Permalink to this heading"></a></h2>
+</section>
+<section id="running-the-code">
+<h2>Running the code<a class="headerlink" href="#running-the-code" title="Link to this heading"></a></h2>
 <p>IAMR takes an input file as its first command-line argument.  The file may
 contain a set of parameter definitions that will overrides defaults set in the code.
 For example, to run an example in <code class="docutils literal notranslate"><span class="pre">IAMR/Tutorials/Bubble</span></code>, type:</p>
@@ -242,9 +238,9 @@ files. The plotfiles are used for visualization of derived fields; the checkpoin
 files are used for restarting the code. The output folders contain a set of ASCII and binary files.  The field
 data is generally written in a self-describing binary format; the
 ASCII header files provide additional metadata to give AMR context to the field data.</p>
-</div>
-<div class="section" id="visualizing-the-results">
-<h2>Visualizing the Results<a class="headerlink" href="#visualizing-the-results" title="Permalink to this heading"></a></h2>
+</section>
+<section id="visualizing-the-results">
+<h2>Visualizing the Results<a class="headerlink" href="#visualizing-the-results" title="Link to this heading"></a></h2>
 <p>There are several options for visualizing the data. VisIt supports the AMReX file format
 natively, as does the yt python package and ParaView. Amrvis is a package developed
 by CCSE that is designed specifically for highly efficient visualization
@@ -293,10 +289,12 @@ was output. To see a single plotfile, type</p>
 <div class="highlight-shell notranslate"><div class="highlight"><pre><span></span>amrvis2d<span class="w"> </span>&lt;filename&gt;
 </pre></div>
 </div>
-<div class="figure align-default" id="id1">
+<figure class="align-default" id="id1">
 <a class="reference internal image-reference" href="_images/IAMR_Plot.png"><img alt="Amrvis visualization tool" src="_images/IAMR_Plot.png" style="width: 2.50000in;" /></a>
-<p class="caption"><span class="caption-number">Fig. 1 </span><span class="caption-text">Amrvis visualization tool</span><a class="headerlink" href="#id1" title="Permalink to this image"></a></p>
-</div>
+<figcaption>
+<p><span class="caption-number">Fig. 1 </span><span class="caption-text">Amrvis visualization tool</span><a class="headerlink" href="#id1" title="Link to this image"></a></p>
+</figcaption>
+</figure>
 <p>Or to animate the sequence of plotfiles, use</p>
 <div class="highlight-shell notranslate"><div class="highlight"><pre><span></span>amrvis2d<span class="w"> </span>-a<span class="w"> </span>plt<span class="se">\*</span>
 </pre></div>
@@ -307,8 +305,8 @@ in order to look at the actual numbers. You can also export the
 pictures in several different formats under “File/Export”.</p>
 </li>
 </ol>
-</div>
-</div>
+</section>
+</section>
 
 
            </div>
