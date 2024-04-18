@@ -827,6 +827,9 @@ Diffusion::diffuse_tensor_velocity (Real                   dt,
              if ( has_delta_rhs ) {
                 rhs(i,j,k,n) += deltarhs(i,j,k,n) * dt;
              }
+             // Put unew back since it's a reference to the MF that
+             // ultimately gets used as an initial guess for the solve
+             unew(i,j,k,n) /= rho(i,j,k);
           }
        });
     }
