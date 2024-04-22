@@ -816,7 +816,7 @@ Diffusion::diffuse_tensor_velocity (Real                   dt,
        const Box& bx  = mfi.tilebox();
        auto const& rhs      = Rhs.array(mfi);
        auto const& unew     = U_new.array(mfi,Xvel);
-       auto const& rho      = (rho_flag == 1) ? rho_half.array(mfi) : navier_stokes->get_old_data(State_Type).array(mfi,Density);
+       auto const& rho      = (rho_flag == 1) ? rho_half.array(mfi) : navier_stokes->get_new_data(State_Type).array(mfi,Density);
        auto const& deltarhs = (has_delta_rhs) ? delta_rhs->array(mfi,rhsComp) : U_new.array(mfi);
        amrex::ParallelFor(bx, [rhs, unew, rho, deltarhs, has_delta_rhs, dt]
        AMREX_GPU_DEVICE(int i, int j, int k) noexcept
