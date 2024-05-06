@@ -16,7 +16,7 @@ static int tang_vel_bc[] =
 
 static int scalar_bc[] =
 {
-    amrex::BCType::int_dir, amrex::BCType::ext_dir, amrex::BCType::foextrap, amrex::BCType::reflect_even, amrex::BCType::foextrap, amrex::BCType::foextrap
+    amrex::BCType::int_dir, amrex::BCType::ext_dir, amrex::BCType::foextrap, amrex::BCType::reflect_even, amrex::BCType::hoextrap, amrex::BCType::foextrap
 };
 
 static int press_bc[] =
