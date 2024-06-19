@@ -18,21 +18,21 @@ jobs:
     runs-on: ubuntu-latest
     steps:
     - name: Checkout IAMR
-      uses: actions/checkout@v3
+      uses: actions/checkout@v4
       with:
         path: IAMR
     - name: Checkout AMReX-Hydro
-      uses: actions/checkout@v3
+      uses: actions/checkout@v4
       with:
         repository: AMReX-Fluids/AMReX-Hydro
         path: AMReX-Hydro
     - name: Checkout AMReX
-      uses: actions/checkout@v3
+      uses: actions/checkout@v4
       with:
         repository: AMReX-Codes/amrex
         path: amrex
     - name: Set Up Cache
-      uses: actions/cache@v3
+      uses: actions/cache@v4
       with:
         path: ~/.cache/ccache
         key: ccache-${{ github.workflow }}-${{ github.job }}-git-${{ github.sha }}
@@ -70,7 +70,7 @@ jobs:
           PR_NUMBER: ${{ github.event.number }}
         run: |
           echo $PR_NUMBER > pr_number.txt
-      - uses: actions/upload-artifact@v3
+      - uses: actions/upload-artifact@v4
         with:
           name: pr_number
           path: pr_number.txt
