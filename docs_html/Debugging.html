@@ -4,7 +4,7 @@
   <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
 
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Debugging &mdash; IAMR 24.07-dev documentation</title>
+  <title>Debugging &mdash; IAMR 24.08-dev documentation</title>
       <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=fa44fd50" />
       <link rel="stylesheet" type="text/css" href="_static/css/theme.css?v=19f00094" />
       <link rel="stylesheet" type="text/css" href="_static/theme_overrides.css?v=681a4282" />
@@ -16,7 +16,7 @@
   
         <script src="_static/jquery.js?v=5d32c60e"></script>
         <script src="_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
-        <script src="_static/documentation_options.js?v=39e2e506"></script>
+        <script src="_static/documentation_options.js?v=2064b023"></script>
         <script src="_static/doctools.js?v=9a2dae69"></script>
         <script src="_static/sphinx_highlight.js?v=dc90522c"></script>
     <script src="_static/js/theme.js"></script>
@@ -38,7 +38,7 @@
             IAMR
           </a>
               <div class="version">
-                24.07-dev
+                24.08-dev
               </div>
 <div role="search">
   <form id="rtd-search-form" class="wy-form" action="search.html" method="get">
@@ -100,7 +100,7 @@ For example, reduce the problem size and set <code class="docutils literal notra
 Diffusion and viscosity can be turned off by setting <code class="docutils literal notranslate"><span class="pre">ns.vel_visc_coef</span> <span class="pre">=</span> <span class="pre">0</span></code> and
 <code class="docutils literal notranslate"><span class="pre">ns.scal_diff_coefs</span> <span class="pre">=</span> <span class="pre">0</span></code>.</p>
 <p>Sometimes, restarting from a checkpoint file can reduce the amount of time spent waiting for
-the code to fail durning the debugging process.</p>
+the code to fail during the debugging process.</p>
 <p>If the problem only happens with multilevel runs, <code class="docutils literal notranslate"><span class="pre">amr.subcycling_mode</span> <span class="pre">=</span> <span class="pre">None</span></code> will turn
 time subcycling off and advance the whole system at the same dt.</p>
 <p>Visualizing the data between plotiles can sometimes be helpful.
@@ -122,7 +122,7 @@ Another option is to write a <code class="docutils literal notranslate"><span cl
 <p>This can then be examined in <code class="docutils literal notranslate"><span class="pre">Amrvis</span></code> by passing the <code class="docutils literal notranslate"><span class="pre">-mf</span></code> flag.
 Two <code class="docutils literal notranslate"><span class="pre">MultiFab</span></code> s can be compared using the AMReX tool <code class="docutils literal notranslate"><span class="pre">DiffMultiFab</span></code> found in
 <code class="docutils literal notranslate"><span class="pre">amrex/Tools/C_util/DiffMultiFab</span></code>.</p>
-<p>Please also read AMReX’s documentation: <a class="reference external" href="https://amrex-codes.github.io/amrex/docs_html/Debugging.html#sec-basics-debugging" title="(in amrex v24.07-dev)"><span>Debugging</span></a>
+<p>Please also read AMReX’s documentation: <a class="reference external" href="https://amrex-codes.github.io/amrex/docs_html/Debugging.html#sec-basics-debugging" title="(in amrex v24.08-dev)"><span>Debugging</span></a>
 for more information and tips.</p>
 <p>If you believe you’ve encountered a bug or incorrect behavior in IAMR, please report the issue
 on IAMR’s github page <a class="reference external" href="https://github.com/AMReX-Fluids/IAMR/issues">here</a> .</p>

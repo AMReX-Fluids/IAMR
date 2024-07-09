@@ -20,10 +20,10 @@ infrastructure to read in the inputs parameters.
 (See AMReX's documentation on ``ParmParse`` here: :ref:`sec:basics:parmparse`.)
 
 .. tip::
-   Before making any code changes, we highly reccomend creating a new git branch.
+   Before making any code changes, we highly recommend creating a new git branch.
 
 Extra points if the new branch's name reflects the changes, e.g. ``couette_flow``.
-We do `not` reccomend making any changes within the ``development`` branch because
+We do `not` recommend making any changes within the ``development`` branch because
 doing so will make your local ``development`` branch diverge from the matching branch
 in the main IAMR repository. This can lead to difficulties pulling in updates and bug-fixes
 from the main IAMR repo.

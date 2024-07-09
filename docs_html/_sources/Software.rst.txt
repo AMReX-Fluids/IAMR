@@ -170,7 +170,7 @@ how the interpolation is to be done, in both space and time. Importantly,
 the interpolation also requires that coarse data be well-defined over
 a time interval that brackets the time instant for which we are evaluating
 the grow cell value – this places requirements on how the time-integration
-of the various AMR levels are sequenced relative to eachother.
+of the various AMR levels are sequenced relative to each other.
 In AMReX, the field data associated with the system state, as well as the metadata
 associated with inter-level transfers, is bundled (encapsulated) in
 a class called “StateData”. The metadata
@@ -198,7 +198,7 @@ the user supplies data to fill grow cells.
 
 IAMR provides the ability to specify constant Dirichlet BCs
 in the inputs file (see section :ref:`sec:dirichlet`).
-Users can create more complex Dirichlet boundary condtions by writing
+Users can create more complex Dirichlet boundary conditions by writing
 their own fill function in ``NS_bcfill.H``, then using that function to create
 an ``amrex::StateDescriptor::BndryFunc`` object and specifying which variables
 will use it in ``NS_setup.cpp``.
@@ -369,7 +369,7 @@ the discussion of tiling in AMReX's documentation, :ref:`amrex:sec:basics:mfiter
 AMReX’s Non-Tiling Approach
 ---------------------------
 
-At the highest abstraction level, we have MultiFab (mulitple
+At the highest abstraction level, we have MultiFab (multiple
 FArrayBoxes). A MultiFab contains an array of Boxes (a Box contains integers specifying the index space it
 covers), including Boxes owned by other processors for the
 purpose of communication, an array of MPI ranks specifying which MPI
@@ -433,11 +433,11 @@ Note that the code is almost identical to the one with the non-tiling approach.
 Some comments:
 
 -  The iterator now takes an extra argument to turn on tiling
-   (set to true). There is another interface fo MFIter
+   (set to true). There is another interface of MFIter
    that can take an IntVect that explicitly gives the tile size
    in each coordinate direction.
 
-   If we don’t explictly specify the tile size at the loop, then the
+   If we don’t explicitly specify the tile size at the loop, then the
    runtime parameter :cpp:`fabarray.mfiter_tile_size` can be used to set it
    globally.
 
@@ -701,9 +701,9 @@ Explicitly defined tagging functions
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 Explicitly defined error estimation functions can be used either instead of or in addition to
-dynmaically generated funtions. These functions can be added to NavierStokes::errorEst() in
+dynamically generated functions. These functions can be added to NavierStokes::errorEst() in
 NS_error.cpp. Any dynamically generated error functions will operate first.
-Please note that while CLEARing a tagged cell is possible, it is not reccomended as it
+Please note that while CLEARing a tagged cell is possible, it is not recommended as it
 may not have the desired effect.
 
 
@@ -744,7 +744,7 @@ the MultiFab was written to disk.
 
 Think of the number :math:`N` as the number of independent I/O pathways in
 your underlying parallel filesystem. Of course a “real” parallel
-filesytem should be able to handle any reasonable value of :math:`N`. The
+filesystem should be able to handle any reasonable value of :math:`N`. The
 value -1 forces :math:`N` to the number of CPUs on which you’re
 running, which means that each CPU writes to a unique file, which can
 create a very large number of files, which can lead to inode issues.

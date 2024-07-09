@@ -1,7 +1,7 @@
 
 .. _Chap:AlgorithmOptions:
 
-Algortihm Options
+Algorithm Options
 =================
 
 .. _sec:conserv:
@@ -9,7 +9,7 @@ Algortihm Options
 Conservative vs. Non-conservative
 ---------------------------------
 
-The following must be preceeded by "ns."
+The following must be preceded by "ns."
 
 +-------------------------+------------------------------------------------------------------------------+-------------+--------------+
 |                         | Description                                                                  |   Type      | Default      |
@@ -37,7 +37,7 @@ IAMR has the option to use a Method of Lines (MOL) or Godunov scheme to compute 
 
 
 For problems without embedded boundaries, there are additional options when using the Godunov method. The following must
-be preceeded by "godunov."
+be preceded by "godunov."
 
 +-------------------------+-------------------------------------------------------------------------+-------------+--------------+
 |                         | Description                                                             |   Type      | Default      |
@@ -51,7 +51,7 @@ be preceeded by "godunov."
 Diffusion
 ---------
 
-The following must be preceeded by "ns."
+The following must be preceded by "ns."
 
 +-------------------------+-----------------------------------------------------------------------+-------------+--------------+
 |                         | Description                                                           |   Type      | Default      |

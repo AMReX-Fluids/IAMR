@@ -5,7 +5,7 @@ Problem Setup
 
 To setup a new problem you must specify:
 
-#. intial conditions
+#. initial conditions
 
 #. resolution
 
@@ -237,7 +237,7 @@ As an example,
     xlo.tracer              =   0.
     xlo.temp                =   1.
 
-sets the boundary condtion type at the low x face to be an inflow with
+sets the boundary condition type at the low x face to be an inflow with
 xlo.type = “mass_inflow”.
 Then xlo.velocity = 1. 0. 0. sets the inflow velocity,
 xlo.density = 1. sets the inflow density,
@@ -263,7 +263,7 @@ zhi.velocity = 1. 0. 0. sets the wall at the high z face to be moving in the
 x-direction.
 Note that IAMR allows walls to move tangentially, but not in the normal direction.
 
-Users can create more complex Dirichlet boundary condtions by writing
+Users can create more complex Dirichlet boundary conditions by writing
 their own fill function in ``NS_bcfill.H``, then using that function to create
 an ``amrex::StateDescriptor::BndryFunc`` object and specifying which variables
 will use it in ``NS_setup.cpp``. More information on boundary conditions is in
@@ -274,7 +274,7 @@ Tagging criteria for creating AMR Levels
 
 If ``amr.max_level`` is greater than zero, then user specified tagging criteria are
 used to define regions for higher levels of refinement.
-For infomation on tagging see :ref:`sec:tagging`
+For information on tagging see :ref:`sec:tagging`
 
 
 .. _sec:EB-basics:

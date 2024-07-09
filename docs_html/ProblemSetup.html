@@ -4,7 +4,7 @@
   <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
 
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Problem Setup &mdash; IAMR 24.07-dev documentation</title>
+  <title>Problem Setup &mdash; IAMR 24.08-dev documentation</title>
       <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=fa44fd50" />
       <link rel="stylesheet" type="text/css" href="_static/css/theme.css?v=19f00094" />
       <link rel="stylesheet" type="text/css" href="_static/theme_overrides.css?v=681a4282" />
@@ -16,7 +16,7 @@
   
         <script src="_static/jquery.js?v=5d32c60e"></script>
         <script src="_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
-        <script src="_static/documentation_options.js?v=39e2e506"></script>
+        <script src="_static/documentation_options.js?v=2064b023"></script>
         <script src="_static/doctools.js?v=9a2dae69"></script>
         <script src="_static/sphinx_highlight.js?v=dc90522c"></script>
         <script>window.MathJax = {"tex": {"macros": {"Ab": "{{\\bf A}}", "eb": "{{\\bf e}}", "Fb": "{{\\bf F}}", "gb": "{{\\bf g}}", "Hb": "{{\\bf H}}", "ib": "{{\\bf i}}", "Ib": "{{\\bf I}}", "Kb": "{{\\bf K}}", "lb": "{{\\bf l}}", "Lb": "{{\\bf L}}", "nb": "{{\\bf n}}", "Pb": "{{\\bf P}}", "Qb": "{{\\bf Q}}", "rb": "{{\\bf r}}", "Rb": "{{\\bf R}}", "Sb": "{{\\bf S}}", "ub": "{{\\bf u}}", "Ub": "{{\\bf U}}", "xb": "{{\\bf x}}", "dt": "{\\Delta t}", "omegadot": "{\\dot\\omega}", "inp": "{{\\rm in}}", "outp": "{{\\rm out}}", "sync": "{{\\rm sync}}", "half": "{\\frac{1}{2}}", "myhalf": "{\\half}", "nph": "{{n+\\myhalf}}", "vb": "{\\boldsymbol{v}}", "vbt": "{\\widetilde{\\vb}}", "rbt": "{\\widetilde{\\rb}}", "ob": "{\\boldsymbol{\\omega}}", "nablab": "{\\boldsymbol{\\nabla}}", "avg": ["{{\\left \\langle #1 \\right \\rangle}}", 1]}}}</script>
@@ -40,7 +40,7 @@
             IAMR
           </a>
               <div class="version">
-                24.07-dev
+                24.08-dev
               </div>
 <div role="search">
   <form id="rtd-search-form" class="wy-form" action="search.html" method="get">
@@ -76,7 +76,7 @@
 </ul>
 </li>
 <li class="toctree-l2"><a class="reference internal" href="RunningProblems.html">Runtime Options</a></li>
-<li class="toctree-l2"><a class="reference internal" href="AlgorithmOptions.html">Algortihm Options</a></li>
+<li class="toctree-l2"><a class="reference internal" href="AlgorithmOptions.html">Algorithm Options</a></li>
 </ul>
 </li>
 <li class="toctree-l1"><a class="reference internal" href="Visualization_Chapter.html">Visualization</a></li>
@@ -118,14 +118,14 @@
 <span id="chap-problemsetup"></span><h1>Problem Setup<a class="headerlink" href="#problem-setup" title="Link to this heading"></a></h1>
 <p>To setup a new problem you must specify:</p>
 <ol class="arabic simple">
-<li><p>intial conditions</p></li>
+<li><p>initial conditions</p></li>
 <li><p>resolution</p></li>
 <li><p>problem geometry</p></li>
 <li><p>boundary conditions</p></li>
 <li><p>AMR tragging criteria (for multilevel runs only)</p></li>
 </ol>
 <p>Many additional options are available, and are briefly described here and in
-following sections, <a class="reference internal" href="RunningProblems.html#chap-runtimeoptions"><span class="std std-ref">Runtime Options</span></a> and <a class="reference internal" href="AlgorithmOptions.html#chap-algorithmoptions"><span class="std std-ref">Algortihm Options</span></a>.</p>
+following sections, <a class="reference internal" href="RunningProblems.html#chap-runtimeoptions"><span class="std std-ref">Runtime Options</span></a> and <a class="reference internal" href="AlgorithmOptions.html#chap-algorithmoptions"><span class="std std-ref">Algorithm Options</span></a>.</p>
 <section id="units">
 <span id="sec-units"></span><h2>Units<a class="headerlink" href="#units" title="Link to this heading"></a></h2>
 <p>IAMR supports any self-consistent units, as long as the length, time,
@@ -377,7 +377,7 @@ preceded by “xlo”, “xhi”, “ylo”, “yhi”, “zlo”, and “zhi”
 <span class="n">xlo</span><span class="o">.</span><span class="n">temp</span>                <span class="o">=</span>   <span class="mf">1.</span>
 </pre></div>
 </div>
-<p>sets the boundary condtion type at the low x face to be an inflow with
+<p>sets the boundary condition type at the low x face to be an inflow with
 xlo.type = “mass_inflow”.
 Then xlo.velocity = 1. 0. 0. sets the inflow velocity,
 xlo.density = 1. sets the inflow density,
@@ -400,7 +400,7 @@ no slip walls.
 zhi.velocity = 1. 0. 0. sets the wall at the high z face to be moving in the
 x-direction.
 Note that IAMR allows walls to move tangentially, but not in the normal direction.</p>
-<p>Users can create more complex Dirichlet boundary condtions by writing
+<p>Users can create more complex Dirichlet boundary conditions by writing
 their own fill function in <code class="docutils literal notranslate"><span class="pre">NS_bcfill.H</span></code>, then using that function to create
 an <code class="docutils literal notranslate"><span class="pre">amrex::StateDescriptor::BndryFunc</span></code> object and specifying which variables
 will use it in <code class="docutils literal notranslate"><span class="pre">NS_setup.cpp</span></code>. More information on boundary conditions is in
@@ -411,17 +411,17 @@ section <a class="reference internal" href="Software.html#sec-physicalbcs"><span
 <h2>Tagging criteria for creating AMR Levels<a class="headerlink" href="#tagging-criteria-for-creating-amr-levels" title="Link to this heading"></a></h2>
 <p>If <code class="docutils literal notranslate"><span class="pre">amr.max_level</span></code> is greater than zero, then user specified tagging criteria are
 used to define regions for higher levels of refinement.
-For infomation on tagging see <a class="reference internal" href="Software.html#sec-tagging"><span class="std std-ref">Tagging for Refinement</span></a></p>
+For information on tagging see <a class="reference internal" href="Software.html#sec-tagging"><span class="std std-ref">Tagging for Refinement</span></a></p>
 </section>
 <section id="constructing-embedded-boundaries">
 <span id="sec-eb-basics"></span><h2>Constructing Embedded Boundaries<a class="headerlink" href="#constructing-embedded-boundaries" title="Link to this heading"></a></h2>
 <p>IAMR uses AMReX’s Embedded Boundary (cut cell) functionality to represent internal
 or external geometry in the flow.
 For details on AMReX’s approach to embedded boundaries, see the AMReX EB
-documentation (<a class="reference external" href="https://amrex-codes.github.io/amrex/docs_html/EB_Chapter.html#sec-eb-eboverview" title="(in amrex v24.07-dev)"><span>Embedded Boundaries</span></a>).</p>
+documentation (<a class="reference external" href="https://amrex-codes.github.io/amrex/docs_html/EB_Chapter.html#sec-eb-eboverview" title="(in amrex v24.08-dev)"><span>Embedded Boundaries</span></a>).</p>
 <p>Here we present a brief example of how to create an embedded boundary (EB) in IAMR.
 Additional examples and information are in AMReX’s documentation
-(<a class="reference external" href="https://amrex-codes.github.io/amrex/docs_html/EB.html#sec-eb-ebinit" title="(in amrex v24.07-dev)"><span>Initializing the Geometric Database</span></a>).</p>
+(<a class="reference external" href="https://amrex-codes.github.io/amrex/docs_html/EB.html#sec-eb-ebinit" title="(in amrex v24.08-dev)"><span>Initializing the Geometric Database</span></a>).</p>
 <ol class="arabic">
 <li><p>Create a new <code class="docutils literal notranslate"><span class="pre">geom_type</span></code> in the function <code class="docutils literal notranslate"><span class="pre">initialize_eb2</span></code> in the file
 <code class="docutils literal notranslate"><span class="pre">Source/NS_init_eb2.cpp</span></code></p></li>

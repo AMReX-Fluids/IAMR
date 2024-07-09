@@ -76,7 +76,7 @@ Non-EB:
 * **Hotspot**: A hot bubble rising in closed box. Evolves a temperature field and uses
   a low Mach number constraint in place of incompressible. AMR refinement criteria is
   based on the temperature, but only 2D uses AMR by default. The 3D setup features an
-  open top (outflow BC) and demonstates how to allow refinement at the outflow (which
+  open top (outflow BC) and demonstrates how to allow refinement at the outflow (which
   is turned off in IAMR by default).
 
 
@@ -136,12 +136,10 @@ Non-EB:
 * **HIT**: Homogeneous isentropic forced turbulence with constant density.
   This demonstrates defining a new forcing function by using a local edited
   version of ``NS_getForce.cpp``. IAMR's make system is automatically configured
-  to select any local versions of files and ignore the corresponding verions in
+  to select any local versions of files and ignore the corresponding versions in
   ``IAMR/Source``. This problem is 3D only.
 
 
 * **Particles**: Particles in a double shear layer. Uses 2 levels of refinement
   and fixed grids. With fixed grids, a grid file (called ``fixed_grids_ml`` here) is
   used to define the grids for levels >= 1.
-
-
