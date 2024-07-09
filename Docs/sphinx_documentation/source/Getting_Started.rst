@@ -161,7 +161,7 @@ If you would like to display the data in another format, please let us know
 and we will point you to whatever we have that can help.
 
 Here we provide instructions on downloading
-and using Amrvis. For more infomation on visualization, including using other software
+and using Amrvis. For more information on visualization, including using other software
 for visualization, please see the :ref:`Visualization` Section.
 
 

@@ -55,7 +55,7 @@ TurbulentForcing::init_turbulent_forcing (const amrex::GpuArray<amrex::Real,AMRE
     int  hack_lz(0), spectrum_type(2), moderate_zero_modes(1);
     Real forcing_time_scale_min(0.5), forcing_time_scale_max(1.0), force_scale(1.0);
 
-    // tmp CPU storage that holds everything in one flat arrray
+    // tmp CPU storage that holds everything in one flat array
     const int num_elmts=array_size*array_size*array_size;
     const int tmp_size = num_fdarray*num_elmts;
     Real tmp[tmp_size];

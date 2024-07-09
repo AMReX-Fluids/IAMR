@@ -62,7 +62,7 @@ namespace DepRand
       REAL_T rn
       call blutilrand(rn)
 
-      Internally, blutilrand() calls a static Mersenne Twister oject (the
+      Internally, blutilrand() calls a static Mersenne Twister object (the
       same one used by AMReX::Random()) to get a value in [0,1] and then
       sets "rn" to that value.
     */

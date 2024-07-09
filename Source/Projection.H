@@ -146,7 +146,7 @@ public:
     static void Finalize ();
 
     //
-    // Convert U to an Accleration like quantity
+    // Convert U to an Acceleration like quantity
     // Unew = (Unew - Uold)/alpha
     //
     static void ConvertUnew (amrex::MultiFab&       Unew,
@@ -154,7 +154,7 @@ public:
                              amrex::Real            alpha,
                              const amrex::BoxArray& grids );
     //
-    // Convert U to an Accleration like quantity.
+    // Convert U to an Acceleration like quantity.
     // Unew = (Unew - Uold)/alpha
     //
     static void ConvertUnew (amrex::FArrayBox& Unew,

@@ -672,7 +672,7 @@ MacProj::mac_sync_compute (int                   level,
     }
     else
     {
-        Abort("MacProj::mac_sync_compute: Unkown adveciton scheme");
+        Abort("MacProj::mac_sync_compute: Unknown adveciton scheme");
     }
 
     bool do_crse_add = false;
@@ -754,7 +754,7 @@ MacProj::mac_sync_compute (int                    level,
 
     int ncomp = 1;
 
-    // Put edgestate in desired containter
+    // Put edgestate in desired container
     Array<MultiFab,AMREX_SPACEDIM> edges{
         AMREX_D_DECL(MultiFab(*edgestate[0], amrex::make_alias, edge_comp, ncomp),
                      MultiFab(*edgestate[1], amrex::make_alias, edge_comp, ncomp),

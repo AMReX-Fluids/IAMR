@@ -210,7 +210,7 @@ the domain:
 :math:`>>>` value, location = pf.h.find\_max(‘density’)
 
 The list goes on. A full list of methods and attributes associated
-with the heirarchy object (and most any yt object or function) can be
+with the hierarchy object (and most any yt object or function) can be
 accessed by the help function:
 
 :math:`>>>` help(pf.h)
@@ -247,7 +247,7 @@ available units. We can access the data within the container:
 
 When the creation of objects is time-consuming, it can be convenient
 to save objects so they can be used in another session. To save an
-object as part of the .yt file affiliated with the heirarchy:
+object as part of the .yt file affiliated with the hierarchy:
 
 :math:`>>>` pf.h.save\_object(my\_data\_container, ‘sphere\_to\_analyze\_later’)
 

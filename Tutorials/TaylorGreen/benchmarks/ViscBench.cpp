@@ -38,7 +38,7 @@ using namespace amrex;
 // (Intl. J. Num. Meth. Fluids, Vol. 19, pp. 369-375, 1994) give
 // the pressure field.
 //
-// For 3D, the 2D solution is used in conjuction with a uniform 3rd dimension.
+// For 3D, the 2D solution is used in conjunction with a uniform 3rd dimension.
 // When generating 3D data, check IAMR/Source/prob/prob_init.cpp to ensure
 // that the problem setup matches the solution here with t=0.
 //

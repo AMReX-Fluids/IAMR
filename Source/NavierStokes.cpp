@@ -213,7 +213,7 @@ NavierStokes::Initialize_bcs ()
       }
 
       if ( bc_tmp[ori] == BCType::bogus && phys_bc.data()[ori] == BCType::bogus ) {
-        std::cerr <<  " No valid BC type specificed for "
+        std::cerr <<  " No valid BC type specified for "
                   << bcid  << ". Please correct inputs file."<<std::endl;
         amrex::Abort();
       }
@@ -1314,7 +1314,7 @@ NavierStokes::post_init_press (Real&        dt_init,
 
       NavierStokes::initial_step = false;
 
-      Print()<< "WARNING! post_init_press(): exiting without doing inital iterations because init_iter <= 0."<<std::endl;
+      Print()<< "WARNING! post_init_press(): exiting without doing initial iterations because init_iter <= 0."<<std::endl;
 
       return;
     }

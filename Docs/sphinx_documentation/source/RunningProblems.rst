@@ -187,7 +187,7 @@ The following inputs must be preceded by "amr." and control checkpoint/restart.
 | check_per               | Frequency of checkpoint output by (approximate) simulation time;      |    Real     | -1.0      |
 |                         | if -1 then no checkpoints will be written. (See note below)           |             |           |
 +-------------------------+-----------------------------------------------------------------------+-------------+-----------+
-| checkpoint_files_output | Should we write checkpoint files? (Takes precident over check_int     |    Int      |  1        |
+| checkpoint_files_output | Should we write checkpoint files? (Takes precedent over check_int     |    Int      |  1        |
 |                         | and check_per)                                                        |             |           |
 +-------------------------+-----------------------------------------------------------------------+-------------+-----------+
 | check_file              | Prefix to use for checkpoint output                                   |  String     | chk       |
@@ -279,7 +279,7 @@ This file has the same format as the ASCII input file:
 Log Files
 ~~~~~~~~~~~~~~~~
 
-The following inputs must be preceeded by "amr."
+The following inputs must be preceded by "amr."
 
 +-------------------------+-----------------------------------------------------------------------+-------------+-----------+
 |                         | Description                                                           |   Type      | Default   |
@@ -565,7 +565,7 @@ Initializing the Calculation
 
 These options determine how we initialize the data for the calculation. The data initialization process
 ensures that the initial state is consistent with the constraint, and if applicable, the various AMR levels
-are consistent with eachother.
+are consistent with each other.
 
 The following inputs must be preceded by "ns."
 
@@ -584,7 +584,7 @@ The following inputs must be preceded by "ns."
 Checking Conservation
 ---------------------
 
-IAMR has the option to sum up the total mass (and a few other quantites) at a user-defined interval.
+IAMR has the option to sum up the total mass (and a few other quantities) at a user-defined interval.
 
 +-------------------------+-----------------------------------------------------------------------+-------------+--------------+
 |                         | Description                                                           |   Type      | Default      |
@@ -605,4 +605,3 @@ for example.
 
 Note that by default the tracer not conservative. To conservatively advect the tracer,
 that option must be set in the inputs (see :ref:`sec:conserv`).
-

@@ -37,7 +37,7 @@ void NavierStokes::prob_initData ()
 // FIXME - should remove ifdef and use runtime parameter instead...
 #ifdef AMREX_USE_TURBULENT_FORCING
     //
-    // Initialize data structures used for homogenous isentropic forced turbulence.
+    // Initialize data structures used for homogeneous isentropic forced turbulence.
     // Only need to do it once.
     if (level == 0)
         TurbulentForcing::init_turbulent_forcing(problo,probhi);

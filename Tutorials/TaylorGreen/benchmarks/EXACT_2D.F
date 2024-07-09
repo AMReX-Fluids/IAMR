@@ -35,7 +35,7 @@ c ::: exact solution is,
 c :::     u(x,y,t) = - Cos(Pi x) Sin(Pi y) Exp(-2 Pi^2 Nu t)
 c :::     v(x,y,t) =   Sin(Pi x) Cos(Pi y) Exp(-2 Pi^2 Nu t)
 c :::     p(x,y,t) = - {Cos(2 Pi x) + Cos(2 Pi y)} Exp(-4 Pi^2 Nu t) / 4
-c ::: In this dircetory, ViscBench2d.cpp, reads a plot file and compares
+c ::: In this directory, ViscBench2d.cpp, reads a plot file and compares
 c ::: the solution against this exact solution.  This benchmark was
 c ::: originally derived by G.I. Taylor (Phil. Mag., Vol. 46, No. 274,
 c ::: pp. 671-674, 1923) and Ethier and Steinman

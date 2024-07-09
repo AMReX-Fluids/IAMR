@@ -17,7 +17,7 @@ Diffusion and viscosity can be turned off by setting ``ns.vel_visc_coef = 0`` an
 ``ns.scal_diff_coefs = 0``.
 
 Sometimes, restarting from a checkpoint file can reduce the amount of time spent waiting for
-the code to fail durning the debugging process.
+the code to fail during the debugging process.
 
 If the problem only happens with multilevel runs, ``amr.subcycling_mode = None`` will turn
 time subcycling off and advance the whole system at the same dt.

@@ -248,7 +248,7 @@ Diffusion::diffuse_scalar (const Vector<MultiFab*>&  S_old,
 
     // Velocity components should go to tensor solver
     if (S_comp <= Xvel && Xvel <= S_comp+nComp-1){
-       amrex::Abort("Diffusion::diffuse_scalar(): velocity component(s) attemping to use scalar solver. Velocity must use tensor solver.\n");
+       amrex::Abort("Diffusion::diffuse_scalar(): velocity component(s) attempting to use scalar solver. Velocity must use tensor solver.\n");
     }
 
     // Check if scalars are diffusive type:
@@ -842,7 +842,7 @@ Diffusion::diffuse_tensor_velocity (Real                   dt,
 
     // MLMG solution
     {
-      // genaric tol suggestion for MLMG
+      // generic tol suggestion for MLMG
       // const Real tol_rel = 1.e-11;
       // const Real tol_abs = 0.0;
       // cribbing from scalar
@@ -1553,7 +1553,7 @@ Diffusion::getViscTerms (MultiFab&              visc_terms,
     //
     // Before computing the godunov predictors we may have to
     // precompute the viscous source terms.  To do this we must
-    // construct a Laplacian operator, set the coeficients and apply
+    // construct a Laplacian operator, set the coefficients and apply
     // it to the time N data.  First, however, we must precompute the
     // fine N bndry values.  We will do this for each scalar that diffuses.
     //
@@ -1670,9 +1670,9 @@ Diffusion::getTensorViscTerms (MultiFab&              visc_terms,
     if (ncomp < AMREX_SPACEDIM)
         amrex::Abort("Diffusion::getTensorViscTerms(): visc_terms needs at least AMREX_SPACEDIM components");
     //
-    // Before computing the godunov predicitors we may have to
+    // Before computing the godunov predictors we may have to
     // precompute the viscous source terms.  To do this we must
-    // construct a Laplacian operator, set the coeficients and apply
+    // construct a Laplacian operator, set the coefficients and apply
     // it to the time N data.  First, however, we must precompute the
     // fine N bndry values.  We will do this for each scalar that diffuses.
     //

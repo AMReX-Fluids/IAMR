@@ -119,10 +119,10 @@ Now you are free to play with your fork (for additional information, you can vis
 Making code changes
 ^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-We do `not` reccomend making any changes within the ``development`` branch. Doing so
+We do `not` recommend making any changes within the ``development`` branch. Doing so
 will make your local ``development`` branch diverge from the matching branch in the
 main IAMR repository.
-Instead, we reccomend creating a new branch based on the ``development`` branch.
+Instead, we recommend creating a new branch based on the ``development`` branch.
 To proceed, make sure you are on the ``development`` branch within the IAMR directory.
 Then create branch ``<branch_name>`` (the branch name should reflect the piece
 of code you want to add, like ``high_order_interpolation``) with

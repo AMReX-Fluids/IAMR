@@ -82,7 +82,7 @@ main (int   argc,
 
     amrptr->init(strt_time,stop_time);
 
-    // This feature stop the simulation at a specfic time
+    // This feature stop the simulation at a specific time
     // after the physical time of the checkpoint file
     if (stop_interval > 0.) stop_time = amrptr->cumTime() + stop_interval;
 

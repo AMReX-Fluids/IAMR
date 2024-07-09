@@ -451,7 +451,7 @@ void NavierStokes::init_RayleighTaylor (Box const& vbx,
 
   // Create random amplitudes and phases for the perturbation
 
-  //This doens't work for OMP. Just hard-code results below.
+  //This doesn't work for OMP. Just hard-code results below.
   // amrex::InitRandom(111397);
   // Real rn = amrex::Random();
   // const Real ranampl = 2.*(rn-0.5);

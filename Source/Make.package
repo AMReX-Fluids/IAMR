@@ -3,7 +3,7 @@ CEXE_sources += main.cpp SyncRegister.cpp  NS_init_eb2.cpp
 
 ifneq ($(SKIP_NS_SPECIFIC_CODE), TRUE)
   #
-  # These files contain routines that may be overriden by code that
+  # These files contain routines that may be overridden by code that
   # inherits from NavierStokes.  They should only be included if they
   # aren't implemented by inherited code.  In particular, LMC has its own
   # implementation of these routines.

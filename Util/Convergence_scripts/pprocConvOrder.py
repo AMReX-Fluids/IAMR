@@ -107,7 +107,7 @@ def pproc(args):
             errors[res,0] = case
 
             # Get the diffsamedomain inputs: last solutions of current
-            # and next finer cases. These run should have been runned to the same final time
+            # and next finer cases. These run should have been run to the same final time
             for f in os.listdir(run_dir):
                 if ( not fnmatch.fnmatch(f, '*old*')):
                     if (f.startswith("{}_plt_{}_".format(args.test_name,case))):

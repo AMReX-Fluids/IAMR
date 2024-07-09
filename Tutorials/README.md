@@ -6,7 +6,7 @@ or open an issue on github.
 There are a large number of options which can be specified from the inputs,
 as well as significant changes which can be made with relatively small
 changes to the program files, especially /Source/prob/prob_init.cpp
-(see IAMR's documenation for more thorough information).
+(see IAMR's documentation for more thorough information).
 Most of the options which can be specified from the
 inputs files are left to their default values in the sample calculations.
 
