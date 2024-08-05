@@ -70,14 +70,21 @@ set_z_vel_bc (BCRec&       bc,
 static
 void
 set_scalar_bc (BCRec&       bc,
-               const BCRec& phys_bc)
+               const BCRec& phys_bc,
+               std::string advection)
 {
     const int* lo_bc = phys_bc.lo();
     const int* hi_bc = phys_bc.hi();
     for (int i = 0; i < AMREX_SPACEDIM; i++)
     {
-        bc.setLo(i,scalar_bc[lo_bc[i]]);
-        bc.setHi(i,scalar_bc[hi_bc[i]]);
+        if (advection == "BDS"){
+            bc.setLo(i,bds_scalar_bc[lo_bc[i]]);
+            bc.setHi(i,bds_scalar_bc[hi_bc[i]]);
+        }
+        else {
+            bc.setLo(i,scalar_bc[lo_bc[i]]);
+            bc.setHi(i,scalar_bc[hi_bc[i]]);
+        }
     }
 }
 
@@ -262,15 +269,15 @@ NavierStokes::variableSetUp ()
     //
     // **************  DEFINE SCALAR VARIABLES  ********************
     //
-    set_scalar_bc(bc,phys_bc);
+    set_scalar_bc(bc,phys_bc,advection_scheme);
     desc_lst.setComponent(State_Type,Density,"density",bc,state_bf);
 
-    set_scalar_bc(bc,phys_bc);
+    set_scalar_bc(bc,phys_bc,advection_scheme);
     desc_lst.setComponent(State_Type,Tracer,"tracer",bc,state_bf);
 
     if (do_trac2)
     {
-       set_scalar_bc(bc,phys_bc);
+        set_scalar_bc(bc,phys_bc,advection_scheme);
        desc_lst.setComponent(State_Type,Tracer2,"tracer2",bc,state_bf);
     }
     //
