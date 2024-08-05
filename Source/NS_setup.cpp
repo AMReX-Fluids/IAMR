@@ -277,7 +277,7 @@ NavierStokes::variableSetUp ()
 
     if (do_trac2)
     {
-        set_scalar_bc(bc,phys_bc,advection_scheme);
+       set_scalar_bc(bc,phys_bc,advection_scheme);
        desc_lst.setComponent(State_Type,Tracer2,"tracer2",bc,state_bf);
     }
     //
