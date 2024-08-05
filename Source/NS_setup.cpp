@@ -71,7 +71,7 @@ static
 void
 set_scalar_bc (BCRec&       bc,
                const BCRec& phys_bc,
-               std::string advection)
+               const std::string& advection)
 {
     const int* lo_bc = phys_bc.lo();
     const int* hi_bc = phys_bc.hi();
