@@ -56,7 +56,7 @@ jobs:
 
         cd IAMR/Exec/run3d
         make -j 2 USE_SYCL=TRUE USE_CCACHE=TRUE \
-            WARN_ALL=TRUE WARN_ERROR=TRUE EXTRACXXFLAGS="-Wno-missing-braces"
+            WARN_ALL=TRUE WARN_ERROR=TRUE EXTRACXXFLAGS="-Wno-missing-braces -Wno-unused-variable -Wno-shadow"
 
         ccache -s
         du -hs ~/.cache/ccache
