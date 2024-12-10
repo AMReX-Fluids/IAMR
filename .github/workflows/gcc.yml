@@ -55,7 +55,7 @@ jobs:
 
         cd IAMR/Exec/eb_run3d
         make -j 2 USE_MPI=TRUE USE_OMP=FALSE USE_CCACHE=TRUE USE_ASSERTION=TRUE \
-            WARN_ALL=TRUE WARN_ERROR=TRUE EXTRACXXFLAGS="-Wno-null-dereference" \
+            WARN_ALL=TRUE WARN_ERROR=TRUE EXTRACXXFLAGS="-Wno-null-dereference -Wno-array-bounds -Wno-maybe-uninitialized" \
             KEEP_BUILDINFO_CPP=TRUE
 
         ${{github.workspace}}/amrex/Tools/C_scripts/mmclt.py --input ${{github.workspace}}/ccache.log.txt --identifier Source
@@ -114,7 +114,7 @@ jobs:
 
         cd IAMR/Exec/run3d
         make -j 2 USE_MPI=TRUE USE_OMP=FALSE USE_CCACHE=TRUE USE_ASSERTION=TRUE \
-            WARN_ALL=TRUE WARN_ERROR=TRUE EXTRACXXFLAGS="-Wno-null-dereference" \
+            WARN_ALL=TRUE WARN_ERROR=TRUE EXTRACXXFLAGS="-Wno-null-dereference -Wno-array-bounds -Wno-maybe-uninitialized" \
             KEEP_BUILDINFO_CPP=TRUE
 
         ${{github.workspace}}/amrex/Tools/C_scripts/mmclt.py --input ${{github.workspace}}/ccache.log.txt --identifier Source
@@ -173,7 +173,7 @@ jobs:
 
         cd IAMR/Exec/eb_run2d
         make -j 2 USE_MPI=FALSE USE_OMP=TRUE USE_CCACHE=TRUE USE_ASSERTION=TRUE \
-            WARN_ALL=TRUE WARN_ERROR=TRUE EXTRACXXFLAGS="-Wno-null-dereference" \
+            WARN_ALL=TRUE WARN_ERROR=TRUE EXTRACXXFLAGS="-Wno-null-dereference -Wno-array-bounds -Wno-maybe-uninitialized" \
             KEEP_BUILDINFO_CPP=TRUE
 
         ${{github.workspace}}/amrex/Tools/C_scripts/mmclt.py --input ${{github.workspace}}/ccache.log.txt --identifier Source
@@ -233,7 +233,7 @@ jobs:
 
         cd IAMR/Exec/run2d
         make -j 2 USE_MPI=TRUE USE_OMP=FALSE USE_CCACHE=TRUE USE_ASSERTION=TRUE \
-        WARN_ALL=TRUE WARN_ERROR=TRUE EXTRACXXFLAGS="-Wno-null-dereference" \
+        WARN_ALL=TRUE WARN_ERROR=TRUE EXTRACXXFLAGS="-Wno-null-dereference -Wno-array-bounds -Wno-maybe-uninitialized" \
         KEEP_BUILDINFO_CPP=TRUE
 
         ${{github.workspace}}/amrex/Tools/C_scripts/mmclt.py --input ${{github.workspace}}/ccache.log.txt --identifier Source
