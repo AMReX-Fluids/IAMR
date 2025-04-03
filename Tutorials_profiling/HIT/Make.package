@@ -1,0 +1,10 @@
+ifeq ($(USE_VELOCITY), TRUE)
+  CEXE_headers += DataServices.H AmrData.H XYPlotDataList.H AmrvisConstants.H
+  CEXE_sources += DataServices.cpp AmrData.cpp
+  FEXE_sources += FABUTIL_$(DIM)D.F
+endif
+
+ifeq ($(USE_TURBULENT_FORCING), TRUE)
+  CEXE_headers += TurbulentForcing_params.H TurbulentForcing_def.H depRand.H
+  CEXE_sources += depRand.cpp
+endif

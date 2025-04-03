@@ -36,3 +36,17 @@ CEXE_headers += Projection.H MacProj.H Diffusion.H NavierStokesBase.H FluxBoxes.
 
 CEXE_sources += NS_util.cpp
 CEXE_headers += NS_util.H
+
+CEXE_sources += NS_kernels.cpp
+CEXE_headers += NS_kernels.H
+
+CEXE_sources += NS_LS.cpp
+CEXE_headers += NS_LS.H
+
+ifeq ($(USE_PARTICLES), TRUE)
+  CEXE_sources += DiffusedIB.cpp
+  CEXE_headers += DiffusedIB.H
+
+  CEXE_sources += Collision.cpp
+  CEXE_headers += Collision.H
+endif

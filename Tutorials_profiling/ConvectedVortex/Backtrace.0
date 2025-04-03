@@ -1,0 +1,102 @@
+Host Name: mirror
+=== If no file names and line numbers are shown below, one can run
+            addr2line -Cpfie my_exefile my_line_address
+    to convert `my_line_address` (e.g., 0x4a6b) into file name and line number.
+    Or one can use amrex/Tools/Backtrace/parse_bt.py.
+
+=== Please note that the line number reported by addr2line may not be accurate.
+    One can use
+            readelf -wl my_exefile | grep my_line_address'
+    to find out the offset for that line.
+
+ 0: ./amr2d.gnu.PROF.CUDA.ex() [0x684c56]
+    _ZN5amrex11BLBackTrace20print_backtrace_infoEP8_IO_FILE
+../../../amrex/Src/Base/AMReX_BLBackTrace.cpp:196:28
+
+ 1: ./amr2d.gnu.PROF.CUDA.ex() [0x686878]
+    _ZN5amrex11BLBackTrace7handlerEi
+../../../amrex/Src/Base/AMReX_BLBackTrace.cpp:96:7
+
+ 2: /lib64/libc.so.6(+0x4ad50) [0x7f6624826d50]
+
+ 3: /usr/lib64/libstdc++.so.6(_ZSt18_Rb_tree_incrementPKSt18_Rb_tree_node_base+0x17) [0x7f6625202f27]
+    ?? ??:0
+
+ 4: ./amr2d.gnu.PROF.CUDA.ex() [0x5a6320]
+    _ZNSt23_Rb_tree_const_iteratorIN5amrex6CArena4NodeEEppEv inlined at ../../../amrex/Src/Base/AMReX_CArena.cpp:64:43 in _ZN5amrex6CArena5allocEm
+/usr/include/c++/9/bits/stl_tree.h:366:31
+_ZN5amrex6CArena5allocEm
+../../../amrex/Src/Base/AMReX_CArena.cpp:64:43
+
+ 5: ./amr2d.gnu.PROF.CUDA.ex() [0x5dedf2]
+    _ZNK5amrex3Box6lengthEi inlined at ../../../amrex/Src/Base/AMReX_Box.H:341:40 in _ZN5amrex7BaseFabIdE6defineEv
+../../../amrex/Src/Base/AMReX_Box.H:154:56
+_ZNK5amrex3Box6numPtsEv
+../../../amrex/Src/Base/AMReX_Box.H:341:40
+_ZN5amrex7BaseFabIdE6defineEv
+../../../amrex/Src/Base/AMReX_BaseFab.H:1907:24
+
+ 6: ./amr2d.gnu.PROF.CUDA.ex() [0x5dd32e]
+    _ZN5amrex9FArrayBoxC2ERKNS_3BoxEibbPNS_5ArenaE
+../../../amrex/Src/Base/AMReX_FArrayBox.cpp:123:129
+
+ 7: ./amr2d.gnu.PROF.CUDA.ex() [0x4ce840]
+    _ZN5amrex8FabArrayINS_9FArrayBoxEE9AllocFabsERKNS_10FabFactoryIS1_EEPNS_5ArenaERKNS_6VectorINSt7__cxx1112basic_stringIcSt11char_traitsIcESaIcEEESaISF_EEE
+../../../amrex/Src/Base/AMReX_FabArray.H:2037:1
+
+ 8: ./amr2d.gnu.PROF.CUDA.ex() [0x5eb45a]
+    _ZN5amrex8MultiFab6defineERKNS_8BoxArrayERKNS_19DistributionMappingEiRKNS_7IntVectERKNS_6MFInfoERKNS_10FabFactoryINS_9FArrayBoxEEE inlined at ../../../amrex/Src/Base/AMReX_MultiFab.cpp:557:13 in _ZN5amrex8MultiFab6defineERKNS_8BoxArrayERKNS_19DistributionMappingEiiRKNS_6MFInfoERKNS_10FabFactoryINS_9FArrayBoxEEE
+../../../amrex/Src/Base/AMReX_MultiFab.cpp:570:26
+_ZN5amrex8MultiFab6defineERKNS_8BoxArrayERKNS_19DistributionMappingEiiRKNS_6MFInfoERKNS_10FabFactoryINS_9FArrayBoxEEE
+../../../amrex/Src/Base/AMReX_MultiFab.cpp:557:13
+
+ 9: ./amr2d.gnu.PROF.CUDA.ex() [0x72f7ea]
+    _ZNSt6vectorINSt7__cxx1112basic_stringIcSt11char_traitsIcESaIcEEESaIS5_EED4Ev inlined at ../../../amrex/Src/Base/AMReX_Vector.H:25:7 in _ZN5amrex17FillPatchIterator10InitializeEidiii
+/usr/include/c++/9/bits/stl_vector.h:677:14
+_ZN5amrex6VectorINSt7__cxx1112basic_stringIcSt11char_traitsIcESaIcEEESaIS6_EED4Ev
+../../../amrex/Src/Base/AMReX_Vector.H:25:7
+_ZN5amrex6MFInfoD4Ev
+../../../amrex/Src/Base/AMReX_FabArray.H:116:8
+_ZN5amrex17FillPatchIterator10InitializeEidiii
+../../../amrex/Src/Amr/AMReX_AmrLevel.cpp:998:94
+
+10: ./amr2d.gnu.PROF.CUDA.ex() [0x730a31]
+    _ZN5amrex8AmrLevel9FillPatchERS0_RNS_8MultiFabEidiiii
+../../../amrex/Src/Amr/AMReX_AmrLevel.cpp:2172:15
+
+11: ./amr2d.gnu.PROF.CUDA.ex() [0x49d86d]
+    _ZN16NavierStokesBase16predict_velocityEd
+../../Source/NavierStokesBase.cpp:4721:10
+
+12: ./amr2d.gnu.PROF.CUDA.ex() [0x47697d]
+    _ZN12NavierStokes7advanceEddii
+../../Source/NavierStokes.cpp:634:1
+
+13: ./amr2d.gnu.PROF.CUDA.ex() [0x71834d]
+    _ZN5amrex3Amr8timeStepEidiid
+../../../amrex/Src/Amr/AMReX_Amr.cpp:1988:30
+
+14: ./amr2d.gnu.PROF.CUDA.ex() [0x718618]
+    _ZN5amrex3Amr8timeStepEidiid
+../../../amrex/Src/Amr/AMReX_Amr.cpp:2033:1
+
+15: ./amr2d.gnu.PROF.CUDA.ex() [0x718618]
+    _ZN5amrex3Amr8timeStepEidiid
+../../../amrex/Src/Amr/AMReX_Amr.cpp:2033:1
+
+16: ./amr2d.gnu.PROF.CUDA.ex() [0x714c69]
+    _ZNKSt7__cxx1118basic_stringstreamIcSt11char_traitsIcESaIcEE3strEv inlined at ../../../amrex/Src/Amr/AMReX_Amr.cpp:2095:43 in _ZN5amrex3Amr14coarseTimeStepEd
+/usr/include/c++/9/sstream:832:29
+_ZN5amrex3Amr14coarseTimeStepEd
+../../../amrex/Src/Amr/AMReX_Amr.cpp:2095:43
+
+17: ./amr2d.gnu.PROF.CUDA.ex() [0x427dcb]
+    main
+../../Source/main.cpp:127:29
+
+18: /lib64/libc.so.6(__libc_start_main+0xef) [0x7f662481129d]
+
+19: ./amr2d.gnu.PROF.CUDA.ex() [0x42e3da]
+    _start
+../sysdeps/x86_64/start.S:122
+

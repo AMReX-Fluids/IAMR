@@ -9,7 +9,7 @@
 using namespace amrex;
 
 //
-// Fill external Dirichlet boundary for State varisbles.
+// Fill external Dirichlet boundary for State variables.
 // This simple version only makes use constant BC values set in the inputs file.
 // Create a struct, then use it to build a function that then gets passed to
 // the StateDescriptor in NavierStokes::variableSetUp() in NS_setup.cpp
@@ -101,18 +101,25 @@ void state_fill (Box const& bx, FArrayBox& data,
 struct velFill
 {
     int probtype;
+    amrex::Real ub;
+    amrex::Real shearrate;
     amrex::GpuArray<amrex::GpuArray<amrex::Real, NavierStokes::NUM_STATE_MAX>, AMREX_SPACEDIM*2> bcv;
 
     AMREX_GPU_HOST
-    constexpr velFill (int a_probtype,
+    constexpr velFill (int a_probtype, amrex::Real a_ub, amrex::Real a_shearrate,
                        amrex::GpuArray<amrex::GpuArray<amrex::Real, NavierStokes::NUM_STATE_MAX>,
                                        AMREX_SPACEDIM*2> const& a_bcv)
-      : probtype(a_probtype), bcv(a_bcv) {}
+      : probtype(a_probtype), ub(a_ub), shearrate(a_shearrate), bcv(a_bcv) {}
 
     // iv                  : Cell index
     // dest, dcomp, numcomp: Fill numcomp components of dest starting from dcomp.
     // bcr, bcomp          : bcr[bcomp] specifies BC for component dcomp and so on.
     // orig_comp           : component index for dcomp as in the descriptor set up in NS_setup.cpp
+    
+    // For X vel, dcomp = 0; numcomp = 1; bcomp = 0; orig_comp = 0;
+    // For Y vel, dcomp = 1; numcomp = 1; bcomp = 0; orig_comp = 1;
+    // For Z vel, dcomp = 2; numcomp = 1; bcomp = 0; orig_comp = 2;
+    
     AMREX_GPU_DEVICE
     void operator() (const amrex::IntVect& iv, amrex::Array4<amrex::Real> const& dest,
                      const int dcomp, const int numcomp,
@@ -121,6 +128,10 @@ struct velFill
                      const int orig_comp) const
     {
         using namespace amrex;
+
+        // amrex::Print() << "probtype " << probtype << std::endl;
+        // amrex::Print() << "ub " << ub << std::endl;
+        // amrex::Print() << "shearrate " << shearrate << std::endl;
 
         // do something for external Dirichlet (BCType::ext_dir)
 
@@ -134,6 +145,10 @@ struct velFill
 
         const Box& domain_box = geom.Domain();
 
+        const Real* prob_lo = geom.ProbLo();
+        const Real* dx      = geom.CellSize();
+        amrex::Real y = dx[1]*(0.5+j) + prob_lo[1];
+
         for (int nc = 0; nc < numcomp; ++nc)
         {
             const BCRec& bc = bcr[bcomp+nc];
@@ -143,6 +158,10 @@ struct velFill
                 if (bc.lo(idir) == BCType::ext_dir && iv[idir] < domain_box.smallEnd(idir))
                 {
                     dest(i,j,k,dcomp+nc) = bcv[idir][orig_comp+nc];
+                    if ( (probtype == 102 || probtype == 103) && orig_comp == 0) { // shear flow inlet in x dir
+                        dest(i,j,k,dcomp+nc) = ub + shearrate * y;
+                        // amrex::Print() << i << " " << j << " " << k << " " << ub << " " << shearrate << " " << y << " " << idir << std::endl;
+                    }
                 }
                 else if (bc.hi(idir) == BCType::ext_dir && iv[idir] > domain_box.bigEnd(idir))
                 {
@@ -160,7 +179,7 @@ void vel_fill (Box const& bx, FArrayBox& data,
                const int scomp)
 {
 
-    GpuBndryFuncFab<velFill> gpu_bndry_func(velFill{NavierStokes::probtype,
+    GpuBndryFuncFab<velFill> gpu_bndry_func(velFill{NavierStokes::probtype, NavierStokes::ub, NavierStokes::shearrate,
                                                     NavierStokes::get_bc_values()});
     gpu_bndry_func(bx,data,dcomp,numcomp,geom,time,bcr,bcomp,scomp);
 

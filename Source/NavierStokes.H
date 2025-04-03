@@ -103,6 +103,23 @@ public:
                          int  iteration,
                          int  ncycle) override;
 
+    // ls related
+    amrex::Real advance_semistaggered_twophase_ls (amrex::Real time,
+                         amrex::Real dt,
+                         int  iteration,
+                         int  ncycle);
+#ifdef AMREX_PARTICLES
+    amrex::Real advance_semistaggered_fsi_diffusedib (amrex::Real time,
+                         amrex::Real dt,
+                         int  iteration,
+                         int  ncycle);
+#endif
+
+    amrex::Real advance_semistaggered_twophase_phasefield (amrex::Real time,
+                         amrex::Real dt,
+                         int  iteration,
+                         int  ncycle);
+
     ////////////////////////////////////////////////////////////////////////////
     //    NavierStokesBase public virtual functions                           //
     ////////////////////////////////////////////////////////////////////////////
@@ -131,8 +148,11 @@ public:
     //
     static void variableSetUp ();
 
-    // Max possible number of scalars is 4: Density, 2 Tracers, Temperature
-    static constexpr int NUM_STATE_MAX = AMREX_SPACEDIM+4;
+    //
+    // ls related
+    //
+    // Max possible number of scalars is 5: Density, 2 Tracers, Temperature, ls
+    static constexpr int NUM_STATE_MAX = AMREX_SPACEDIM+5;
     static amrex::GpuArray<amrex::GpuArray<amrex::Real, NUM_STATE_MAX>, AMREX_SPACEDIM*2>
     //static auto
     get_bc_values () { return m_bc_values; }
@@ -247,7 +267,10 @@ private:
     //
     // Hold external Dirichlet BC values
     //
-    // Max possible number of scalars is 4: Density, 2 Tracers, Temperature
+    //
+    // ls related
+    //
+    // Max possible number of scalars is 5: Density, 2 Tracers, Temperature, ls
     static amrex::GpuArray<amrex::GpuArray<amrex::Real, NUM_STATE_MAX>,
                    AMREX_SPACEDIM*2> m_bc_values;
 };

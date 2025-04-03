@@ -1,0 +1,143 @@
+
+#*******************************************************************************
+# INPUTS.3D.INLET_SHEAR_FLOW
+#*******************************************************************************
+
+#NOTE: You may set *either* max_step or stop_time, or you may set them both.
+
+# Maximum number of coarse grid timesteps to be taken, if stop_time is
+#  not reached first.
+max_step 		= 2000
+
+# Time at which calculation stops, if max_step is not reached first.
+stop_time 		= 10.0
+
+ns.fixed_dt     = 0.1
+ns.cfl = 0.3
+ns.init_iter = 0
+
+amr.max_level		= 0 # maximum number of levels of refinement
+
+amr.blocking_factor     = 8
+
+#*******************************************************************************
+
+# Number of cells in each coordinate direction at the coarsest level
+amr.n_cell 		= 16 8 8  
+amr.max_grid_size	= 16
+
+#*******************************************************************************
+
+# Interval (in number of level l timesteps) between regridding
+amr.regrid_int		= 1 # regrid_int 
+
+#*******************************************************************************
+
+# Refinement ratio as a function of level
+amr.ref_ratio		= 2 2 2 2
+
+#*******************************************************************************
+
+# Sets the "NavierStokes" code to be verbose
+ns.v                    = 1
+nodal_proj.verbose      = 1
+mac_proj.verbose        = 1
+
+#*******************************************************************************
+
+# Sets the "amr" code to be verbose
+amr.v                   = 1
+
+#*******************************************************************************
+
+# Interval (in number of coarse timesteps) between checkpoint(restart) files
+amr.check_int		= 5 
+#amr.restart             = chk01400
+
+#*******************************************************************************
+
+# Interval (in number of coarse timesteps) between plot files
+amr.plot_int		= 5
+
+
+#*******************************************************************************
+
+# Viscosity coefficient 
+ns.vel_visc_coef        = 0.01
+
+#*******************************************************************************
+
+# Diffusion coefficient for first scalar
+ns.scal_diff_coefs      = 0.001
+
+#*******************************************************************************
+
+# Forcing term defaults to  rho * abs(gravity) "down"
+ns.gravity              = 0.0 # -9.8
+
+#*******************************************************************************
+
+# skip level_projector 
+ns.skip_level_projector = 0
+
+#*******************************************************************************
+
+# subcycling vs. non-subcycling 
+amr.subcycling_mode     = None 
+
+#*******************************************************************************
+
+# Set to 0 if x-y coordinate system, set to 1 if r-z.
+geometry.coord_sys   =  0
+
+#*******************************************************************************
+
+# Physical dimensions of the low end of the domain.
+geometry.prob_lo     =  0. 0. 0.
+
+# Physical dimensions of the high end of the domain.
+geometry.prob_hi     =  16. 8. 8.
+
+#*******************************************************************************
+
+#Set to 1 if periodic in that direction
+geometry.is_periodic =  0 0 0
+
+#*******************************************************************************
+
+# Boundary conditions on the low end of the domain.
+ns.lo_bc             = 1 4 4
+
+# Boundary conditions on the high end of the domain.
+ns.hi_bc             = 2 4 4
+
+# 0 = Interior/Periodic  3 = Symmetry
+# 1 = Inflow             4 = SlipWall
+# 2 = Outflow            5 = NoSlipWall
+
+# Boundary condition
+xlo.velocity            =   0.  0.  0.
+
+#*******************************************************************************
+
+# Problem parameters
+prob.probtype = 1
+prob.ub = 1.2
+prob.shearrate = 0.01
+
+#*******************************************************************************
+
+# Add vorticity to the variables in the plot files.
+amr.derive_plot_vars    = avg_pressure
+
+#*******************************************************************************
+ns.isolver            = 0
+ns.do_diffused_ib     = 0
+
+particles.do_nspc_particles = 0
+
+nodal_proj.proj_tol = 1.e-4
+nodal_proj.proj_abs_tol = 1.e-5
+
+mac_proj.mac_tol = 1.e-4
+mac_proj.mac_abs_tol = 1.e-5

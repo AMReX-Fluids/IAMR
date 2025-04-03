@@ -1,0 +1,97 @@
+#¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨#
+#            SIMULATION STOP            #
+#.......................................#
+stop_time               =   0.8        # Max (simulated) time to evolve
+max_step                =   200           # Max number of time steps
+
+ns.stop_when_steady     =   0           # Steady-state solver?
+ns.steady_tol           = 1.e-8
+
+#¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨#
+#           SOLVER SETTINGS             #
+#.......................................#
+ns.init_shrink = 1.0                    # Multiply initial dt by this factor
+
+#¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨#
+#         TIME STEP COMPUTATION         #
+#.......................................#
+ns.fixed_dt         =   -1.0            # If fixed_dt > 0, use this constant dt
+ns.cfl              =   0.45            # CFL factor
+
+#¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨#
+#            INPUT AND OUTPUT           #
+#.......................................#
+amr.plot_int            =   50          # Steps between plot files
+amr.check_int           =   1000        # Steps between checkpoint files
+amr.derive_plot_vars    =   mag_vort avg_pressure # Derived quantities to include in plotfiles
+
+amr.restart             =   ""          # Checkpoint to restart from
+
+#¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨#
+#               PHYSICS                 #
+#.......................................#
+ns.gravity		 =   0. 
+
+ns.vel_visc_coef         = 0.00001
+ns.scal_diff_coefs       = 1.0
+
+#¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨#
+#        ADAPTIVE MESH REFINEMENT       #
+#.......................................#
+amr.n_cell              =   128 128    # Grid cells at coarsest AMRlevel
+
+amr.max_grid_size	= 8 # max_grid_size
+amr.max_level		= 0 # max_level
+amr.regrid_int		= 4 # regrid_int
+ns.skip_level_projector = 0 # skip_level_projector
+amr.subcycling_mode     = Auto # subcycling_mode
+
+# Refinement criterion, use vorticity
+amr.refinement_indicators = vorticity
+amr.vorticity.vorticity_greater =  1000.0
+
+#¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨#
+#              GEOMETRY                 #
+#.......................................#
+geometry.prob_lo        =  -0.04 -0.04  # Lo corner coordinates
+geometry.prob_hi        =   0.04  0.04 # Hi corner coordinates
+geometry.is_periodic    =   0   0     # Periodicity x y z (0/1)
+geometry.coord_sys      = 0             # 0 for Cartesian, 1 for RZ
+
+# 0 = Interior/Periodic  3 = Symmetry
+# 1 = Inflow             4 = SlipWall
+# 2 = Outflow            5 = NoSlipWal
+# Boundary conditions on the low end of the domain.
+ns.lo_bc 	     	= 1 4
+# Boundary conditions on the high end of the domain.
+ns.hi_bc   	     	= 2 4
+
+# inflow velocity
+xlo.velocity = 1. 0. 
+
+# Add cylinder
+#eb2.geom_type             = all_regular # for no EB
+eb2.geom_type             = sphere
+eb2.sphere_radius         = 0.0021
+eb2.sphere_center         = -0.025  0.0
+eb2.sphere_has_fluid_inside=0
+
+#¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨#
+#          PROBLEM PARAMETERS           #
+#.......................................#
+prob.probtype = 4
+prob.blob_center = -0.55 0.05
+prob.blob_radius =  0.04
+# Constant density initial condition
+prob.density_ic = 1.0
+# Set up a flow, defaults to zero
+prob.velocity_ic = 1. 0.
+
+#¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨#
+#              VERBOSITY                #
+#.......................................#
+ns.v                    = 0 # NS solver 
+nodal_proj.verbose      = 0 # Nodal projection
+mac_proj.verbose        = 0 # MacProjector
+diffuse.v               = 0 # Diffusion solver
+

@@ -90,7 +90,7 @@ prob.density_ic = 1.0
 #*******************************************************************************
 
 # Maximum level (defaults to 0 for single level calculation)
-amr.max_level		 	= 1
+amr.max_level		 	= 0
 # Refinement criterion, presence of tracer
 amr.refinement_indicators = tracer
 amr.tracer.value_greater  = 0.5

@@ -2534,7 +2534,14 @@ void Projection::doMLMGNodalProjection (int c_lev, int nlevel,
     //
     // Project to get new P and update velocity
     //
-    nodal_projector.project(phi_rebase,rel_tol,abs_tol);
+    nodal_projector.getMLMG().setThrowException(true);
+    try {
+        nodal_projector.project(phi_rebase,rel_tol,abs_tol);
+    } catch (const MLMG::error& e) {
+        amrex::Print() << std::endl;
+        amrex::Print() << "nodal_projector.project throws an exception " << e.what() << std::endl;
+        amrex::Print() << std::endl;
+    }
 
     //
     // Update gradP

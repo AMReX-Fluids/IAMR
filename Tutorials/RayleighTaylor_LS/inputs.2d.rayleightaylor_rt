@@ -1,0 +1,167 @@
+
+#*******************************************************************************
+# INPUTS.2D.RT_LS
+#*******************************************************************************
+
+#NOTE: You may set *either* max_step or stop_time, or you may set them both.
+
+# Maximum number of coarse grid timesteps to be taken, if stop_time is
+#  not reached first.
+max_step 		= 500 # 10
+
+# Time at which calculation stops, if max_step is not reached first.
+stop_time 		= 2.5 # 2.5
+ns.fixed_dt     = 0.0005
+
+amr.subcycling_mode = None
+
+# Refinement criterion, use vorticity
+amr.refinement_indicators = vorticity
+
+amr.vorticity.vorticity_greater =  0.1 # 10
+#amr.vorticity.start_time = 0.001
+#amr.vorticity.end_name = 0.002
+
+#*******************************************************************************
+
+# Number of cells in each coordinate direction at the coarsest level
+amr.n_cell 		= 128 512
+amr.max_grid_size	= 32
+
+#amr.n_cell 		= 32 128 
+#amr.max_grid_size	= 128
+
+amr.grid_eff = 0.95
+
+# Maximum level (defaults to 0 for single level calculation)
+amr.max_level		= 0 # maximum number of levels of refinement
+
+#*******************************************************************************
+
+# Interval (in number of level l timesteps) between regridding
+amr.regrid_int		= 2 
+
+#*******************************************************************************
+
+# Refinement ratio as a function of level
+amr.ref_ratio		= 2 2
+
+#*******************************************************************************
+
+# Sets the "NavierStokes" code to be verbose
+ns.v                    = 1
+nodal_proj.verbose      = 1
+mac_proj.verbose        = 1
+
+#*******************************************************************************
+
+# Sets the "amr" code to be verbose
+amr.v                   = 1
+
+#*******************************************************************************
+
+# Interval (in number of coarse timesteps) between checkpoint(restart) files
+amr.check_int		= 100
+#amr.restart             = chk02000
+
+#*******************************************************************************
+
+# Interval (in number of coarse timesteps) between plot files
+amr.plot_int		= 50 # 200
+ns.sum_interval     = 50 # 200
+
+#*******************************************************************************
+
+# CFL number to be used in calculating the time step : dt = dx / max(velocity)
+ns.cfl                  = 0.9  # CFL number used to set dt
+
+#*******************************************************************************
+
+# Factor by which the first time is shrunk relative to CFL constraint
+ns.init_shrink          = 0.1  # factor which multiplies the very first time step
+
+#*******************************************************************************
+
+# Viscosity coefficient 
+ns.vel_visc_coef        = 0.003132
+
+#*******************************************************************************
+
+# Diffusion coefficient for first scalar
+ns.scal_diff_coefs      = 0.0
+
+#*******************************************************************************
+
+# Forcing term defaults to  rho * abs(gravity) "down"
+ns.gravity              = -9.81  
+
+#*******************************************************************************
+
+# Set to 0 if x-y coordinate system, set to 1 if r-z.
+geometry.coord_sys   =  0
+
+#*******************************************************************************
+
+# Physical dimensions of the low end of the domain.
+geometry.prob_lo     =  0. 0. 
+
+# Physical dimensions of the high end of the domain.
+geometry.prob_hi     =  1. 4.
+
+#*******************************************************************************
+
+#Set to 1 if periodic in that direction
+geometry.is_periodic =  1 0
+
+#*******************************************************************************
+
+# Boundary conditions on the low end of the domain.
+ns.lo_bc             = 0 4
+
+# Boundary conditions on the high end of the domain.
+ns.hi_bc             = 0 2
+
+# 0 = Interior/Periodic  3 = Symmetry
+# 1 = Inflow             4 = SlipWall
+# 2 = Outflow            5 = NoSlipWall
+
+#*******************************************************************************
+
+prob.probtype= 100
+prob.interface_width = 0.0078125
+prob.perturbation_amplitude = 0.1
+prob.rho_1 = 3.0
+prob.rho_2 = 1.0
+
+#*******************************************************************************
+
+# Factor by which grids must be coarsenable.
+amr.blocking_factor     = 8
+
+#*******************************************************************************
+
+# Add vorticity to the variables in the plot files.
+amr.derive_plot_vars    = mag_vort   diveru   avg_pressure
+
+#*******************************************************************************
+
+ns.do_mom_diff        = 0
+ns.do_denminmax       = 1
+ns.do_phi             = 1
+ns.do_cons_phi        = 1
+ns.do_reinit          = 1
+ns.lev0step_of_reinit = 1
+ns.number_of_reinit   = 4
+ns.reinit_sussman     = 1
+ns.prescribed_vel     = 0
+
+ns.mu_a               = 0.003132
+ns.mu_w               = 0.003132
+#ns.mu_a               = 0.0376
+#ns.mu_w               = 0.0376
+ns.rho_a              = 1.0
+ns.rho_w              = 3.0
+
+#ns.getForceVerbose    = 1
+amrex.abort_on_out_of_gpu_memory = 1
+ns.isolver            = 0

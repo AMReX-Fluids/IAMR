@@ -208,6 +208,39 @@ public:
 
     amrex::Vector<amrex::BCRec> fetchBCArray (int State_Type, int scomp, int ncomp);
 
+    //
+    // ls related
+    //
+    void fill_allgts (amrex::MultiFab& mf, int type, int scomp, int ncomp, amrex::Real time);
+    void reinit ();
+    void reinitialization_sussman (amrex::Real dt, int loop_iter);
+    void reinitialization_consls (amrex::Real dt, int loop_iter, amrex::Real epsG, amrex::Real epsG2);
+    void phi_to_sgn0 (amrex::MultiFab& phi);
+    amrex::MultiFab& get_phi_half_time ();
+    void rk_first_reinit (amrex::MultiFab& phi_ctime,
+                          amrex::MultiFab& phi2,
+                          amrex::MultiFab& phi3,
+                          amrex::MultiFab& sgn0,
+                          amrex::MultiFab& G0,
+                          amrex::Real dt, 
+                          amrex::MultiFab& phi_ori);
+    void rk_second_reinit (amrex::MultiFab& phi_ctime,
+                          amrex::MultiFab& phi2,
+                          amrex::MultiFab& phi3,
+                          amrex::MultiFab& sgn0,
+                          amrex::MultiFab& G0,
+                          amrex::Real dt,
+                          amrex::MultiFab& phi_ori);
+    void mass_fix (amrex::MultiFab& phi_ctime,
+                          amrex::MultiFab& phi_original,
+                          amrex::MultiFab& phi2,
+                          amrex::MultiFab& phi3,
+                          amrex::MultiFab& ld,
+                          amrex::MultiFab& lambdad,
+                          amrex::MultiFab& deltafunc_alias,
+                          amrex::Real delta_t,
+                          int  loop_iter);
+
     amrex::Vector<amrex::BCRec> const& get_bcrec_velocity () const noexcept { return m_bcrec_velocity; }
     amrex::Vector<amrex::BCRec> const& get_bcrec_scalars () const noexcept { return m_bcrec_scalars; }
 
@@ -738,7 +771,11 @@ public:
     static const int    NUM_GROW=4;       // number of ghost cells
     static int          refine_cutcells;
 #else
-    static const int    NUM_GROW=1;       // number of ghost cells
+    //
+    // ls related
+    // change to two gts
+    // 
+    static const int    NUM_GROW=2;       // number of ghost cells
 #endif
     //
     // Controls over how the convective and diffusive terms are calculated
@@ -806,6 +843,56 @@ public:
     //
     static int  do_mom_diff;
 
+    //
+    // skip_level_projector
+    //
+    static int  skip_level_projector;
+
+    static int isolver;
+
+    //
+    // ls related
+    //
+    static int  do_phi;
+    static int  phicomp;
+    static int  epsilon;
+    amrex::MultiFab phi_half;
+    amrex::MultiFab phi_ptime;
+    amrex::MultiFab phi_ctime;
+    amrex::MultiFab heaviside;
+
+    static amrex::Real mu_a;
+    static amrex::Real rho_a;
+    static amrex::Real mu_w;
+    static amrex::Real rho_w;
+
+    static int do_reinit;
+    static int lev0step_of_reinit;
+    static int number_of_reinit;
+    static int reinit_levelset;
+
+    // for reinit_sussman  
+    amrex::MultiFab phi_original;
+    amrex::MultiFab sgn0;
+
+    static int  do_cons_phi;
+    static int  prescribed_vel;
+
+    // for cons_levelset
+    static int do_cons_levelset;
+
+    //
+    // diffused ib
+    //
+    static int  do_diffused_ib;
+    amrex::MultiFab phi_nodal;
+    amrex::MultiFab pvf;
+    static int  advect_and_update_scalar;
+    static amrex::Real fluid_rho;
+
+// #ifdef AMREX_PARTICLES
+//     mParticle *mParticle_obj;
+// #endif
     int nghost_state () const;
     static constexpr int nghost_force () { return 1; }
 

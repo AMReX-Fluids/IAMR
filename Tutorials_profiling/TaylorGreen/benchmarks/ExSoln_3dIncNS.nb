@@ -1,0 +1,264 @@
+(***********************************************************************
+
+                    Mathematica-Compatible Notebook
+
+This notebook can be used on any computer system with Mathematica 3.0,
+MathReader 3.0, or any compatible application. The data for the notebook 
+starts with the line of stars above.
+
+To get the notebook into a Mathematica-compatible application, do one of 
+the following:
+
+* Save the data starting with the line of stars above into a file
+  with a name ending in .nb, then open the file inside the application;
+
+* Copy the data starting with the line of stars above to the
+  clipboard, then use the Paste menu command inside the application.
+
+Data for notebooks contains only printable 7-bit ASCII and can be
+sent directly in email or through ftp in text mode.  Newlines can be
+CR, LF or CRLF (Unix, Macintosh or MS-DOS style).
+
+NOTE: If you modify the data for this notebook not in a Mathematica-
+compatible application, you must delete the line below containing the 
+word CacheID, otherwise Mathematica-compatible applications may try to 
+use invalid cache data.
+
+For more information on notebooks and Mathematica-compatible 
+applications, contact Wolfram Research:
+  web: http://www.wolfram.com
+  email: info@wolfram.com
+  phone: +1-217-398-0700 (U.S.)
+
+Notebook reader applications are available free of charge from 
+Wolfram Research.
+***********************************************************************)
+
+(*CacheID: 232*)
+
+
+(*NotebookFileLineBreakTest
+NotebookFileLineBreakTest*)
+(*NotebookOptionsPosition[      4973,        183]*)
+(*NotebookOutlinePosition[      5749,        210]*)
+(*  CellTagsIndexPosition[      5705,        206]*)
+(*WindowFrame->Normal*)
+
+
+
+Notebook[{
+
+Cell[CellGroupData[{
+Cell["\<\
+Evaluation of a 3-d Exact Solution for the Viscous, Incompressible \
+Navier-Stokes Equations\
+\>", "Title",
+  TextAlignment->Center],
+
+Cell[CellGroupData[{
+
+Cell["Define Velocity, Pressure and Scalar Fields", "Section"],
+
+Cell[BoxData[
+    \(u\  = \ 
+      \(-a\)\ \((
+          Exp[a\ x]\ Sin[a\ y\  + \ d\ z]\  + \ 
+            Exp[a\ z]\ Cos[a\ x\  + \ d\ y])\)\ Exp[\(-d^2\)\ nu\ t]\)], 
+  "Input"],
+
+Cell[BoxData[
+    \(v\  = \ 
+      \(-a\)\ \((\ 
+          Exp[a\ y] Sin[a\ z\  + \ d\ x]\  + \ 
+            Exp[a\ x]\ Cos[a\ y\  + \ d\ z])\)\ Exp[\(-d^2\)\ nu\ t]\)], 
+  "Input"],
+
+Cell[BoxData[
+    \(w\  = \ 
+      \(-a\)\ \((\ 
+          Exp[a\ z]\ Sin[a\ x\  + \ d\ y]\  + \ 
+            Exp[a\ y]\ Cos[a\ z\  + \ d\ x])\)\ Exp[\(-d^2\)\ nu\ t]\)], 
+  "Input"],
+
+Cell[BoxData[
+    \(p\  = \ 
+      \(-a^2\)/2\ 
+        \((Exp[2\ a\ x]\  + \ Exp[2\ a\ y]\  + \ Exp[2\ a\ z]\  + \ 
+            2\ Sin[a\ x\  + \ d\ y]\ Cos[a\ z\  + \ d\ x]\ 
+              Exp[a\ \((y\  + \ z)\)]\  + \ 
+            2\ Sin[a\ y\  + \ d\ z]\ Cos[a\ x\  + \ d\ y]\ 
+              Exp[a\ \((z\  + \ x)\)]\  + \ 
+            2\ Sin[a\ z\  + \ d\ x]\ Cos[a\ y\  + \ d\ z]\ 
+              Exp[a\ \((x\  + \ y)\)])\)\ Exp[\(-2\)\ d^2\ nu\ t]\)], "Input"],
+
+Cell[BoxData[
+    \(Y\  = \ \.18\)], "Input"]
+}, Open  ]],
+
+Cell[CellGroupData[{
+
+Cell["Check Governing Equations", "Section"],
+
+Cell[BoxData[
+    \(Simplify[D[u, x]\  + \ D[v, y]\  + \ D[w, z]\  == \ 0]\)], "Input"],
+
+Cell[BoxData[
+    \(Simplify[
+      D[u, t]\  + \ u\ D[u, x]\  + \ v\ D[u, y]\  + \ w\ D[u, z]\  == \ 
+        \(-\ D[p, x]\)\  + \ nu\ D[u, {x, 2}] + \ nu\ D[u, {y, 2}]\  + \ 
+          nu\ D[u, {z, 2}]]\)], "Input"],
+
+Cell[BoxData[
+    \(Simplify[
+      D[v, t]\  + \ u\ D[v, x]\  + \ v\ D[v, y]\  + \ w\ D[v, z]\  == \ 
+        \(-\ D[p, y]\)\  + \ nu\ D[v, {x, 2}] + \ nu\ D[v, {y, 2}]\  + \ 
+          nu\ D[v, {z, 2}]]\)], "Input"],
+
+Cell[BoxData[
+    \(Simplify[
+      D[w, t]\  + \ u\ D[w, x]\  + \ v\ D[w, y]\  + \ w\ D[w, z]\  == \ 
+        \(-\ D[p, z]\)\  + \ nu\ D[w, {x, 2}] + \ nu\ D[w, {y, 2}]\  + \ 
+          nu\ D[w, {z, 2}]]\)], "Input"],
+
+Cell[BoxData[
+    \(Simplify[
+      D[Y, t]\  + \ u\ D[Y, x]\  + \ v\ D[Y, y]\  + \ w\ D[Y, z]\  == \ 
+        d\ D[Y, {x, 2}]\  + \ d\ D[Y, {y, 2}]\  + \ d\ D[Y, {z, 2}]]\)], 
+  "Input"]
+}, Open  ]],
+
+Cell[CellGroupData[{
+
+Cell["Evaluate the Fields for a=Pi, d=Pi", "Section"],
+
+Cell[BoxData[
+    \(a\  = \ Pi\)], "Input"],
+
+Cell[BoxData[
+    \(d\  = \ Pi\)], "Input"],
+
+Cell[BoxData[
+    \(u\)], "Input"],
+
+Cell[BoxData[
+    \(v\)], "Input"],
+
+Cell[BoxData[
+    \(w\)], "Input"],
+
+Cell[BoxData[
+    \(p\)], "Input"],
+
+Cell[BoxData[
+    \(t\  = \ 0\)], "Input"],
+
+Cell[BoxData[
+    \(z\  = \ 0\)], "Input"],
+
+Cell[BoxData[
+    \(Remove[a]\)], "Input"],
+
+Cell[BoxData[
+    \(Remove[d]\)], "Input"],
+
+Cell[BoxData[
+    \(Remove[z]\)], "Input"],
+
+Cell[BoxData[
+    \(Remove[t]\)], "Input"],
+
+Cell[BoxData[
+    \(ContourPlot[u, {x, 0, 2}, \ {y, 0, 2}]\)], "Input"],
+
+Cell[BoxData[
+    \(ContourPlot[v, {x, 0, 2}, \ {y, 0, 2}]\)], "Input"],
+
+Cell[BoxData[
+    \(ContourPlot[p, {x, 0, 2}, \ {y, 0, 2}]\)], "Input"],
+
+Cell[BoxData[
+    \(ContourPlot[Y, {x, 0, 2}, \ {y, 0, 2}]\)], "Input"]
+}, Open  ]]
+}, Open  ]]
+},
+FrontEndVersion->"X 3.0",
+ScreenRectangle->{{0, 1280}, {0, 1024}},
+WindowSize->{520, 600},
+WindowMargins->{{296, Automatic}, {Automatic, 88}},
+PrintingPageRange->{Automatic, Automatic},
+PrintingOptions->{"PaperSize"->{612, 792},
+"PaperOrientation"->"Portrait",
+"Magnification"->1}
+]
+
+
+(***********************************************************************
+Cached data follows.  If you edit this Notebook file directly, not using
+Mathematica, you must remove the line containing CacheID at the top of 
+the file.  The cache data will then be recreated when you save this file 
+from within Mathematica.
+***********************************************************************)
+
+(*CellTagsOutline
+CellTagsIndex->{}
+*)
+
+(*CellTagsIndex
+CellTagsIndex->{}
+*)
+
+(*NotebookFileOutline
+Notebook[{
+
+Cell[CellGroupData[{
+Cell[1731, 51, 142, 4, 90, "Title"],
+
+Cell[CellGroupData[{
+Cell[1898, 59, 62, 0, 47, "Section"],
+Cell[1963, 61, 180, 5, 43, "Input"],
+Cell[2146, 68, 181, 5, 43, "Input"],
+Cell[2330, 75, 182, 5, 43, "Input"],
+Cell[2515, 82, 465, 9, 91, "Input"],
+Cell[2983, 93, 45, 1, 27, "Input"]
+}, Open  ]],
+
+Cell[CellGroupData[{
+Cell[3065, 99, 44, 0, 47, "Section"],
+Cell[3112, 101, 87, 1, 27, "Input"],
+Cell[3202, 104, 217, 4, 43, "Input"],
+Cell[3422, 110, 217, 4, 43, "Input"],
+Cell[3642, 116, 217, 4, 43, "Input"],
+Cell[3862, 122, 187, 4, 43, "Input"]
+}, Open  ]],
+
+Cell[CellGroupData[{
+Cell[4086, 131, 53, 0, 47, "Section"],
+Cell[4142, 133, 43, 1, 27, "Input"],
+Cell[4188, 136, 43, 1, 27, "Input"],
+Cell[4234, 139, 34, 1, 27, "Input"],
+Cell[4271, 142, 34, 1, 27, "Input"],
+Cell[4308, 145, 34, 1, 27, "Input"],
+Cell[4345, 148, 34, 1, 27, "Input"],
+Cell[4382, 151, 42, 1, 27, "Input"],
+Cell[4427, 154, 42, 1, 27, "Input"],
+Cell[4472, 157, 42, 1, 27, "Input"],
+Cell[4517, 160, 42, 1, 27, "Input"],
+Cell[4562, 163, 42, 1, 27, "Input"],
+Cell[4607, 166, 42, 1, 27, "Input"],
+Cell[4652, 169, 71, 1, 27, "Input"],
+Cell[4726, 172, 71, 1, 27, "Input"],
+Cell[4800, 175, 71, 1, 27, "Input"],
+Cell[4874, 178, 71, 1, 27, "Input"]
+}, Open  ]]
+}, Open  ]]
+}
+]
+*)
+
+
+
+
+(***********************************************************************
+End of Mathematica Notebook file.
+***********************************************************************)
+

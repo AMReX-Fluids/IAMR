@@ -1,0 +1,116 @@
+
+#*******************************************************************************
+# INPUTS.2D.TAYLORGREEN
+#*******************************************************************************
+
+#NOTE: You may set *either* max_step or stop_time, or you may set them both.
+
+# Maximum number of coarse grid timesteps to be taken, if stop_time is
+#  not reached first.
+max_step 		= 200
+
+# Time at which calculation stops, if max_step is not reached first.
+stop_time 		= 1.0
+
+#*******************************************************************************
+
+# Number of cells in each coordinate direction at the coarsest level
+amr.n_cell 		= 64 64
+
+amr.max_grid_size	= 8 # max_grid_size
+amr.max_level		= 0 # max_level
+amr.regrid_int		= 4 # regrid_int
+ns.skip_level_projector = 0 # skip_level_projector
+amr.subcycling_mode     = Auto # subcycling_mode
+
+# Refinement criterion, use presence of tracer
+amr.refinement_indicators = tracer
+
+amr.tracer.value_greater = 0.4
+amr.tracer.field_name = tracer
+
+#*******************************************************************************
+
+# Refinement ratio as a function of level
+amr.ref_ratio		= 2 2 2 2
+
+#*******************************************************************************
+
+# Sets the "NavierStokes" code to be verbose
+ns.v                    = 0
+ns.sum_interval         = 0
+ns.init_iter            = 2
+
+#*******************************************************************************
+
+# Sets the "amr" code to be verbose
+amr.v                   = 0
+
+#*******************************************************************************
+
+# Interval (in number of coarse timesteps) between checkpoint(restart) files
+amr.check_int		= 40
+amr.check_file          = chk
+
+#*******************************************************************************
+
+# Interval (in number of coarse timesteps) between plot files
+amr.plot_int		= 50
+amr.plot_file           = plt
+
+#*******************************************************************************
+
+# CFL number to be used in calculating the time step : dt = dx / max(velocity)
+ns.cfl                  = 0.7  # CFL number used to set dt
+
+#*******************************************************************************
+
+# Factor by which the first time is shrunk relative to CFL constraint
+ns.init_shrink          = 1.0  # factor which multiplies the very first time step
+
+#*******************************************************************************
+
+# Viscosity coefficient
+ns.vel_visc_coef        = 1.e-2
+
+#*******************************************************************************
+
+# Diffusion coefficient for first scalar
+ns.scal_diff_coefs      = 0.0
+
+#*******************************************************************************
+
+# Set to 0 if x-y coordinate system, set to 1 if r-z (in 2-d).
+geometry.coord_sys   =  0
+
+#*******************************************************************************
+
+# Physical dimensions of the low end of the domain.
+geometry.prob_lo     =  0.0 0.0
+
+# Physical dimensions of the high end of the domain.
+geometry.prob_hi     =  1.0 1.0
+
+#*******************************************************************************
+
+#Set to 1 if periodic in that direction
+geometry.is_periodic =  1 1
+
+#*******************************************************************************
+
+# Boundary conditions on the low end of the domain.
+ns.lo_bc             = 0 0
+
+# Boundary conditions on the high end of the domain.
+ns.hi_bc             = 0 0
+
+# 0 = Interior/Periodic  3 = Symmetry
+# 1 = Inflow             4 = SlipWall
+# 2 = Outflow            5 = NoSlipWall
+
+#*******************************************************************************
+
+# Problem parameters
+prob.probtype = 11
+prob.velocity_factor = 1.0
+

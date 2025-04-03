@@ -7,6 +7,12 @@
 #include <NavierStokes.H>
 #include <NS_util.H>
 #include <iamr_constants.H>
+#include <NS_LS.H>
+#include <NS_kernels.H>
+
+#ifdef AMREX_PARTICLES
+#include <DiffusedIB.H>
+#endif
 
 #ifdef BL_USE_VELOCITY
 #include <AMReX_DataServices.H>
@@ -47,8 +53,19 @@ NavierStokes::Initialize ()
     if (do_temp)
         Temp = NUM_STATE++;
 
+    //
+    // ls related
+    //
+    if (do_phi)
+        phicomp = NUM_STATE++;
+    if (verbose) 
+        amrex::Print() << "do_phi, phicomp, NUM_STATE " << do_phi << " " << phicomp << " " << NUM_STATE << std::endl;
+
+    //
+    // ls related
+    //
     // NUM_STATE_MAX is defined in NavierStokes.H
-    // to be AMREX_SPACEDIM + 4 (for Density, 2 scalars, Temp)
+    // to be AMREX_SPACEDIM + 5 (for Density, 2 scalars, Temp, ls)
     AMREX_ALWAYS_ASSERT(NUM_STATE <= NUM_STATE_MAX);
 
     NUM_SCALARS = NUM_STATE - Density;
@@ -79,7 +96,12 @@ NavierStokes::Initialize_bcs ()
       for ( int nc = 0; nc < ntrac; nc++ )
     m_bc_values[ori][Tracer+nc] = 0.0;
       if (do_temp)
-    m_bc_values[ori][Temp] = 1.0;
+	  m_bc_values[ori][Temp] = 1.0;
+    //
+    // ls related
+    //
+      if (do_phi)
+    m_bc_values[ori][phicomp] = 0.0;
     }
 
     ParmParse pp("ns");
@@ -274,9 +296,13 @@ NavierStokes::Initialize_diffusivities ()
     if (do_temp && n_temp_cond_coef != 1)
         amrex::Abort("NavierStokesBase::Initialize(): Only one temp_cond_coef allowed");
 
-    if (n_scal_diff_coefs+n_temp_cond_coef != NUM_SCALARS-1)
-        amrex::Abort("NavierStokesBase::Initialize(): One scal_diff_coef required for each tracer");
-
+    //
+    // ls related
+    //
+    if (do_phi==0) {
+        if (n_scal_diff_coefs+n_temp_cond_coef != NUM_SCALARS-1)
+            amrex::Abort("NavierStokesBase::Initialize(): One scal_diff_coef required for each tracer");
+    }
 
     visc_coef.resize(NUM_STATE);
     is_diffusive.resize(NUM_STATE);
@@ -308,6 +334,13 @@ NavierStokes::Initialize_diffusivities ()
     {
         pp.get("temp_cond_coef",visc_coef[++scalId]);
     }
+    //
+    // ls related
+    //
+    if (do_phi)
+    {
+        visc_coef[phicomp] = -1;
+    }    
 }
 
 void
@@ -492,9 +525,11 @@ NavierStokes::post_restart ()
 {
     NavierStokesBase::post_restart();
 
-    //Get probtype; NS_bcfill.H may expect it.
+    //Get probtype, ub, and shearrate; NS_bcfill.H may expect them.
     ParmParse pp("prob");
     pp.query("probtype",probtype);
+    pp.query("ub",ub);
+    pp.query("shearrate",shearrate);
 }
 
 //
@@ -547,145 +582,43 @@ NavierStokes::advance (Real time,
 {
     BL_PROFILE("NavierStokes::advance()");
 
-    if (verbose)
-    {
+    //if (verbose)
+    //{
         Print() << "Advancing grids at level " << level
                 << " : starting time = "       << time
                 << " with dt = "               << dt
                 << std::endl;
-    }
+    //}
 
     advance_setup(time,dt,iteration,ncycle);
 
-    //
-    // Calculate the time N viscosity and diffusivity
-    //   Note: The viscosity and diffusivity at time N+1 are
-    //         initialized here to the time N values just to
-    //         have something reasonable.
-    //
-    const Real prev_time = state[State_Type].prevTime();
-    const int num_diff = NUM_STATE-AMREX_SPACEDIM-1;
-
-    calcViscosity(prev_time,dt,iteration,ncycle);
-    calcDiffusivity(prev_time);
-    MultiFab::Copy(*viscnp1_cc, *viscn_cc, 0, 0, 1, viscn_cc->nGrow());
-    MultiFab::Copy(*diffnp1_cc, *diffn_cc, 0, 0, num_diff, diffn_cc->nGrow());
-
-    // Add this AFTER advance_setup()
-    if (verbose)
-    {
-        Print() << "NavierStokes::advance(): before velocity update:"
-                << std::endl;
-        printMaxValues(false);
+    amrex::Real dt_test = 0.0;
+    if (isolver==0) {
+        dt_test = advance_semistaggered_twophase_ls(time,dt,iteration,ncycle);
     }
-    //
-    // Compute traced states for normal comp of velocity at half time level.
-    // Returns best estimate for new timestep.
-    //
-    Real dt_test = predict_velocity(dt);
-    //
-    // Do MAC projection and update edge velocities.
-    //
-    if (do_mac_proj)
-    {
-        // To enforce div constraint on coarse-fine boundary, need 1 ghost cell
-        int ng_rhs = 1;
-
-        MultiFab mac_rhs(grids,dmap,1,ng_rhs,MFInfo(),Factory());
-        create_mac_rhs(mac_rhs,ng_rhs,time,dt);
-        MultiFab& S_old = get_old_data(State_Type);
-        mac_project(time,dt,S_old,&mac_rhs,umac_n_grow,true);
-
-    } else {
-        // Use interpolation from coarse to fill grow cells.
-        create_umac_grown(umac_n_grow, nullptr);
-    }
-    //
-    // Advect velocities.
-    //
-    if (do_mom_diff == 0)
-        velocity_advection(dt);
-    //
-    // Advect scalars.
-    //
-    const int first_scalar = Density;
-    const int last_scalar  = first_scalar + NUM_SCALARS - 1;
-    scalar_advection(dt,first_scalar,last_scalar);
-    //
-    // Update Rho.
-    //
-    scalar_update(dt,first_scalar,first_scalar);
-    make_rho_curr_time();
-    //
-    // Advect momenta after rho^(n+1) has been created.
-    //
-    if (do_mom_diff == 1)
-        velocity_advection(dt);
-    //
-    // Add the advective and other terms to get scalars at t^{n+1}.
-    //
-    scalar_update(dt,first_scalar+1,last_scalar);
-    //
-    // S appears in rhs of the velocity update, so we better do it now.
-    //
-    if (have_divu)
-    {
-        calc_divu(time+dt,dt,get_new_data(Divu_Type));
-        if (have_dsdt)
-        {
-            calc_dsdt(time,dt,get_new_data(Dsdt_Type));
-            if (initial_step)
-                MultiFab::Copy(get_old_data(Dsdt_Type),
-                               get_new_data(Dsdt_Type),0,0,1,0);
-        }
-    }
-    //
-    // Add the advective and other terms to get velocity at t^{n+1}.
-    //
-    velocity_update(dt);
-
-    //
-    // Increment rho average.
-    //
-    if (!initial_step)
-    {
-        if (level > 0)
-            incrRhoAvg((iteration==ncycle ? 0.5 : 1.0) / Real(ncycle));
-
-        if (verbose)
-        {
-            Print() << "NavierStokes::advance(): before nodal projection " << std::endl;
-            printMaxVel();
-        // New P, Gp get updated in the projector (below). Check old here.
-        printMaxGp(false);
-        }
-
-        //
-        // Do a level project to update the pressure and velocity fields.
-        //
-        if (projector)
-            level_projector(dt,time,iteration);
-        if (level > 0 && iteration == 1)
-           p_avg.setVal(0);
-    }
-
+    else if(isolver==1 && do_diffused_ib==1) {
 #ifdef AMREX_PARTICLES
-    if (theNSPC() != 0 and NavierStokes::initial_step != true)
-    {
-        theNSPC()->AdvectWithUmac(u_mac, level, dt);
-    }
+        dt_test = advance_semistaggered_fsi_diffusedib(time,dt,iteration,ncycle);
 #endif
+    }
+    else if (isolver==2) { // To be implemented
+        dt_test = advance_semistaggered_twophase_phasefield(time,dt,iteration,ncycle);
+    }
+    else{
+        amrex::Abort("Wrong isolver");
+    }    
+
     //
     // Clean up after the predicted value at t^n+1.
     // Estimate new timestep from umac cfl.
     //
     advance_cleanup(iteration,ncycle);
 
-    if (verbose)
-    {
+    //if (verbose)
+    //{
         Print() << "NavierStokes::advance(): exiting." << std::endl;
         printMaxValues();
-    }
+    //}
 
     return dt_test;  // Return estimate of best new timestep.
 }
@@ -701,114 +634,118 @@ NavierStokes::scalar_advection (Real dt,
 {
     BL_PROFILE("NavierStokes::scalar_advection()");
 
-    if (verbose) Print() << "... advect scalars\n";
-    //
-    // Get simulation parameters.
-    //
-    const int   num_scalars    = lscalar - fscalar + 1;
-    const Real  prev_time      = state[State_Type].prevTime();
+    if (advect_and_update_scalar) {
 
-    // divu
-    std::unique_ptr<MultiFab> divu_fp(getDivCond(nghost_force(),prev_time));
+        if (verbose) Print() << "... advect scalars\n";
+        //
+        // Get simulation parameters.
+        //
+        const int   num_scalars    = lscalar - fscalar + 1;
+        const Real  prev_time      = state[State_Type].prevTime();
 
-    //
-    // Start FillPatchIterator block
-    //
-    MultiFab forcing_term( grids, dmap, num_scalars, nghost_force(),MFInfo(),Factory());
+        // divu
+        std::unique_ptr<MultiFab> divu_fp(getDivCond(nghost_force(),prev_time));
 
-    FillPatchIterator S_fpi(*this,forcing_term,nghost_state(),prev_time,State_Type,fscalar,num_scalars);
-    MultiFab& Smf=S_fpi.get_mf();
+        //
+        // Start FillPatchIterator block
+        //
+        MultiFab forcing_term( grids, dmap, num_scalars, nghost_force(),MFInfo(),Factory());
 
-    // Floor small values of states to be extrapolated
-    floor(Smf);
+        FillPatchIterator S_fpi(*this,forcing_term,nghost_state(),prev_time,State_Type,fscalar,num_scalars);
+        MultiFab& Smf=S_fpi.get_mf();
 
-    if ( advection_scheme == "Godunov_PLM" || advection_scheme == "Godunov_PPM" || advection_scheme == "BDS")
-    {
-        MultiFab visc_terms(grids,dmap,num_scalars,nghost_force(),MFInfo(),Factory());
-        FillPatchIterator U_fpi(*this,visc_terms,nghost_state(),prev_time,State_Type,Xvel,AMREX_SPACEDIM);
-        const MultiFab& Umf=U_fpi.get_mf();
+        // Floor small values of states to be extrapolated
+        floor(Smf);
 
+        if ( advection_scheme == "Godunov_PLM" || advection_scheme == "Godunov_PPM" || advection_scheme == "BDS")
         {
-            std::unique_ptr<MultiFab> dsdt(getDsdt(nghost_force(),prev_time));
-            MultiFab::Saxpy(*divu_fp, 0.5*dt, *dsdt, 0, 0, 1, nghost_force());
-        }
+            MultiFab visc_terms(grids,dmap,num_scalars,nghost_force(),MFInfo(),Factory());
+            FillPatchIterator U_fpi(*this,visc_terms,nghost_state(),prev_time,State_Type,Xvel,AMREX_SPACEDIM);
+            const MultiFab& Umf=U_fpi.get_mf();
 
-        // Compute viscous term
-        if (be_cn_theta != 1.0)
-            getViscTerms(visc_terms,fscalar,num_scalars,prev_time);
-        else
-            visc_terms.setVal(0.0,1);
-
-#ifdef _OPENMP
-#pragma omp parallel if (Gpu::notInLaunchRegion())
-#endif
-        for (MFIter S_mfi(Smf,TilingIfNotGPU()); S_mfi.isValid(); ++S_mfi)
-        {
-
-            // Box for forcing terms
-            auto const force_bx = S_mfi.growntilebox(nghost_force());
-
-            if (getForceVerbose)
             {
-                Print() << "---" << '\n' << "C - scalar advection:" << '\n'
-                        << " Calling getForce..." << '\n';
+                std::unique_ptr<MultiFab> dsdt(getDsdt(nghost_force(),prev_time));
+                MultiFab::Saxpy(*divu_fp, 0.5*dt, *dsdt, 0, 0, 1, nghost_force());
             }
 
-            getForce(forcing_term[S_mfi],force_bx,fscalar,num_scalars,
-                     prev_time,Umf[S_mfi],Smf[S_mfi],0,S_mfi);
+            // Compute viscous term
+            if (be_cn_theta != 1.0)
+                getViscTerms(visc_terms,fscalar,num_scalars,prev_time);
+            else
+                visc_terms.setVal(0.0,1);
 
-            for (int n=0; n<num_scalars; ++n)
+    #ifdef _OPENMP
+    #pragma omp parallel if (Gpu::notInLaunchRegion())
+    #endif
+            for (MFIter S_mfi(Smf,TilingIfNotGPU()); S_mfi.isValid(); ++S_mfi)
             {
-                auto const& tf    = forcing_term.array(S_mfi,n);
-                auto const& visc  = visc_terms.const_array(S_mfi,n);
-                auto const& rho = Smf.const_array(S_mfi); //Previous time, nghost_state() grow cells filled. It's always true that nghost_state > nghost_force.
 
-        if ( do_temp && n+fscalar==Temp )
-        {
-          //
-          // Solving
-          //   dT/dt + U dot del T = ( del dot lambda grad T + H_T ) / (rho c_p)
-          // with tforces = H_T/c_p (since it's always density-weighted), and
-          // visc = del dot mu grad T, where mu = lambda/c_p
-          //
-          amrex::ParallelFor(force_bx, [tf, visc, rho]
-                  AMREX_GPU_DEVICE (int i, int j, int k) noexcept
-                  { tf(i,j,k) = ( tf(i,j,k) + visc(i,j,k) ) / rho(i,j,k); });
-        }
-        else
-        {
-          if (advectionType[fscalar+n] == Conservative)
-          {
-            //
-            // For tracers, Solving
-            //   dS/dt + del dot (U S) = del dot beta grad (S/rho) + rho H_q
-            // where S = rho q, q is a concentration
-            // tforces = rho H_q (since it's always density-weighted)
-            // visc = del dot beta grad (S/rho)
-            //
-                    amrex::ParallelFor(force_bx, [tf, visc]
-                    AMREX_GPU_DEVICE (int i, int j, int k ) noexcept
-                    { tf(i,j,k) += visc(i,j,k); });
-          }
-          else
-          {
+                // Box for forcing terms
+                auto const force_bx = S_mfi.growntilebox(nghost_force());
+
+                if (getForceVerbose)
+                {
+                    Print() << "---" << '\n' << "C - scalar advection:" << '\n'
+                            << " Calling getForce..." << '\n';
+                }
+
+                getForce(forcing_term[S_mfi],force_bx,fscalar,num_scalars,
+                        prev_time,Umf[S_mfi],Smf[S_mfi],0,S_mfi);
+
+                for (int n=0; n<num_scalars; ++n)
+                {
+                    auto const& tf    = forcing_term.array(S_mfi,n);
+                    auto const& visc  = visc_terms.const_array(S_mfi,n);
+                    auto const& rho = Smf.const_array(S_mfi); //Previous time, nghost_state() grow cells filled. It's always true that nghost_state > nghost_force.
+
+            if ( do_temp && n+fscalar==Temp )
+            {
             //
             // Solving
-            //   dS/dt + U dot del S = del dot beta grad S + H_q
-            // where S = q, q is a concentration
-            // tforces = rho H_q (since it's always density-weighted)
-            // visc = del dot beta grad S
+            //   dT/dt + U dot del T = ( del dot lambda grad T + H_T ) / (rho c_p)
+            // with tforces = H_T/c_p (since it's always density-weighted), and
+            // visc = del dot mu grad T, where mu = lambda/c_p
             //
-                    amrex::ParallelFor(force_bx, [tf, visc, rho]
+            amrex::ParallelFor(force_bx, [tf, visc, rho]
                     AMREX_GPU_DEVICE (int i, int j, int k) noexcept
-                    { tf(i,j,k) = tf(i,j,k) / rho(i,j,k) + visc(i,j,k); });
-          }
-        }
+                    { tf(i,j,k) = ( tf(i,j,k) + visc(i,j,k) ) / rho(i,j,k); });
+            }
+            else
+            {
+            if (advectionType[fscalar+n] == Conservative)
+            {
+                //
+                // For tracers, Solving
+                //   dS/dt + del dot (U S) = del dot beta grad (S/rho) + rho H_q
+                // where S = rho q, q is a concentration
+                // tforces = rho H_q (since it's always density-weighted)
+                // visc = del dot beta grad (S/rho)
+                //
+                        amrex::ParallelFor(force_bx, [tf, visc]
+                        AMREX_GPU_DEVICE (int i, int j, int k ) noexcept
+                        { tf(i,j,k) += visc(i,j,k); });
+            }
+            else
+            {
+                //
+                // Solving
+                //   dS/dt + U dot del S = del dot beta grad S + H_q
+                // where S = q, q is a concentration
+                // tforces = rho H_q (since it's always density-weighted)
+                // visc = del dot beta grad S
+                //
+                        amrex::ParallelFor(force_bx, [tf, visc, rho]
+                        AMREX_GPU_DEVICE (int i, int j, int k) noexcept
+                        { tf(i,j,k) = tf(i,j,k) / rho(i,j,k) + visc(i,j,k); });
+            }
+            }
+                }
             }
         }
-    }
 
-    ComputeAofs(fscalar, num_scalars, Smf, 0, forcing_term, *divu_fp, false, dt);
+        ComputeAofs(fscalar, num_scalars, Smf, 0, forcing_term, *divu_fp, false, dt);
+
+    }
 }
 
 //
@@ -829,28 +766,31 @@ NavierStokes::scalar_update (Real dt,
 {
     BL_PROFILE("NavierStokes::scalar_update()");
 
-    if (verbose) Print() << "... update scalars\n";
+    if (advect_and_update_scalar) {
 
-    scalar_advection_update(dt, first_scalar, last_scalar);
+        if (verbose) Print() << "... update scalars\n";
 
-    bool do_any_diffuse = false;
-    for (int sigma = first_scalar; sigma <= last_scalar; sigma++)
-        if (is_diffusive[sigma]) do_any_diffuse = true;
+        scalar_advection_update(dt, first_scalar, last_scalar);
 
-    if (do_any_diffuse)
-      scalar_diffusion_update(dt, first_scalar, last_scalar);
+        bool do_any_diffuse = false;
+        for (int sigma = first_scalar; sigma <= last_scalar; sigma++)
+            if (is_diffusive[sigma]) do_any_diffuse = true;
 
-    MultiFab&  S_new     = get_new_data(State_Type);
-//#ifdef AMREX_USE_EB
-//  set_body_state(S_new);
-//#endif
-    for (int sigma = first_scalar; sigma <= last_scalar; sigma++)
-    {
-       if (S_new.contains_nan(sigma,1,0))
-       {
-         Print() << "New scalar " << sigma << " contains Nans" << '\n';
-         exit(0);
-       }
+        if (do_any_diffuse)
+        scalar_diffusion_update(dt, first_scalar, last_scalar);
+
+        MultiFab&  S_new     = get_new_data(State_Type);
+    //#ifdef AMREX_USE_EB
+    //  set_body_state(S_new);
+    //#endif
+        for (int sigma = first_scalar; sigma <= last_scalar; sigma++)
+        {
+        if (S_new.contains_nan(sigma,1,0))
+        {
+            Print() << "New scalar " << sigma << " contains Nans" << '\n';
+            exit(0);
+        }
+        }
     }
 }
 
@@ -1076,6 +1016,23 @@ NavierStokes::sum_integrated_quantities ()
     Print().SetPrecision(12) << "TIME= " << time << " MASS= " << mass << '\n';
     Print().SetPrecision(12) << "TIME= " << time << " TRAC= " << trac << '\n';
     Print().SetPrecision(12) << "TIME= " << time << " KINETIC ENERGY= " << energy << '\n';
+
+    //
+    // ls related
+    //
+    if (ParallelDescriptor::IOProcessor()) {
+        std::ofstream ofs("mass.txt", std::ios::app); // append mode
+        // std::ofstream ofs("mass.txt", std::ios::out); // override mode
+        if (ofs.is_open())
+        {
+            amrex::Print(ofs).SetPrecision(12) << time << " " << mass << " " << trac << " " << energy << '\n';
+            ofs.close();
+        }
+        else
+        {
+            amrex::Abort("Failed to open mass.txt for writing");
+        }        
+    }
 }
 
 void
@@ -1202,6 +1159,12 @@ NavierStokes::writePlotFilePost (const std::string& dir,
     if (level == 0 && theNSPC() != 0 && particles_in_plotfile)
     {
       theNSPC()->Checkpoint(dir,"Particles");
+    }
+#endif
+
+#ifdef AMREX_PARTICLES
+    if(level == parent->finestLevel()){
+        Particles::get_particles()->mContainer->Checkpoint(dir, "particles");
     }
 #endif
 
@@ -2184,4 +2147,818 @@ NavierStokes::getDiffusivity (MultiFab* diffusivity[AMREX_SPACEDIM],
             diffusivity[dir]->setVal(visc_coef[state_comp+n], dst_comp+n, 1, diffusivity[dir]->nGrow());
         }
     }
+}
+
+
+//
+// ls related
+//
+Real
+NavierStokes::advance_semistaggered_twophase_ls (Real time,
+                       Real dt,
+                       int  iteration,
+                       int  ncycle)
+{
+    BL_PROFILE("NavierStokes::advance_semistaggered_twophase_ls()");
+
+    //
+    // Calculate the time N viscosity and diffusivity
+    //   Note: The viscosity and diffusivity at time N+1 are
+    //         initialized here to the time N values just to
+    //         have something reasonable.
+    //
+    const Real prev_time = state[State_Type].prevTime();
+    const int num_diff = NUM_STATE-AMREX_SPACEDIM-1;
+
+    calcViscosity(prev_time,dt,iteration,ncycle);
+    calcDiffusivity(prev_time);
+    MultiFab::Copy(*viscnp1_cc, *viscn_cc, 0, 0, 1, viscn_cc->nGrow());
+    MultiFab::Copy(*diffnp1_cc, *diffn_cc, 0, 0, num_diff, diffn_cc->nGrow());
+
+    // Add this AFTER advance_setup()
+    if (verbose)
+    {
+        Print() << "NavierStokes::advance_semistaggered_twophase_ls(): before velocity update:"
+                << std::endl;
+        printMaxValues(false);
+    }
+    //
+    // Compute traced states for normal comp of velocity at half time level.
+    // Returns best estimate for new timestep.
+    //
+    Real dt_test = predict_velocity(dt);
+    //
+    // Do MAC projection and update edge velocities.
+    //
+    if (do_mac_proj)
+    {
+        // To enforce div constraint on coarse-fine boundary, need 1 ghost cell
+        int ng_rhs = 1;
+
+        MultiFab mac_rhs(grids,dmap,1,ng_rhs,MFInfo(),Factory());
+        create_mac_rhs(mac_rhs,ng_rhs,time,dt);
+        MultiFab& S_old = get_old_data(State_Type);
+        mac_project(time,dt,S_old,&mac_rhs,umac_n_grow,true);
+
+    } else {
+        // Use interpolation from coarse to fill grow cells.
+        create_umac_grown(umac_n_grow, nullptr);
+    }
+    //
+    // Advect velocities.
+    //
+    if (do_mom_diff == 0)
+        velocity_advection(dt);
+    //
+    // Advect scalars.
+    //
+    const int first_scalar = Density;
+    const int last_scalar  = first_scalar + NUM_SCALARS - 1;
+    scalar_advection(dt,first_scalar,last_scalar);
+    //
+    // ls related
+    // note: in the above scalar_advection function, we still advect rho.
+    // 
+    if (do_phi) {
+        amrex::Print() << "After scalar_advection " << std::endl;
+        // const Real  prev_time = state[State_Type].prevTime();
+        // MultiFab& S_old = get_old_data(State_Type);
+        // int nScomp = S_old.nComp();
+        // fill_allgts(S_old,State_Type,phicomp,1,prev_time);
+        // MultiFab::Copy(phi_ptime, S_old, phicomp, 0, 1, S_old.nGrow());
+
+        amrex::Print()<< "scalar_update phi " << std::endl;
+        amrex::Print()<< "phicomp " << phicomp << std::endl;
+        scalar_update(dt,phicomp,phicomp);
+
+        // amrex::Print()<< std::endl;
+        // amrex::Print()<< "6 " << std::endl;
+
+        const Real cur_time = state[State_Type].curTime();
+        MultiFab& S_new = get_new_data(State_Type);
+        fill_allgts(S_new,State_Type,phicomp,1,cur_time);
+        MultiFab::Copy(phi_ctime, S_new, phicomp, 0, 1, S_new.nGrow());
+
+        // amrex::Print()<< "7 " << std::endl;
+
+        // reinitialization
+        if (do_reinit == 1 && (parent->levelSteps(0)% lev0step_of_reinit == 0) ){
+            amrex::Print() << "parent->levelSteps(0) " << parent->levelSteps(0) << std::endl;
+            reinit();
+        }
+
+        if (do_mom_diff == 0) {
+            // update the rho_ctime and density in S_new
+            phi_to_heavi(geom, epsilon, phi_ctime, heaviside); 
+            heavi_to_rhoormu(heaviside, rho_w, rho_a, rho_ctime);
+            MultiFab::Copy(S_new, rho_ctime, 0, Density, 1, rho_ctime.nGrow());
+            // update phi_half
+            MultiFab& phi_half_temp = get_phi_half_time();
+            // update rho_half
+            phi_to_heavi(geom, epsilon, phi_half_temp, heaviside);
+            heavi_to_rhoormu(heaviside, rho_w, rho_a, rho_half);
+
+            // update mu_half
+            MultiFab outmf_mu_half(grids, dmap, 1, 1, MFInfo(), Factory());
+            heavi_to_rhoormu(heaviside, mu_w, mu_a, outmf_mu_half);
+            MultiFab::Copy(*viscn_cc,   outmf_mu_half, 0, 0, 1, 1);
+            MultiFab::Copy(*viscnp1_cc, outmf_mu_half, 0, 0, 1, 1);
+        }
+        else {
+            //
+            // Update Rho.
+            //
+            scalar_update(dt,first_scalar,first_scalar);
+            make_rho_curr_time();
+
+            // update phi_half
+            MultiFab& phi_half_temp = get_phi_half_time();
+            // update rho_half
+            phi_to_heavi(geom, epsilon, phi_half_temp, heaviside);
+
+            // update mu_half
+            MultiFab outmf_mu_half(grids, dmap, 1, 1, MFInfo(), Factory());
+            heavi_to_rhoormu(heaviside, mu_w, mu_a, outmf_mu_half);
+            MultiFab::Copy(*viscn_cc,   outmf_mu_half, 0, 0, 1, 1);
+            MultiFab::Copy(*viscnp1_cc, outmf_mu_half, 0, 0, 1, 1);
+        }
+    }
+    else {
+        //
+        // Update Rho.
+        //
+        scalar_update(dt,first_scalar,first_scalar);
+        make_rho_curr_time();
+    }
+
+    if (prescribed_vel)
+    {
+        BL_ASSERT(do_phi==1);
+        dt_test = dt;
+
+        //
+        // Create struct to hold initial conditions parameters
+        //
+        InitialConditions IC;
+        // Integer indices of the lower left and upper right corners of the
+        // valid region of the entire domain.
+        Box const&  domain = geom.Domain();
+        auto const&     dx = geom.CellSizeArray();
+        // Physical coordinates of the lower left corner of the domain
+        auto const& problo = geom.ProbLoArray();
+        // Physical coordinates of the upper right corner of the domain
+        auto const& probhi = geom.ProbHiArray();
+
+        // Step 1: do the reinitialization
+        // which has been done before
+
+        // Step 2: set vel of internal cells in S_new and fill the gts
+        MultiFab&  S_new    = get_new_data(State_Type);
+
+        int ncomp = S_new.nComp();
+#ifdef AMREX_USE_OMP
+#pragma omp parallel if (Gpu::notInLaunchRegion())
+#endif
+        for (MFIter mfi(S_new,TilingIfNotGPU()); mfi.isValid(); ++mfi)
+        {
+            const Box& vbx = mfi.tilebox();
+            set_rsv_vel(vbx, S_new.array(mfi, Xvel), domain, dx, problo, probhi, IC, time);
+        }
+
+        // Step 3: copy vel in S_new back to S_old
+        MultiFab&  S_old    = get_old_data(State_Type);
+        MultiFab::Copy(S_old, S_new, 0, 0, ncomp, S_new.nGrow());
+
+    }
+    else {
+        //
+        // Advect momenta after rho^(n+1) has been created.
+        //
+        if (do_mom_diff == 1)
+            velocity_advection(dt);
+        //
+        // ls related
+        // 
+        if (do_phi) {
+            //
+            // Add the advective and other terms to get scalars at t^{n+1} except 
+            // the level set function.
+            scalar_update(dt,first_scalar+1,phicomp-1);
+        }
+        else {
+            //
+            // Add the advective and other terms to get scalars at t^{n+1}.
+            //
+            scalar_update(dt,first_scalar+1,last_scalar);
+        }
+        //
+        // S appears in rhs of the velocity update, so we better do it now.
+        //
+        if (have_divu)
+        {
+            calc_divu(time+dt,dt,get_new_data(Divu_Type));
+            if (have_dsdt)
+            {
+                calc_dsdt(time,dt,get_new_data(Dsdt_Type));
+                if (initial_step)
+                    MultiFab::Copy(get_old_data(Dsdt_Type),
+                                get_new_data(Dsdt_Type),0,0,1,0);
+            }
+        }
+        //
+        // Add the advective and other terms to get velocity at t^{n+1}.
+        //
+        velocity_update(dt);
+
+        //
+        // Increment rho average.
+        //
+        if (!initial_step)
+        {
+            if (level > 0)
+                incrRhoAvg((iteration==ncycle ? 0.5 : 1.0) / Real(ncycle));
+
+            if (verbose)
+            {
+                Print() << "NavierStokes::advance_semistaggered_twophase_ls(): before nodal projection " << std::endl;
+                printMaxVel();
+            // New P, Gp get updated in the projector (below). Check old here.
+            printMaxGp(false);
+            }
+
+            //
+            // Do a level project to update the pressure and velocity fields.
+            //
+            if (projector) {
+                const int finest_level = parent->finestLevel();
+                int solve_coarse_level = iteration % 2; 
+                if (verbose)
+                {
+                    // Print() << "solve_coarse_level " << solve_coarse_level << std::endl;
+                    // Print() << "skip_level_projector " << skip_level_projector << std::endl;
+                    // Print() << "level " << level << std::endl;
+                    // Print() << "finest_level " << finest_level << std::endl;
+                }
+                if (skip_level_projector==0 || level==finest_level || solve_coarse_level) {
+                    level_projector(dt,time,iteration);
+                }
+                else {
+                    MultiFab& P_old = get_old_data(Press_Type);
+                    MultiFab& P_new = get_new_data(Press_Type);
+                    // Set P_new to be P_old
+                    MultiFab::Copy(P_new,P_old,0,0,1,P_old.nGrow());
+                }
+            }
+            if (level > 0 && iteration == 1)
+            p_avg.setVal(0);
+        }
+
+#ifdef AMREX_PARTICLES
+        if (theNSPC() != 0 and NavierStokes::initial_step != true)
+        {
+            theNSPC()->AdvectWithUmac(u_mac, level, dt);
+        }
+#endif
+    } // end prescribed_vel
+
+    return dt_test;  // Return estimate of best new timestep.
+}
+
+#ifdef AMREX_PARTICLES
+Real
+NavierStokes::advance_semistaggered_fsi_diffusedib (Real time,
+                       Real dt,
+                       int  iteration,
+                       int  ncycle)
+{
+    BL_PROFILE("NavierStokes::advance_semistaggered_fsi_diffusedib()");
+
+    //
+    // Calculate the time N viscosity and diffusivity
+    //   Note: The viscosity and diffusivity at time N+1 are
+    //         initialized here to the time N values just to
+    //         have something reasonable.
+    //
+    const Real prev_time = state[State_Type].prevTime();
+    const int num_diff = NUM_STATE-AMREX_SPACEDIM-1;
+
+    calcViscosity(prev_time,dt,iteration,ncycle);
+    calcDiffusivity(prev_time);
+    MultiFab::Copy(*viscnp1_cc, *viscn_cc, 0, 0, 1, viscn_cc->nGrow());
+    MultiFab::Copy(*diffnp1_cc, *diffn_cc, 0, 0, num_diff, diffn_cc->nGrow());
+
+    // Add this AFTER advance_setup()
+    if (verbose)
+    {
+        Print() << "NavierStokes::advance_semistaggered_fsi_diffusedib(): before velocity update:"
+                << std::endl;
+        printMaxValues(false);
+    }
+    //
+    // Compute traced states for normal comp of velocity at half time level.
+    // Returns best estimate for new timestep.
+    //
+    Real dt_test = predict_velocity(dt);
+    //
+    // Do MAC projection and update edge velocities.
+    //
+    if (do_mac_proj)
+    {
+        // To enforce div constraint on coarse-fine boundary, need 1 ghost cell
+        int ng_rhs = 1;
+
+        MultiFab mac_rhs(grids,dmap,1,ng_rhs,MFInfo(),Factory());
+        create_mac_rhs(mac_rhs,ng_rhs,time,dt);
+        MultiFab& S_old = get_old_data(State_Type);
+        mac_project(time,dt,S_old,&mac_rhs,umac_n_grow,true);
+
+    } else {
+        // Use interpolation from coarse to fill grow cells.
+        create_umac_grown(umac_n_grow, nullptr);
+    }
+    //
+    // Advect velocities.
+    //
+    if (do_mom_diff == 0)
+        velocity_advection(dt);
+
+    // Copy fluid density from old to new and set old and new tracer to 0.0
+    if (!advect_and_update_scalar)
+    {
+        MultiFab&  S_new    = get_new_data(State_Type);
+        MultiFab&  S_old    = get_old_data(State_Type);
+        S_old.setVal(fluid_rho, Density, 1, S_old.nGrow());
+        S_new.setVal(fluid_rho, Density, 1, S_new.nGrow());
+        S_old.setVal(0.0, Tracer, 1, S_old.nGrow());
+        S_new.setVal(0.0, Tracer, 1, S_new.nGrow());
+    }
+    //
+    // Advect scalars.
+    //
+    const int first_scalar = Density;
+    const int last_scalar  = first_scalar + NUM_SCALARS - 1;
+    scalar_advection(dt,first_scalar,last_scalar);
+    //
+    // ls related
+    // note: in the above scalar_advection function, we still advect rho.
+    // 
+    if (do_phi) {
+        amrex::Print() << "After scalar_advection " << std::endl;
+        // const Real  prev_time = state[State_Type].prevTime();
+        // MultiFab& S_old = get_old_data(State_Type);
+        // int nScomp = S_old.nComp();
+        // fill_allgts(S_old,State_Type,phicomp,1,prev_time);
+        // MultiFab::Copy(phi_ptime, S_old, phicomp, 0, 1, S_old.nGrow());
+
+        amrex::Print()<< "scalar_update phi " << std::endl;
+        amrex::Print()<< "phicomp " << phicomp << std::endl;
+        scalar_update(dt,phicomp,phicomp);
+
+        // amrex::Print()<< std::endl;
+        // amrex::Print()<< "6 " << std::endl;
+
+        const Real cur_time = state[State_Type].curTime();
+        MultiFab& S_new = get_new_data(State_Type);
+        fill_allgts(S_new,State_Type,phicomp,1,cur_time);
+        MultiFab::Copy(phi_ctime, S_new, phicomp, 0, 1, S_new.nGrow());
+
+        // amrex::Print()<< "7 " << std::endl;
+
+        // reinitialization
+        if (do_reinit == 1 && (parent->levelSteps(0)% lev0step_of_reinit == 0) ){
+            amrex::Print() << "parent->levelSteps(0) " << parent->levelSteps(0) << std::endl;
+            reinit();
+        }
+
+        if (do_mom_diff == 0) {
+            // update the rho_ctime and density in S_new
+            phi_to_heavi(geom, epsilon, phi_ctime, heaviside); 
+            heavi_to_rhoormu(heaviside, rho_w, rho_a, rho_ctime);
+            MultiFab::Copy(S_new, rho_ctime, 0, Density, 1, rho_ctime.nGrow());
+            // update phi_half
+            MultiFab& phi_half_temp = get_phi_half_time();
+            // update rho_half
+            phi_to_heavi(geom, epsilon, phi_half_temp, heaviside);
+            heavi_to_rhoormu(heaviside, rho_w, rho_a, rho_half);
+
+            // update mu_half
+            MultiFab outmf_mu_half(grids, dmap, 1, 1, MFInfo(), Factory());
+            heavi_to_rhoormu(heaviside, mu_w, mu_a, outmf_mu_half);
+            MultiFab::Copy(*viscn_cc,   outmf_mu_half, 0, 0, 1, 1);
+            MultiFab::Copy(*viscnp1_cc, outmf_mu_half, 0, 0, 1, 1);
+        }
+        else {
+            //
+            // Update Rho.
+            //
+            scalar_update(dt,first_scalar,first_scalar);
+            make_rho_curr_time();
+
+            // update phi_half
+            MultiFab& phi_half_temp = get_phi_half_time();
+            // update rho_half
+            phi_to_heavi(geom, epsilon, phi_half_temp, heaviside);
+
+            // update mu_half
+            MultiFab outmf_mu_half(grids, dmap, 1, 1, MFInfo(), Factory());
+            heavi_to_rhoormu(heaviside, mu_w, mu_a, outmf_mu_half);
+            MultiFab::Copy(*viscn_cc,   outmf_mu_half, 0, 0, 1, 1);
+            MultiFab::Copy(*viscnp1_cc, outmf_mu_half, 0, 0, 1, 1);
+        }
+    }
+    else {
+        //
+        // Update Rho.
+        //
+        scalar_update(dt,first_scalar,first_scalar);
+        make_rho_curr_time();
+    }
+
+    if (prescribed_vel)
+    {
+        dt_test = dt;
+
+        amrex::Print() << "Begin the PVF test " << std::endl;
+
+        // Step 1: initialize the nodal level set function
+        // Create struct to hold initial conditions parameters
+        //
+        InitialConditions IC;
+        ParmParse pp("prob");
+        pp.query("blob_radius",IC.blob_radius);
+        Vector<Real> blob_center(AMREX_SPACEDIM, 0.);
+        pp.queryarr("blob_center",blob_center,0,AMREX_SPACEDIM);
+        AMREX_D_TERM(IC.blob_x = blob_center[0];,
+            IC.blob_y = blob_center[1];,
+            IC.blob_z = blob_center[2];);
+        // amrex::Print() << "check " << IC.blob_radius << " "
+        //                            << IC.blob_x << " "
+        //                            << IC.blob_y << " "
+        //                            << IC.blob_z << std::endl;
+
+        // Integer indices of the lower left and upper right corners of the
+        // valid region of the entire domain.
+        Box const&  domain = geom.Domain();
+        auto const&     dx = geom.CellSizeArray();
+        // Physical coordinates of the lower left corner of the domain
+        auto const& problo = geom.ProbLoArray();
+        // Physical coordinates of the upper right corner of the domain
+        auto const& probhi = geom.ProbHiArray();
+
+#ifdef AMREX_USE_OMP
+#pragma omp parallel if (Gpu::notInLaunchRegion())
+#endif
+        for (MFIter mfi(phi_nodal,TilingIfNotGPU()); mfi.isValid(); ++mfi)
+        {
+            const Box& bx = mfi.tilebox();
+            set_initial_phi_nodal(bx, phi_nodal.array(mfi), domain, dx, problo, probhi, IC, time);
+        }
+
+        // Step 2: calculate pvf from the nodal level set function (only for internal cells)
+        pvf.setVal(0.0);
+        nodal_phi_to_pvf(pvf, phi_nodal);
+
+        // Step 3 (optional): copy for visualization
+        MultiFab&  S_new    = get_new_data(State_Type);
+        MultiFab::Copy(S_new, pvf, 0, Tracer, 1, pvf.nGrow());
+
+        // Step 4: calculate total volume
+        Real vol = dx[0];
+        for (int d=1; d<AMREX_SPACEDIM; ++d) {
+            vol *= dx[d];
+        }
+        pvf.mult(vol);
+        amrex::Print() << "Volume with numerical integration " << pvf.sum() << std::endl;
+
+        const Real cur_time = state[State_Type].curTime();
+        fill_allgts(S_new,State_Type,0,S_new.nComp(),cur_time);
+    }
+    else {
+        //
+        // Advect momenta after rho^(n+1) has been created.
+        //
+        if (do_mom_diff == 1)
+            velocity_advection(dt);
+        //
+        // ls related
+        // 
+        if (do_phi) {
+            //
+            // Add the advective and other terms to get scalars at t^{n+1} except 
+            // the level set function.
+            scalar_update(dt,first_scalar+1,phicomp-1);
+        }
+        else {
+            //
+            // Add the advective and other terms to get scalars at t^{n+1}.
+            //
+            scalar_update(dt,first_scalar+1,last_scalar);
+        }
+        //
+        // S appears in rhs of the velocity update, so we better do it now.
+        //
+        if (have_divu)
+        {
+            calc_divu(time+dt,dt,get_new_data(Divu_Type));
+            if (have_dsdt)
+            {
+                calc_dsdt(time,dt,get_new_data(Dsdt_Type));
+                if (initial_step)
+                    MultiFab::Copy(get_old_data(Dsdt_Type),
+                                get_new_data(Dsdt_Type),0,0,1,0);
+            }
+        }
+        //
+        // Add the advective and other terms to get velocity at t^{n+1}.
+        //
+        velocity_update(dt);
+        
+#ifdef AMREX_PARTICLES
+        if (level == Particles::ParticleFinestLevel())//parent->finestLevel())
+        {
+            MultiFab&  S_new    = get_new_data(State_Type);
+            // S_new.setVal(1.0, 0, 1, S_new.nGrow()); // u = 1
+            // S_new.setVal(2.0, 1, 1, S_new.nGrow()); // v = 2
+            // S_new.setVal(3.0, 2, 1, S_new.nGrow()); // w = 3
+            MultiFab EulerForce(S_new.boxArray(), S_new.DistributionMap(), 3, S_new.nGrow());            
+            Particles::get_particles()->InteractWithEuler(S_new, EulerForce, dt); // parent->levelSteps(0), time
+        }
+        //amrex::Abort("Stop here!");
+#endif
+        //
+        // Increment rho average.
+        //
+        if (!initial_step)
+        {
+            if (level > 0)
+                incrRhoAvg((iteration==ncycle ? 0.5 : 1.0) / Real(ncycle));
+
+            if (verbose)
+            {
+                Print() << "NavierStokes::advance_semistaggered_fsi_diffusedib(): before nodal projection " << std::endl;
+                printMaxVel();
+            // New P, Gp get updated in the projector (below). Check old here.
+            printMaxGp(false);
+            }
+
+            //
+            // Do a level project to update the pressure and velocity fields.
+            //
+            if (projector) {
+                const int finest_level = parent->finestLevel();
+                int solve_coarse_level = iteration % 2; 
+                if (verbose)
+                {
+                    Print() << "solve_coarse_level " << solve_coarse_level << std::endl;
+                    // Print() << "skip_level_projector " << skip_level_projector << std::endl;
+                    // Print() << "level " << level << std::endl;
+                    // Print() << "finest_level " << finest_level << std::endl;
+                }
+                if (skip_level_projector==0 || level==finest_level || solve_coarse_level) {
+                    level_projector(dt,time,iteration);
+                }
+                else {
+                    MultiFab& P_old = get_old_data(Press_Type);
+                    MultiFab& P_new = get_new_data(Press_Type);
+                    // Set P_new to be P_old
+                    MultiFab::Copy(P_new,P_old,0,0,1,P_old.nGrow());
+                }
+            }
+            if (level > 0 && iteration == 1)
+            p_avg.setVal(0);
+        }
+#ifdef AMREX_PARTICLES
+        if (level == Particles::ParticleFinestLevel())//parent->finestLevel())
+        {
+            MultiFab&  S_new    = get_new_data(State_Type);
+            MultiFab&  S_old    = get_old_data(State_Type);
+            Particles::get_particles()->UpdateParticles(parent->levelSteps(0), time, S_old, S_new, phi_nodal, pvf, dt);
+        }
+#endif
+
+#ifdef AMREX_PARTICLES
+        if (theNSPC() != 0 and NavierStokes::initial_step != true)
+        {
+            theNSPC()->AdvectWithUmac(u_mac, level, dt);
+        }
+#endif
+    } // end prescribed_vel
+
+    return dt_test;  // Return estimate of best new timestep.
+}
+#endif
+
+//
+// phase field method
+// 
+Real
+NavierStokes::advance_semistaggered_twophase_phasefield (Real time,
+                       Real dt,
+                       int  iteration,
+                       int  ncycle)
+{
+    BL_PROFILE("NavierStokes::advance_semistaggered_twophase_phasefield()");
+
+    //
+    // Calculate the time N viscosity and diffusivity
+    //   Note: The viscosity and diffusivity at time N+1 are
+    //         initialized here to the time N values just to
+    //         have something reasonable.
+    //
+    const Real prev_time = state[State_Type].prevTime();
+    const int num_diff = NUM_STATE-AMREX_SPACEDIM-1;
+
+    calcViscosity(prev_time,dt,iteration,ncycle);
+    calcDiffusivity(prev_time);
+    MultiFab::Copy(*viscnp1_cc, *viscn_cc, 0, 0, 1, viscn_cc->nGrow());
+    MultiFab::Copy(*diffnp1_cc, *diffn_cc, 0, 0, num_diff, diffn_cc->nGrow());
+
+    // Add this AFTER advance_setup()
+    if (verbose)
+    {
+        Print() << "NavierStokes::advance_semistaggered_twophase_phasefield(): before velocity update:"
+                << std::endl;
+        printMaxValues(false);
+    }
+    //
+    // Compute traced states for normal comp of velocity at half time level.
+    // Returns best estimate for new timestep.
+    //
+    Real dt_test = predict_velocity(dt);
+    //
+    // Do MAC projection and update edge velocities.
+    //
+    if (do_mac_proj)
+    {
+        // To enforce div constraint on coarse-fine boundary, need 1 ghost cell
+        int ng_rhs = 1;
+
+        MultiFab mac_rhs(grids,dmap,1,ng_rhs,MFInfo(),Factory());
+        create_mac_rhs(mac_rhs,ng_rhs,time,dt);
+        MultiFab& S_old = get_old_data(State_Type);
+        mac_project(time,dt,S_old,&mac_rhs,umac_n_grow,true);
+
+    } else {
+        // Use interpolation from coarse to fill grow cells.
+        create_umac_grown(umac_n_grow, nullptr);
+    }
+    //
+    // Advect velocities.
+    //
+    if (do_mom_diff == 0)
+        velocity_advection(dt);
+    //
+    // Advect scalars.
+    //
+    const int first_scalar = Density;
+    const int last_scalar  = first_scalar + NUM_SCALARS - 1;
+    scalar_advection(dt,first_scalar,last_scalar);
+    //
+    // pm related
+    // note: in the above scalar_advection function, we still advect rho.
+    // 
+    if (do_phi) {
+
+        // SOLVE AND UPDATE THE PHASE FIELD EQUATION HERE 
+        // BY REPLACING THE FOLLOWING LEVEL SET METHOD! - by ZDSJTU
+
+        amrex::Print() << "After scalar_advection " << std::endl;
+        // const Real  prev_time = state[State_Type].prevTime();
+        // MultiFab& S_old = get_old_data(State_Type);
+        // int nScomp = S_old.nComp();
+        // fill_allgts(S_old,State_Type,phicomp,1,prev_time);
+        // MultiFab::Copy(phi_ptime, S_old, phicomp, 0, 1, S_old.nGrow());
+
+        amrex::Print()<< "scalar_update phi " << std::endl;
+        amrex::Print()<< "phicomp " << phicomp << std::endl;
+        scalar_update(dt,phicomp,phicomp);
+
+        // amrex::Print()<< std::endl;
+        // amrex::Print()<< "6 " << std::endl;
+
+        const Real cur_time = state[State_Type].curTime();
+        MultiFab& S_new = get_new_data(State_Type);
+        fill_allgts(S_new,State_Type,phicomp,1,cur_time);
+        MultiFab::Copy(phi_ctime, S_new, phicomp, 0, 1, S_new.nGrow());
+
+        // amrex::Print()<< "7 " << std::endl;
+
+        // reinitialization
+        if (do_reinit == 1 && (parent->levelSteps(0)% lev0step_of_reinit == 0) ){
+            amrex::Print() << "parent->levelSteps(0) " << parent->levelSteps(0) << std::endl;
+            reinit();
+        }
+
+        if (do_mom_diff == 0) {
+            // update the rho_ctime and density in S_new
+            phi_to_heavi(geom, epsilon, phi_ctime, heaviside); 
+            heavi_to_rhoormu(heaviside, rho_w, rho_a, rho_ctime);
+            MultiFab::Copy(S_new, rho_ctime, 0, Density, 1, rho_ctime.nGrow());
+            // update phi_half
+            MultiFab& phi_half_temp = get_phi_half_time();
+            // update rho_half
+            phi_to_heavi(geom, epsilon, phi_half_temp, heaviside);
+            heavi_to_rhoormu(heaviside, rho_w, rho_a, rho_half);
+
+            // update mu_half
+            MultiFab outmf_mu_half(grids, dmap, 1, 1, MFInfo(), Factory());
+            heavi_to_rhoormu(heaviside, mu_w, mu_a, outmf_mu_half);
+            MultiFab::Copy(*viscn_cc,   outmf_mu_half, 0, 0, 1, 1);
+            MultiFab::Copy(*viscnp1_cc, outmf_mu_half, 0, 0, 1, 1);
+        }
+        else {
+            amrex::Abort("Only do_mom_diff == 0 is considered now.");
+        }
+    }
+    else {
+        //
+        // Update Rho.
+        //
+        amrex::Abort("Rho is not updated by themselves.");
+    }
+
+    //
+    // Advect momenta after rho^(n+1) has been created.
+    //
+    if (do_mom_diff == 1)
+        velocity_advection(dt);
+    //
+    // pm related
+    // 
+    if (do_phi) {
+        //
+        // Add the advective and other terms to get scalars at t^{n+1} except 
+        // the level set function.
+        scalar_update(dt,first_scalar+1,phicomp-1);
+    }
+    //
+    // S appears in rhs of the velocity update, so we better do it now.
+    //
+    if (have_divu)
+    {
+        calc_divu(time+dt,dt,get_new_data(Divu_Type));
+        if (have_dsdt)
+        {
+            calc_dsdt(time,dt,get_new_data(Dsdt_Type));
+            if (initial_step)
+                MultiFab::Copy(get_old_data(Dsdt_Type),
+                            get_new_data(Dsdt_Type),0,0,1,0);
+        }
+    }
+    //
+    // Add the advective and other terms to get velocity at t^{n+1}.
+    //
+    velocity_update(dt);
+
+    //
+    // Increment rho average.
+    //
+    if (!initial_step)
+    {
+        if (level > 0)
+            incrRhoAvg((iteration==ncycle ? 0.5 : 1.0) / Real(ncycle));
+
+        if (verbose)
+        {
+            Print() << "NavierStokes::advance_semistaggered_twophase_ls(): before nodal projection " << std::endl;
+            printMaxVel();
+            // New P, Gp get updated in the projector (below). Check old here.
+            printMaxGp(false);
+        }
+
+        //
+        // Do a level project to update the pressure and velocity fields.
+        //
+        if (projector) {
+            const int finest_level = parent->finestLevel();
+            int solve_coarse_level = iteration % 2; 
+            if (verbose)
+            {
+                // Print() << "solve_coarse_level " << solve_coarse_level << std::endl;
+                // Print() << "skip_level_projector " << skip_level_projector << std::endl;
+                // Print() << "level " << level << std::endl;
+                // Print() << "finest_level " << finest_level << std::endl;
+            }
+            if (skip_level_projector==0 || level==finest_level || solve_coarse_level) {
+                level_projector(dt,time,iteration);
+            }
+            else {
+                MultiFab& P_old = get_old_data(Press_Type);
+                MultiFab& P_new = get_new_data(Press_Type);
+                // Set P_new to be P_old
+                MultiFab::Copy(P_new,P_old,0,0,1,P_old.nGrow());
+            }
+        }
+        if (level > 0 && iteration == 1)
+        p_avg.setVal(0);
+    }
+
+#ifdef AMREX_PARTICLES
+    if (theNSPC() != 0 and NavierStokes::initial_step != true)
+    {
+        theNSPC()->AdvectWithUmac(u_mac, level, dt);
+    }
+#endif
+
+    return dt_test;  // Return estimate of best new timestep.
 }

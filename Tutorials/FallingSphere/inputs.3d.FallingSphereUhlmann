@@ -1,0 +1,216 @@
+
+#*******************************************************************************
+# INPUTS.3D.FallingSphere
+#*******************************************************************************
+
+#NOTE: You may set *either* max_step or stop_time, or you may set them both.
+
+# Maximum number of coarse grid timesteps to be taken, if stop_time is
+#  not reached first.
+max_step 		= 2000
+
+# Time at which calculation stops, if max_step is not reached first.
+stop_time 		= 10.0
+
+ns.fixed_dt     = 0.002
+ns.cfl = 0.3
+ns.init_iter = 0
+
+# Diffused IB input file
+particle.input = particle_inputs
+
+# Refinement criterion, use vorticity and presence of tracer
+amr.refinement_indicators = tracer box
+
+amr.max_level		= 1 # maximum number of levels of refinement
+
+amr.tracer.field_name = tracer
+amr.tracer.value_greater = 0.001
+
+amr.box.in_box_lo = 0.38 0.38 9.1
+amr.box.in_box_hi = 0.58 0.58 9.3
+amr.box.start_time = 0.0
+amr.box.end_time = 0.01
+
+amr.n_error_buf         = 4
+amr.blocking_factor     = 8
+
+#*******************************************************************************
+
+# Number of cells in each coordinate direction at the coarsest level
+# amr.n_cell 		= 16 8 8 
+# amr.n_cell 		= 288 128 128 
+amr.n_cell 		= 48 48 480
+amr.max_grid_size	= 16
+# amr.max_grid_size	= 32
+
+#*******************************************************************************
+
+# Interval (in number of level l timesteps) between regridding
+amr.regrid_int		= 1 # regrid_int 
+
+#*******************************************************************************
+
+# Refinement ratio as a function of level
+amr.ref_ratio		= 2 2 2 2
+
+#*******************************************************************************
+
+# Sets the "NavierStokes" code to be verbose
+ns.v                    = 1
+nodal_proj.verbose      = 1
+mac_proj.verbose        = 1
+
+# mac_proj.mac_tol        = 0.1
+# mac_proj.mac_abs_tol    = 0.1
+
+#*******************************************************************************
+
+# Sets the "amr" code to be verbose
+amr.v                   = 1
+
+#*******************************************************************************
+
+# Interval (in number of coarse timesteps) between checkpoint(restart) files
+
+amr.check_int		= 1000
+
+#amr.restart             = chk01400
+
+#*******************************************************************************
+
+# Interval (in number of coarse timesteps) between plot files
+amr.plot_int		= 200
+
+
+#*******************************************************************************
+
+# Viscosity coefficient 
+ns.vel_visc_coef        = 0.005416368
+# this parameter is dunamic viscosity
+# rho_ratio 2.56 u=0.00541638
+# rho_ratio 2.56 u=0.00104238
+# rho_ratio 7.71 u=0.00267626 
+
+#*******************************************************************************
+
+# Diffusion coefficient for first scalar
+ns.scal_diff_coefs      = 0.00
+
+#*******************************************************************************
+
+# Forcing term defaults to  rho * abs(gravity) "down"
+ns.gravity              = -9.81
+
+#*******************************************************************************
+
+# skip level_projector 
+ns.skip_level_projector = 0
+
+#*******************************************************************************
+
+# subcycling vs. non-subcycling 
+amr.subcycling_mode     = None 
+
+#*******************************************************************************
+
+# Set to 0 if x-y coordinate system, set to 1 if r-z.
+geometry.coord_sys   =  0
+
+#*******************************************************************************
+
+# Physical dimensions of the low end of the domain.
+geometry.prob_lo     =  0. 0. 0.
+
+# Physical dimensions of the high end of the domain.
+geometry.prob_hi     	=  0.96 0.96 9.6
+
+#*******************************************************************************
+
+#Set to 1 if periodic in that direction
+geometry.is_periodic =  0 0 0
+
+#*******************************************************************************
+
+# Boundary conditions on the low end of the domain.
+ns.lo_bc             = 5 5 5
+
+# Boundary conditions on the high end of the domain.
+ns.hi_bc             = 5 5 4
+
+# 0 = Interior/Periodic  3 = Symmetry
+# 1 = Inflow             4 = SlipWall
+# 2 = Outflow            5 = NoSlipWall
+
+#*******************************************************************************
+
+# Problem parameters
+prob.probtype = 104
+
+#*******************************************************************************
+
+# Add vorticity to the variables in the plot files.
+# amr.derive_plot_vars    = avg_pressure
+
+#*******************************************************************************
+ns.isolver            = 1
+ns.do_diffused_ib     = 1
+ns.fluid_rho 		  = 1
+
+#ns.sum_interval       = 1
+
+particles.do_nspc_particles = 0
+
+nodal_proj.proj_tol = 1.e-8
+nodal_proj.proj_abs_tol = 1.e-9
+
+mac_proj.mac_tol = 1.e-8
+mac_proj.mac_abs_tol = 1.e-9
+
+
+############################
+#                          #
+#  Diffused IB cfg file    #
+#                          #
+############################
+
+# particle's location 
+# x = p1x p2x p3x ...
+particle_inputs.x = 0.48
+particle_inputs.y = 0.48
+particle_inputs.z = 9.2
+
+# particle's density
+# rho = p1r p2r p3r ...
+particle_inputs.rho = 2.56
+
+# particle's radius
+# single
+particle_inputs.radius = 0.08333
+
+# particle's velocity
+# vx = p1vx p2vx p3vx ...
+particle_inputs.velocity_x = 0.0
+particle_inputs.velocity_y = 0.0
+particle_inputs.velocity_z = 0.0
+
+# particles's omega
+# ox = p1ox p2ox p3ox
+particle_inputs.omega_x = 0.0
+particle_inputs.omega_y = 0.0
+particle_inputs.omega_z = 0.0
+
+# particle's 6DOF
+# TLX = p1tl p2tl ...
+particle_inputs.TLX = 2
+particle_inputs.TLY = 2
+particle_inputs.TLZ = 2
+particle_inputs.RLX = 2
+particle_inputs.RLY = 2
+particle_inputs.RLZ = 2
+
+# Uhlmann FallingSphere
+particle_inputs.Uhlmann = 1
+
+# msg print
+particle_inputs.verbose = 1

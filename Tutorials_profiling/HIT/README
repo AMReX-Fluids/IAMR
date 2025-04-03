@@ -1,0 +1,7 @@
+This is a 3D forced homogenous isotropic turbulence test case.
+The initial conditions are relatively quickly washed away due to the action of the forcing function (found in the local NS_getForce.cpp file in this folder).
+
+An AMReX tool for deriving the spectrum from a plotfile can be found here:
+AmrDeriveSpectrum (https://github.com/AMReX-Astro/AmrDeriveSpectrum)
+
+For questions or help, please visit IAMR's documentation (https://amrex-codes.github.io/IAMR/docs_html/index.html) or post an issue on IAMR's github page (https://github.com/AMReX-Codes/IAMR).

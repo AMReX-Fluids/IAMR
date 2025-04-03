@@ -41,6 +41,21 @@ struct InitialConditions
   int meanFlowDir = 0;
   amrex::Real meanFlowMag = 0.0;
   amrex::Real forcevort = 6.0;
+
+  //
+  // ls related
+  // total time for rsv problem
+  amrex::Real totalTimeRsv = 4.0;
+    
+  //
+  // ls related
+  //
+  int do_phi  = 0;
+  int Density = 0;
+  int phicomp = 0;
+  amrex::Real rho_w = 3.0;
+  amrex::Real rho_a = 1.0;
+
 };
 
 //
@@ -59,7 +74,32 @@ static void init_bubble (amrex::Box const& vbx,
           amrex::GpuArray<amrex::Real, AMREX_SPACEDIM> const& probhi,
           InitialConditions IC);
 
+//
+// ls related
+// initialize velocity for the rsv problem
+static void init_rsv (amrex::Box const& vbx,
+          amrex::Array4<amrex::Real> const& press,
+          amrex::Array4<amrex::Real> const& vel,
+          amrex::Array4<amrex::Real> const& scal,
+          int nscal,
+          amrex::Box const& domain,
+          amrex::GpuArray<amrex::Real, AMREX_SPACEDIM> const& dx,
+          amrex::GpuArray<amrex::Real, AMREX_SPACEDIM> const& problo,
+          amrex::GpuArray<amrex::Real, AMREX_SPACEDIM> const& probhi,
+          InitialConditions IC);
+
 static void init_constant_vel_rho (amrex::Box const& vbx,
+                amrex::Array4<amrex::Real> const& press,
+                amrex::Array4<amrex::Real> const& vel,
+                amrex::Array4<amrex::Real> const& scal,
+                int nscal,
+                amrex::Box const& domain,
+                amrex::GpuArray<amrex::Real, AMREX_SPACEDIM> const& dx,
+                amrex::GpuArray<amrex::Real, AMREX_SPACEDIM> const& problo,
+                amrex::GpuArray<amrex::Real, AMREX_SPACEDIM> const& probhi,
+                InitialConditions IC);
+
+static void init_channel (amrex::Box const& vbx,
                 amrex::Array4<amrex::Real> const& press,
                 amrex::Array4<amrex::Real> const& vel,
                 amrex::Array4<amrex::Real> const& scal,
@@ -103,7 +143,46 @@ static void init_RayleighTaylor (amrex::Box const& vbx,
               amrex::GpuArray<amrex::Real, AMREX_SPACEDIM> const& probhi,
               InitialConditions IC);
 
+//
+// ls related
+//
+static void init_RayleighTaylor_LS (amrex::Box const& vbx,
+              amrex::Array4<amrex::Real> const& press,
+              amrex::Array4<amrex::Real> const& vel,
+              amrex::Array4<amrex::Real> const& scal,
+              int nscal,
+              amrex::Box const& domain,
+              amrex::GpuArray<amrex::Real, AMREX_SPACEDIM> const& dx,
+              amrex::GpuArray<amrex::Real, AMREX_SPACEDIM> const& problo,
+              amrex::GpuArray<amrex::Real, AMREX_SPACEDIM> const& probhi,
+              InitialConditions IC);
+
+static void init_BreakingWave (amrex::Box const& vbx,
+              amrex::Array4<amrex::Real> const& press,
+              amrex::Array4<amrex::Real> const& vel,
+              amrex::Array4<amrex::Real> const& scal,
+              int nscal,
+              amrex::Box const& domain,
+              amrex::GpuArray<amrex::Real, AMREX_SPACEDIM> const& dx,
+              amrex::GpuArray<amrex::Real, AMREX_SPACEDIM> const& problo,
+              amrex::GpuArray<amrex::Real, AMREX_SPACEDIM> const& probhi,
+              InitialConditions IC);
+
 static void init_TaylorGreen (amrex::Box const& vbx,
+               amrex::Array4<amrex::Real> const& press,
+               amrex::Array4<amrex::Real> const& vel,
+               amrex::Array4<amrex::Real> const& scal,
+               int nscal,
+               amrex::Box const& domain,
+               amrex::GpuArray<amrex::Real, AMREX_SPACEDIM> const& dx,
+               amrex::GpuArray<amrex::Real, AMREX_SPACEDIM> const& problo,
+               amrex::GpuArray<amrex::Real, AMREX_SPACEDIM> const& probhi,
+               InitialConditions IC);
+
+//
+// diffused ib
+//
+static void init_particles (amrex::Box const& vbx,
                amrex::Array4<amrex::Real> const& press,
                amrex::Array4<amrex::Real> const& vel,
                amrex::Array4<amrex::Real> const& scal,
@@ -140,5 +219,57 @@ static void init_ConvectedVortex (amrex::Box const& vbx,
 // Problems parameters, to be read from inputs file
 //
 static int probtype;
+static amrex::Real ub;
+static amrex::Real shearrate;
+
+//
+// ls related
+// perform prescribed velocity
+//
+static void set_rsv_vel (amrex::Box const& vbx,
+          amrex::Array4<amrex::Real> const& vel,
+          amrex::Box const& domain,
+          amrex::GpuArray<amrex::Real, AMREX_SPACEDIM> const& dx,
+          amrex::GpuArray<amrex::Real, AMREX_SPACEDIM> const& problo,
+          amrex::GpuArray<amrex::Real, AMREX_SPACEDIM> const& probhi,
+          InitialConditions IC,
+          amrex::Real time);
+
+//
+// diffused ib
+// set initial phi nodal
+//
+static void set_initial_phi_nodal (amrex::Box const& bx,
+          amrex::Array4<amrex::Real> const& phi_nodal,
+          amrex::Box const& domain,
+          amrex::GpuArray<amrex::Real, AMREX_SPACEDIM> const& dx,
+          amrex::GpuArray<amrex::Real, AMREX_SPACEDIM> const& problo,
+          amrex::GpuArray<amrex::Real, AMREX_SPACEDIM> const& probhi,
+          InitialConditions IC,
+          amrex::Real time);
+
+// Sphere near the channel wall
+static void SphereNearWall (amrex::Box const& vbx,
+               amrex::Array4<amrex::Real> const& press,
+               amrex::Array4<amrex::Real> const& vel,
+               amrex::Array4<amrex::Real> const& scal,
+               int nscal,
+               amrex::Box const& domain,
+               amrex::GpuArray<amrex::Real, AMREX_SPACEDIM> const& dx,
+               amrex::GpuArray<amrex::Real, AMREX_SPACEDIM> const& problo,
+               amrex::GpuArray<amrex::Real, AMREX_SPACEDIM> const& probhi,
+               InitialConditions IC);
+
+// Falling Sphere
+static void FallingSphere (amrex::Box const& vbx,
+               amrex::Array4<amrex::Real> const& press,
+               amrex::Array4<amrex::Real> const& vel,
+               amrex::Array4<amrex::Real> const& scal,
+               int nscal,
+               amrex::Box const& domain,
+               amrex::GpuArray<amrex::Real, AMREX_SPACEDIM> const& dx,
+               amrex::GpuArray<amrex::Real, AMREX_SPACEDIM> const& problo,
+               amrex::GpuArray<amrex::Real, AMREX_SPACEDIM> const& probhi,
+               InitialConditions IC);
 
 #endif

@@ -266,6 +266,9 @@ NavierStokes::variableSetUp ()
     set_z_vel_bc(bc,phys_bc);
     desc_lst.setComponent(State_Type,Zvel,"z_velocity",bc,vel_bf);
 #endif
+    // Note: the vel_bf will nor directly call vel_fill within the setComponent function.
+    // It calls when needed. See the amr_level.setPhysBoundaryValues(S_new[mfi],State_Type,curr_time,Xvel,Xvel,AMREX_SPACEDIM) function
+    // in the Projection::initialVelocityProject function.
     //
     // **************  DEFINE SCALAR VARIABLES  ********************
     //
@@ -288,6 +291,14 @@ NavierStokes::variableSetUp ()
         set_temp_bc(bc,phys_bc);
         desc_lst.setComponent(State_Type,Temp,"temp",bc,state_bf);
     }
+    //
+    // ls related
+    // I still use the set_scalar_bc here. May need improvement.
+    // 
+    if (do_phi) {
+       set_scalar_bc(bc,phys_bc,advection_scheme);
+       desc_lst.setComponent(State_Type,phicomp,"phi",bc,state_bf);       
+    }
 
     is_diffusive.resize(NUM_STATE);
     advectionType.resize(NUM_STATE);
@@ -300,6 +311,14 @@ NavierStokes::variableSetUp ()
         if (visc_coef[i] > 0.0)
             is_diffusive[i] = true;
     }
+
+    if (do_mom_diff == 1) {
+        amrex::Print() << "Using conservative scheme with do_mom_diff = " << do_mom_diff << "\n";
+    }
+    else {
+        amrex::Print() << "Using non-conservative scheme with do_mom_diff = " << do_mom_diff << "\n";
+    }
+        
 
     if (do_mom_diff == 1)
       for (int d = 0; d < AMREX_SPACEDIM; d++)
@@ -330,6 +349,23 @@ NavierStokes::variableSetUp ()
     {
         amrex::Error("Density cannot diffuse, bad visc_coef");
     }
+    //
+    // ls related
+    //
+    if (do_phi) {
+        advectionType[phicomp] = NonConservative;
+        diffusionType[phicomp] = Laplacian_S;
+        if (do_cons_phi) {
+          advectionType[phicomp] = Conservative;
+          diffusionType[phicomp] = Laplacian_SoverRho;
+          amrex::Print() << "Using conservative advection update for phi.\n";
+        }
+        if (is_diffusive[phicomp])
+        {
+            amrex::Error("phi cannot diffuse");
+        }
+    }
+
     //
     // ---- pressure
     //

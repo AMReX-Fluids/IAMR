@@ -1,0 +1,3 @@
+numpy>=1.23.0
+yt>=4.0.1
+matplotlib>=3.5.1
