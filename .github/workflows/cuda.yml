@@ -15,7 +15,7 @@ jobs:
   cuda_eb_2d:
     if: ${{ github.repository == 'AMReX-Fluids/IAMR' || github.event_name != 'schedule' }}
     name: CUDA EB 2D
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-24.04
     steps:
     - name: Checkout IAMR
       uses: actions/checkout@v4
@@ -40,7 +40,7 @@ jobs:
              ccache-${{ github.workflow }}-${{ github.job }}-git-
     - name: Load Dependencies
       run: |
-        amrex/.github/workflows/dependencies/dependencies_nvcc.sh 11.2
+        amrex/.github/workflows/dependencies/dependencies_nvcc.sh 12.6
         amrex/.github/workflows/dependencies/dependencies_ccache.sh
     - name: Build
       run: |
@@ -64,7 +64,7 @@ jobs:
   cuda_no_eb_2d:
     if: ${{ github.repository == 'AMReX-Fluids/IAMR' || github.event_name != 'schedule' }}
     name: CUDA NO EB 2D
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-24.04
     steps:
     - name: Checkout IAMR
       uses: actions/checkout@v4
@@ -89,7 +89,7 @@ jobs:
              ccache-${{ github.workflow }}-${{ github.job }}-git-
     - name: Load Dependencies
       run: |
-        amrex/.github/workflows/dependencies/dependencies_nvcc.sh 11.2
+        amrex/.github/workflows/dependencies/dependencies_nvcc.sh 12.6
         amrex/.github/workflows/dependencies/dependencies_ccache.sh
     - name: Build
       run: |
