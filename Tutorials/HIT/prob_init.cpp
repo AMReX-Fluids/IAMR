@@ -109,7 +109,7 @@ void NavierStokes::init_forced (Box const& vbx,
     const Real Lx    = (probhi[0] - problo[0]);
     const Real Ly    = (probhi[1] - problo[1]);
 #if (AMREX_SPACEDIM == 3)
-    const Real Lz    = (probhi[2] - problo[1]);
+    const Real Lz    = (probhi[2] - problo[2]);
 #else
     const Real Lz    = 1.0;
 #endif

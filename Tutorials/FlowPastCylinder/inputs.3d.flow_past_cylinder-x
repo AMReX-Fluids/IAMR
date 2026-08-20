@@ -7,7 +7,7 @@ max_step                =  -1           # Max number of time steps
 #           SOLVER SETTINGS             #
 #.......................................#
 ns.init_iter       = 3                  # How many initial pressure iterations
-ns.init_vel_iter   = 5                  # How many initial projeciton iterations to ensure velocity satisfies divergence constraint 
+ns.init_vel_iter   = 5                  # How many initial projection iterations to ensure velocity satisfies divergence constraint
 ns.visc_tol        = 1.0e-11            # tolerance for viscous solve
 #¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨#
 #         TIME STEP COMPUTATION         #
