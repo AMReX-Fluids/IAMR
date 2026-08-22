@@ -91,14 +91,21 @@ set_scalar_bc (BCRec&       bc,
 static
 void
 set_temp_bc (BCRec&       bc,
-             const BCRec& phys_bc)
+             const BCRec& phys_bc,
+             const std::string& advection)
 {
     const int* lo_bc = phys_bc.lo();
     const int* hi_bc = phys_bc.hi();
     for (int i = 0; i < AMREX_SPACEDIM; i++)
     {
-        bc.setLo(i,temp_bc[lo_bc[i]]);
-        bc.setHi(i,temp_bc[hi_bc[i]]);
+        if (advection == "BDS"){
+            bc.setLo(i,bds_temp_bc[lo_bc[i]]);
+            bc.setHi(i,bds_temp_bc[hi_bc[i]]);
+        }
+        else {
+            bc.setLo(i,temp_bc[lo_bc[i]]);
+            bc.setHi(i,temp_bc[hi_bc[i]]);
+        }
     }
 }
 
@@ -285,7 +292,7 @@ NavierStokes::variableSetUp ()
     //
     if (do_temp)
     {
-        set_temp_bc(bc,phys_bc);
+        set_temp_bc(bc,phys_bc,advection_scheme);
         desc_lst.setComponent(State_Type,Temp,"temp",bc,state_bf);
     }
 

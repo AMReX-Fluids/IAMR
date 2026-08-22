@@ -39,6 +39,11 @@ static int tang_gradp_bc[] =
     amrex::BCType::int_dir, amrex::BCType::foextrap, amrex::BCType::foextrap, amrex::BCType::reflect_even, amrex::BCType::foextrap, amrex::BCType::foextrap
 };
 
+// NOTE BDS advection scheme has different BC due to it's design choice that it not introduce new extrema
+static int bds_temp_bc[] =
+{
+    amrex::BCType::int_dir, amrex::BCType::ext_dir, amrex::BCType::foextrap, amrex::BCType::reflect_even, amrex::BCType::reflect_even, amrex::BCType::reflect_even
+};
 static int temp_bc[] =
 {
     amrex::BCType::int_dir, amrex::BCType::ext_dir, amrex::BCType::hoextrap, amrex::BCType::reflect_even, amrex::BCType::reflect_even, amrex::BCType::reflect_even
@@ -54,7 +59,9 @@ static int dsdt_bc[] =
     amrex::BCType::int_dir, amrex::BCType::ext_dir, amrex::BCType::ext_dir, amrex::BCType::reflect_even, amrex::BCType::reflect_even, amrex::BCType::reflect_even
 };
 
+// NOTE ghost cells of Average_Type are only ever filled by FillPatch, so the physical
+// BCs must extrapolate; int_dir would claim they are interior and leave them unfilled
 static int average_bc[] =
 {
-    amrex::BCType::int_dir, amrex::BCType::int_dir, amrex::BCType::int_dir, amrex::BCType::int_dir,      amrex::BCType::int_dir,      amrex::BCType::int_dir
+    amrex::BCType::int_dir, amrex::BCType::foextrap, amrex::BCType::foextrap, amrex::BCType::foextrap, amrex::BCType::foextrap, amrex::BCType::foextrap
 };
