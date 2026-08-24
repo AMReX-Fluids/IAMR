@@ -7,6 +7,7 @@ Checks: >
        -bugprone-exception-escape,
        -bugprone-implicit-widening-of-multiplication-result,
        -bugprone-multi-level-implicit-pointer-conversion,
+       -bugprone-pointer-arithmetic-on-polymorphic-object,
      clang-analyzer-*,
        -clang-analyzer-optin.mpi.MPI-Checker,
      clang-diagnostic-*,
