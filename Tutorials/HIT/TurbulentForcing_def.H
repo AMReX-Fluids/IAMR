@@ -94,9 +94,9 @@ TurbulentForcing::init_turbulent_forcing (const amrex::GpuArray<amrex::Real,AMRE
 
     if (verbose)
     {
-        Print() << "Lx = " << Lx << std::endl;
-        Print() << "Ly = " << Ly << std::endl;
-        Print() << "Lz = " << Lz << std::endl;
+        Print() << "Lx = " << Lx << '\n';
+        Print() << "Ly = " << Ly << '\n';
+        Print() << "Lz = " << Lz << '\n';
     }
 
     Real Lmin = std::min(Lx,std::min(Ly,Lz));
@@ -107,11 +107,11 @@ TurbulentForcing::init_turbulent_forcing (const amrex::GpuArray<amrex::Real,AMRE
 
     if (verbose)
     {
-        Print() << "Lmin = " << Lmin << std::endl;
-        Print() << "kappaMax = " << kappaMax << std::endl;
-        Print() << "nxmodes = " << nxmodes << std::endl;
-        Print() << "nymodes = " << nxmodes << std::endl;
-        Print() << "nzmodes = " << nxmodes << std::endl;
+        Print() << "Lmin = " << Lmin << '\n';
+        Print() << "kappaMax = " << kappaMax << '\n';
+        Print() << "nxmodes = " << nxmodes << '\n';
+        Print() << "nymodes = " << nxmodes << '\n';
+        Print() << "nzmodes = " << nxmodes << '\n';
     }
 
     Real freqMin = 1.0/forcing_time_scale_max;
@@ -120,11 +120,11 @@ TurbulentForcing::init_turbulent_forcing (const amrex::GpuArray<amrex::Real,AMRE
 
     if (verbose)
     {
-        Print() << "forcing_time_scale_min = " << forcing_time_scale_min << std::endl;
-        Print() << "forcing_time_scale_max = " << forcing_time_scale_max << std::endl;
-        Print() << "freqMin = " << freqMin << std::endl;
-        Print() << "freqMax = " << freqMax << std::endl;
-        Print() << "freqDiff = " << freqDiff << std::endl;
+        Print() << "forcing_time_scale_min = " << forcing_time_scale_min << '\n';
+        Print() << "forcing_time_scale_max = " << forcing_time_scale_max << '\n';
+        Print() << "freqMin = " << freqMin << '\n';
+        Print() << "freqMax = " << freqMax << '\n';
+        Print() << "freqDiff = " << freqDiff << '\n';
     }
 
     // initiate the magic
@@ -137,7 +137,7 @@ TurbulentForcing::init_turbulent_forcing (const amrex::GpuArray<amrex::Real,AMRE
     int zstep = (int)(Lz/Lmin+0.5);
 
     if (verbose)
-        Print() << "Mode step = " << xstep << " " << ystep << " " << zstep << std::endl;
+        Print() << "Mode step = " << xstep << " " << ystep << " " << zstep << '\n';
 
     for (int kz = mode_start*zstep; kz <= nzmodes; kz += zstep ) {
       Real kzd = (Real)kz;
@@ -182,7 +182,7 @@ TurbulentForcing::init_turbulent_forcing (const amrex::GpuArray<amrex::Real,AMRE
 
             Real mp2 = px*px + py*py + pz*pz;
             if (kappa < 0.000001) {
-              Print() << "ZERO AMPLITUDE MODE " << kx << ky << kz << std::endl;
+              Print() << "ZERO AMPLITUDE MODE " << kx << ky << kz << '\n';
               FAX(kx,ky,kz) = 0.;
               FAY(kx,ky,kz) = 0.;
               FAZ(kx,ky,kz) = 0.;
@@ -220,17 +220,17 @@ TurbulentForcing::init_turbulent_forcing (const amrex::GpuArray<amrex::Real,AMRE
               {
                   Print() << "Mode";
                   Print() << "kappa = " << kx << " " << ky << " " << kz << " " << kappa << " "
-                          << sqrt(FAX(kx,ky,kz)*FAX(kx,ky,kz)+FAY(kx,ky,kz)*FAY(kx,ky,kz)+FAZ(kx,ky,kz)*FAZ(kx,ky,kz)) << std::endl;
-                  Print() << "Amplitudes - A" << std::endl;
-                  Print() << FAX(kx,ky,kz) << " " << FAY(kx,ky,kz) << " " << FAZ(kx,ky,kz) << std::endl;
-                  Print() << "Frequencies" << std::endl;
-                  Print() << FTX(kx,ky,kz) << std::endl;
-                  Print() << "TAT" << std::endl;
-                  Print() << TAT(kx,ky,kz) << std::endl;
-                  Print() << "Amplitudes - AA" << std::endl;
-                  Print() << FPXX(kx,ky,kz) << " " << FPYX(kx,ky,kz) << " " << FPZX(kx,ky,kz) << std::endl;
-                  Print() << FPXY(kx,ky,kz) << " " << FPYY(kx,ky,kz) << " " << FPZY(kx,ky,kz) << std::endl;
-                  Print() << FPXZ(kx,ky,kz) << " " << FPYZ(kx,ky,kz) << " " << FPZZ(kx,ky,kz) << std::endl;
+                          << sqrt(FAX(kx,ky,kz)*FAX(kx,ky,kz)+FAY(kx,ky,kz)*FAY(kx,ky,kz)+FAZ(kx,ky,kz)*FAZ(kx,ky,kz)) << '\n';
+                  Print() << "Amplitudes - A" << '\n';
+                  Print() << FAX(kx,ky,kz) << " " << FAY(kx,ky,kz) << " " << FAZ(kx,ky,kz) << '\n';
+                  Print() << "Frequencies" << '\n';
+                  Print() << FTX(kx,ky,kz) << '\n';
+                  Print() << "TAT" << '\n';
+                  Print() << TAT(kx,ky,kz) << '\n';
+                  Print() << "Amplitudes - AA" << '\n';
+                  Print() << FPXX(kx,ky,kz) << " " << FPYX(kx,ky,kz) << " " << FPZX(kx,ky,kz) << '\n';
+                  Print() << FPXY(kx,ky,kz) << " " << FPYY(kx,ky,kz) << " " << FPZY(kx,ky,kz) << '\n';
+                  Print() << FPXZ(kx,ky,kz) << " " << FPYZ(kx,ky,kz) << " " << FPZZ(kx,ky,kz) << '\n';
               }
             }
           }
@@ -284,7 +284,7 @@ TurbulentForcing::init_turbulent_forcing (const amrex::GpuArray<amrex::Real,AMRE
 
             Real mp2 = px*px + py*py + pz*pz;
             if (kappa < 0.000001) {
-              Print() << "ZERO AMPLITUDE MODE " << kx << ky << kz << std::endl;
+              Print() << "ZERO AMPLITUDE MODE " << kx << ky << kz << '\n';
               FAX(kx,ky,kz) = 0.;
               FAY(kx,ky,kz) = 0.;
               FAZ(kx,ky,kz) = 0.;
@@ -322,17 +322,17 @@ TurbulentForcing::init_turbulent_forcing (const amrex::GpuArray<amrex::Real,AMRE
               {
                   Print() << "Mode";
                   Print() << "kappa = " << kx << " " << ky << " " << kz << " " << kappa << " "
-                          << sqrt(FAX(kx,ky,kz)*FAX(kx,ky,kz)+FAY(kx,ky,kz)*FAY(kx,ky,kz)+FAZ(kx,ky,kz)*FAZ(kx,ky,kz)) << std::endl;
-                  Print() << "Amplitudes - A" << std::endl;
-                  Print() << FAX(kx,ky,kz) << " " << FAY(kx,ky,kz) << " " << FAZ(kx,ky,kz) << std::endl;
-                  Print() << "Frequencies" << std::endl;
-                  Print() << FTX(kx,ky,kz) << std::endl;
-                  Print() << "TAT" << std::endl;
-                  Print() << TAT(kx,ky,kz) << std::endl;
-                  Print() << "Amplitudes - AA" << std::endl;
-                  Print() << FPXX(kx,ky,kz) << " " << FPYX(kx,ky,kz) << " " << FPZX(kx,ky,kz) << std::endl;
-                  Print() << FPXY(kx,ky,kz) << " " << FPYY(kx,ky,kz) << " " << FPZY(kx,ky,kz) << std::endl;
-                  Print() << FPXZ(kx,ky,kz) << " " << FPYZ(kx,ky,kz) << " " << FPZZ(kx,ky,kz) << std::endl;
+                          << sqrt(FAX(kx,ky,kz)*FAX(kx,ky,kz)+FAY(kx,ky,kz)*FAY(kx,ky,kz)+FAZ(kx,ky,kz)*FAZ(kx,ky,kz)) << '\n';
+                  Print() << "Amplitudes - A" << '\n';
+                  Print() << FAX(kx,ky,kz) << " " << FAY(kx,ky,kz) << " " << FAZ(kx,ky,kz) << '\n';
+                  Print() << "Frequencies" << '\n';
+                  Print() << FTX(kx,ky,kz) << '\n';
+                  Print() << "TAT" << '\n';
+                  Print() << TAT(kx,ky,kz) << '\n';
+                  Print() << "Amplitudes - AA" << '\n';
+                  Print() << FPXX(kx,ky,kz) << " " << FPYX(kx,ky,kz) << " " << FPZX(kx,ky,kz) << '\n';
+                  Print() << FPXY(kx,ky,kz) << " " << FPYY(kx,ky,kz) << " " << FPZY(kx,ky,kz) << '\n';
+                  Print() << FPXZ(kx,ky,kz) << " " << FPYZ(kx,ky,kz) << " " << FPZZ(kx,ky,kz) << '\n';
               }
             }
           }
@@ -340,14 +340,14 @@ TurbulentForcing::init_turbulent_forcing (const amrex::GpuArray<amrex::Real,AMRE
       }
     }
 
-    Print() << "mode_count = " << mode_count << std::endl;
-    Print() << "reduced_mode_count = " << reduced_mode_count << std::endl;
+    Print() << "mode_count = " << mode_count << '\n';
+    Print() << "reduced_mode_count = " << reduced_mode_count << '\n';
     if (spectrum_type==1) {
-      Print() << "Spectrum type 1" << std::endl;
+      Print() << "Spectrum type 1" << '\n';
     } else if (spectrum_type==2) {
-      Print() << "Spectrum type 2" << std::endl;
+      Print() << "Spectrum type 2" << '\n';
     } else {
-      Print() << "Spectrum type OTHER" << std::endl;
+      Print() << "Spectrum type OTHER" << '\n';
     }
 
 // Now allocate forcedata and copy in tmp array.

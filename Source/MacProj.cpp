@@ -323,7 +323,7 @@ MacProj::mac_project (int             level,
             {
                 Real sumreg = mr.SumReg(0);
 
-                amrex::Print() << "LEVEL " << level << " MACREG: CrseInit sum = " << sumreg << std::endl;
+                amrex::Print() << "LEVEL " << level << " MACREG: CrseInit sum = " << sumreg << '\n';
             }
         }
         //
@@ -342,7 +342,7 @@ MacProj::mac_project (int             level,
             {
                 Real sumreg = mac_reg[level]->SumReg(0);
                 amrex::Print() << "LEVEL "                  << level
-                               << " MACREG: FineAdd sum = " << sumreg << std::endl;
+                               << " MACREG: FineAdd sum = " << sumreg << '\n';
             }
         }
     }
@@ -474,7 +474,7 @@ MacProj::mac_sync_solve (int       level,
 
         ParallelDescriptor::ReduceRealMax(run_time,IOProc);
 
-        amrex::Print() << "MacProj::mac_sync_solve(): time: " << run_time << std::endl;
+        amrex::Print() << "MacProj::mac_sync_solve(): time: " << run_time << '\n';
     }
 }
 
@@ -1073,7 +1073,7 @@ MacProj::test_umac_periodic (int       level,
         {
             amrex::Print() << "dir = "         << dim
                            << ", diff norm = " << max_norm
-                           << " for region: "  << pirm_i.m_dstBox << std::endl;
+                           << " for region: "  << pirm_i.m_dstBox << '\n';
             amrex::Error("Periodic bust in u_mac");
         }
     }

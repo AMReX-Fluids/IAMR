@@ -654,10 +654,10 @@ Projection::initialVelocityProject (int  c_lev,
     {
         if (verbose)
         {
-            amrex::Print() << std::endl
+            amrex::Print() << '\n'
                            << "Projection::initialVelocityProject(): iteration "
                            << iter
-                           << std::endl;
+                           << '\n';
         }
 
         for (lev = c_lev; lev <= f_lev; lev++)
@@ -807,7 +807,7 @@ Projection::initialVelocityProject (int  c_lev,
 
         if (verbose)
         {
-            amrex::Print() << "After nodal projection:" << std::endl;
+            amrex::Print() << "After nodal projection:" << '\n';
             for (lev = c_lev; lev <= f_lev; ++lev)
             {
                 amrex::Print() << "  lev " << lev << ": "
@@ -821,7 +821,7 @@ Projection::initialVelocityProject (int  c_lev,
 #if (AMREX_SPACEDIM==3)
                                << vel[lev]->norm0(2,0,false,true)
 #endif
-                               << std::endl;
+                               << '\n';
             }
         }
     }
@@ -1511,7 +1511,7 @@ Projection::initialVorticityProject (int c_lev)
 
     if (verbose) {
       amrex::Print() << "Projection::initialVorticityProject(): levels = " << c_lev
-                     << "  " << f_lev << std::endl;
+                     << "  " << f_lev << '\n';
     }
     const Real strt_time = ParallelDescriptor::second();
 

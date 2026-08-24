@@ -64,43 +64,43 @@ NavierStokesBase::getForce (FArrayBox&       force,
    const int*  s_hi     = Scal.hiVect();
 
    if (ParallelDescriptor::IOProcessor() && getForceVerbose) {
-      amrex::Print() << "NavierStokesBase::getForce(): Entered..." << std::endl
-                     << "time      = " << time << std::endl
-                     << "scomp     = " << scomp << std::endl
-                     << "ncomp     = " << ncomp << std::endl
-                     << "scalScomp = " << scalScomp << std::endl;
+      amrex::Print() << "NavierStokesBase::getForce(): Entered..." << '\n'
+                     << "time      = " << time << '\n'
+                     << "scomp     = " << scomp << '\n'
+                     << "ncomp     = " << ncomp << '\n'
+                     << "scalScomp = " << scalScomp << '\n';
 
       if (scomp==0)
-        if  (ncomp==3) amrex::Print() << "Doing velocities only" << std::endl;
-        else           amrex::Print() << "Doing all components" << std::endl;
+        if  (ncomp==3) amrex::Print() << "Doing velocities only" << '\n';
+        else           amrex::Print() << "Doing all components" << '\n';
       else if (scomp==3)
-        if  (ncomp==1) amrex::Print() << "Doing density only" << std::endl;
-        else           amrex::Print() << "Doing all scalars" << std::endl;
-      else if (scomp==4) amrex::Print() << "Doing tracer only" << std::endl;
-      else               amrex::Print() << "Doing individual scalar" << std::endl;
+        if  (ncomp==1) amrex::Print() << "Doing density only" << '\n';
+        else           amrex::Print() << "Doing all scalars" << '\n';
+      else if (scomp==4) amrex::Print() << "Doing tracer only" << '\n';
+      else               amrex::Print() << "Doing individual scalar" << '\n';
 
       amrex::Print() << "NavierStokesBase::getForce(): Filling Force on box:"
-                     << bx << std::endl;
+                     << bx << '\n';
 #if (AMREX_SPACEDIM == 3)
-      amrex::Print() << "NavierStokesBase::getForce(): Force Domain:" << std::endl;
+      amrex::Print() << "NavierStokesBase::getForce(): Force Domain:" << '\n';
       amrex::Print() << "(" << f_lo[0] << "," << f_lo[1] << "," << f_lo[2] << ") - "
-                     << "(" << f_hi[0] << "," << f_hi[1] << "," << f_hi[2] << ")" << std::endl;
-      amrex::Print() << "NavierStokesBase::getForce(): Vel Domain:" << std::endl;
+                     << "(" << f_hi[0] << "," << f_hi[1] << "," << f_hi[2] << ")" << '\n';
+      amrex::Print() << "NavierStokesBase::getForce(): Vel Domain:" << '\n';
       amrex::Print() << "(" << v_lo[0] << "," << v_lo[1] << "," << v_lo[2] << ") - "
-                     << "(" << v_hi[0] << "," << v_hi[1] << "," << v_hi[2] << ")" << std::endl;
-      amrex::Print() << "NavierStokesBase::getForce(): Scal Domain:" << std::endl;
+                     << "(" << v_hi[0] << "," << v_hi[1] << "," << v_hi[2] << ")" << '\n';
+      amrex::Print() << "NavierStokesBase::getForce(): Scal Domain:" << '\n';
       amrex::Print() << "(" << s_lo[0] << "," << s_lo[1] << "," << s_lo[2] << ") - "
-                     << "(" << s_hi[0] << "," << s_hi[1] << "," << s_hi[2] << ")" << std::endl;
+                     << "(" << s_hi[0] << "," << s_hi[1] << "," << s_hi[2] << ")" << '\n';
 #else
-      amrex::Print() << "NavierStokesBase::getForce(): Force Domain:" << std::endl;
+      amrex::Print() << "NavierStokesBase::getForce(): Force Domain:" << '\n';
       amrex::Print() << "(" << f_lo[0] << "," << f_lo[1] << ") - "
-                     << "(" << f_hi[0] << "," << f_hi[1] << ")" << std::endl;
-      amrex::Print() << "NavierStokesBase::getForce(): Vel Domain:" << std::endl;
+                     << "(" << f_hi[0] << "," << f_hi[1] << ")" << '\n';
+      amrex::Print() << "NavierStokesBase::getForce(): Vel Domain:" << '\n';
       amrex::Print() << "(" << v_lo[0] << "," << v_lo[1] << ") - "
-                     << "(" << v_hi[0] << "," << v_hi[1] << ")" << std::endl;
-      amrex::Print() << "NavierStokesBase::getForce(): Scal Domain:" << std::endl;
+                     << "(" << v_hi[0] << "," << v_hi[1] << ")" << '\n';
+      amrex::Print() << "NavierStokesBase::getForce(): Scal Domain:" << '\n';
       amrex::Print() << "(" << s_lo[0] << "," << s_lo[1] << ") - "
-                     << "(" << s_hi[0] << "," << s_hi[1] << ")" << std::endl;
+                     << "(" << s_hi[0] << "," << s_hi[1] << ")" << '\n';
 #endif
 
       Vector<Real> velmin(AMREX_SPACEDIM), velmax(AMREX_SPACEDIM);
@@ -134,7 +134,7 @@ NavierStokesBase::getForce (FArrayBox&       force,
 #endif
       for (int n=0; n<AMREX_SPACEDIM; n++)
          amrex::Print() << "Vel  " << n << " min/max "
-                        << velmin[n] << " / " << velmax[n] << std::endl;
+                        << velmin[n] << " / " << velmax[n] << '\n';
 
       for (int n=0; n<NUM_SCALARS; n++) {
          scalmin[n]= 1.e234;
@@ -165,7 +165,7 @@ NavierStokesBase::getForce (FArrayBox&       force,
 #endif
       for (int n=0; n<NUM_SCALARS; n++)
          amrex::Print() << "Scal " << n << " min/max " << scalmin[n]
-                        << " / " << scalmax[n] << std::endl;
+                        << " / " << scalmax[n] << '\n';
    } //end if(getForceVerbose)
 
    //
@@ -778,9 +778,9 @@ NavierStokesBase::getForce (FArrayBox&       force,
 #endif
       for (int n=0; n<ncomp; n++)
          amrex::Print() << "Force " << n+scomp << " min/max " << forcemin[n]
-                        << " / " << forcemax[n] << std::endl;
+                        << " / " << forcemax[n] << '\n';
 
       amrex::Print() << "NavierStokesBase::getForce(): Leaving..."
-                     << std::endl << "---" << std::endl;
+                     << '\n' << "---" << '\n';
    }
 }

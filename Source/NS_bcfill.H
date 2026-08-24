@@ -84,6 +84,7 @@ struct stateFill
     }
 };
 
+inline
 void state_fill (Box const& bx, FArrayBox& data,
                  const int dcomp, const int numcomp,
                  Geometry const& geom, const Real time,
@@ -153,6 +154,7 @@ struct velFill
     }
 };
 
+inline
 void vel_fill (Box const& bx, FArrayBox& data,
                const int dcomp, const int numcomp,
                Geometry const& geom, const Real time,
@@ -221,6 +223,7 @@ struct homogeneousFill
     }
 };
 
+inline
 void homogeneous_fill (Box const& bx, FArrayBox& data,
                 const int dcomp, const int numcomp,
                 Geometry const& geom, const Real time,
@@ -302,6 +305,7 @@ struct dummyFill
     }
 };
 
+inline
 void dummy_fill (Box const& bx, FArrayBox& data,
                  const int dcomp, const int numcomp,
                  Geometry const& geom, const Real time,
@@ -333,6 +337,7 @@ void dummy_fill (Box const& bx, FArrayBox& data,
 //   }
 // };
 
+inline
 void press_fill (Box const& /*bx*/, FArrayBox& /*data*/,
                  const int /*dcomp*/, const int /*numcomp*/,
                  Geometry const& /*geom*/, const Real /*time*/,

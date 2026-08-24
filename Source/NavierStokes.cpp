@@ -1,4 +1,5 @@
 #include <unistd.h>
+#include <ctime>
 #include <AMReX_Geometry.H>
 #include <AMReX_Extrapolater.H>
 #include <AMReX_ParmParse.H>
@@ -207,14 +208,14 @@ NavierStokes::Initialize_bcs ()
           bc_tmp[ori] = PhysBCType::interior;
             } else {
           std::cerr <<  " Wrong BC type for periodic boundary at "
-                    << bcid << ". Please correct inputs file."<<std::endl;
+                    << bcid << ". Please correct inputs file."<<'\n';
           amrex::Abort();
             }
       }
 
       if ( bc_tmp[ori] == BCType::bogus && phys_bc.data()[ori] == BCType::bogus ) {
         std::cerr <<  " No valid BC type specified for "
-                  << bcid  << ". Please correct inputs file."<<std::endl;
+                  << bcid  << ". Please correct inputs file."<<'\n';
         amrex::Abort();
       }
 
@@ -222,7 +223,7 @@ NavierStokes::Initialize_bcs ()
            && bc_tmp[ori] != phys_bc.data()[ori] ) {
         std::cerr<<" Multiple conflicting BCs specified for "
                  << bcid << ": "<<bc_tmp[ori]<<", "<<phys_bc.data()[ori]
-                 <<". Please correct inputs file."<<std::endl;
+                 <<". Please correct inputs file."<<'\n';
         amrex::Abort();
       }
       };
@@ -552,7 +553,7 @@ NavierStokes::advance (Real time,
         Print() << "Advancing grids at level " << level
                 << " : starting time = "       << time
                 << " with dt = "               << dt
-                << std::endl;
+                << '\n';
     }
 
     advance_setup(time,dt,iteration,ncycle);
@@ -575,7 +576,7 @@ NavierStokes::advance (Real time,
     if (verbose)
     {
         Print() << "NavierStokes::advance(): before velocity update:"
-                << std::endl;
+                << '\n';
         printMaxValues(false);
     }
     //
@@ -654,7 +655,7 @@ NavierStokes::advance (Real time,
 
         if (verbose)
         {
-            Print() << "NavierStokes::advance(): before nodal projection " << std::endl;
+            Print() << "NavierStokes::advance(): before nodal projection " << '\n';
             printMaxVel();
         // New P, Gp get updated in the projector (below). Check old here.
         printMaxGp(false);
@@ -683,7 +684,7 @@ NavierStokes::advance (Real time,
 
     if (verbose)
     {
-        Print() << "NavierStokes::advance(): exiting." << std::endl;
+        Print() << "NavierStokes::advance(): exiting." << '\n';
         printMaxValues();
     }
 
@@ -1117,9 +1118,6 @@ NavierStokes::writePlotFilePost (const std::string& dir,
         jobInfoFile.open(FullPathJobInfoFile.c_str(), std::ios::out);
 
         std::string PrettyLine = "===============================================================================\n";
-        std::string OtherLine = "--------------------------------------------------------------------------------\n";
-        std::string SkipSpace = "        ";
-
 
         // job information
         jobInfoFile << PrettyLine;
@@ -1140,8 +1138,12 @@ NavierStokes::writePlotFilePost (const std::string& dir,
         time_t now = time(nullptr);
 
         // Convert now to tm struct for local timezone
-        tm* localtm = localtime(&now);
-        jobInfoFile   << "output data / time: " << asctime(localtm);
+        tm localtm{};
+        char timebuf[128];
+        if (localtime_r(&now, &localtm) != nullptr &&
+            std::strftime(timebuf, sizeof(timebuf), "%a %b %d %H:%M:%S %Y", &localtm) != 0) {
+            jobInfoFile << "output data / time: " << timebuf << '\n';
+        }
 
         char currentDir[FILENAME_MAX];
         if (getcwd(currentDir, FILENAME_MAX)) {
@@ -1314,7 +1316,7 @@ NavierStokes::post_init_press (Real&        dt_init,
 
       NavierStokes::initial_step = false;
 
-      Print()<< "WARNING! post_init_press(): exiting without doing initial iterations because init_iter <= 0."<<std::endl;
+      Print()<< "WARNING! post_init_press(): exiting without doing initial iterations because init_iter <= 0."<<'\n';
 
       return;
     }
@@ -1325,11 +1327,11 @@ NavierStokes::post_init_press (Real&        dt_init,
 
     if (verbose)
     {
-        Print() << std::endl
+        Print() << '\n'
                 << "post_init_press(): "
                 << "doing initial pressure iterations with dt = "
                 << dt_init
-                << std::endl;
+                << '\n';
     }
 
     //
@@ -1340,9 +1342,9 @@ NavierStokes::post_init_press (Real&        dt_init,
 
         if (verbose)
         {
-            Print() << std::endl
+            Print() << '\n'
                     << "post_init_press(): iter = " << iter
-                    << std::endl;
+                    << '\n';
         }
 
         for (int k = 0; k <= finest_level; k++ )
@@ -1383,7 +1385,7 @@ NavierStokes::post_init_press (Real&        dt_init,
             MultiFab& S_old = get_old_data(State_Type);
             MultiFab::Xpay(S_new, dt_init, S_old, Xvel, Xvel, AMREX_SPACEDIM, 0);
 
-            Print() << "After sync projection and avgDown:" << std::endl;
+            Print() << "After sync projection and avgDown:" << '\n';
             printMaxValues();
         }
 
@@ -1420,13 +1422,13 @@ NavierStokes::post_init_press (Real&        dt_init,
     // Add space to output if verbose
     if (verbose)
     {
-        Print() << std::endl
+        Print() << '\n'
                 << "post_init_press(): exiting after " << init_iter << " iterations"
-                << std::endl
+                << '\n'
                 << "After initial iterations: "
-                << std::endl;
+                << '\n';
         printMaxValues();
-        Print() << std::endl << std::endl;
+        Print() << '\n' << '\n';
     }
 
 }
@@ -1444,9 +1446,9 @@ NavierStokes::mac_sync ()
 
     if (verbose)
     {
-        Print() << std::endl
+        Print() << '\n'
                 << "mac_sync() on level "<<level
-                << std::endl;
+                << '\n';
     }
 
     const int  numscal        = NUM_STATE - AMREX_SPACEDIM;
