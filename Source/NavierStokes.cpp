@@ -1,4 +1,5 @@
 #include <unistd.h>
+#include <ctime>
 #include <AMReX_Geometry.H>
 #include <AMReX_Extrapolater.H>
 #include <AMReX_ParmParse.H>
@@ -1117,9 +1118,6 @@ NavierStokes::writePlotFilePost (const std::string& dir,
         jobInfoFile.open(FullPathJobInfoFile.c_str(), std::ios::out);
 
         std::string PrettyLine = "===============================================================================\n";
-        std::string OtherLine = "--------------------------------------------------------------------------------\n";
-        std::string SkipSpace = "        ";
-
 
         // job information
         jobInfoFile << PrettyLine;
@@ -1140,8 +1138,12 @@ NavierStokes::writePlotFilePost (const std::string& dir,
         time_t now = time(nullptr);
 
         // Convert now to tm struct for local timezone
-        tm* localtm = localtime(&now);
-        jobInfoFile   << "output data / time: " << asctime(localtm);
+        tm localtm{};
+        char timebuf[128];
+        if (localtime_r(&now, &localtm) != nullptr &&
+            std::strftime(timebuf, sizeof(timebuf), "%a %b %d %H:%M:%S %Y", &localtm) != 0) {
+            jobInfoFile << "output data / time: " << timebuf << '\n';
+        }
 
         char currentDir[FILENAME_MAX];
         if (getcwd(currentDir, FILENAME_MAX)) {

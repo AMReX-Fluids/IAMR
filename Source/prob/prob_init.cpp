@@ -1,14 +1,16 @@
 #include <NavierStokes.H>
 #include <AMReX_ParmParse.H>
 
+#include <numbers>
+
 using namespace amrex;
 
 int NavierStokes::probtype = -1;
 
 // For now, define pi here, but maybe later make iamr_constants.H
 namespace {
-  constexpr Real Pi    = 3.141592653589793238462643383279502884197;
-  constexpr Real TwoPi = 2.0 * 3.141592653589793238462643383279502884197;
+  constexpr Real Pi    = std::numbers::pi_v<Real>;
+  constexpr Real TwoPi = Real(2.0) * std::numbers::pi_v<Real>;
 }
 
 //
@@ -676,6 +678,11 @@ void NavierStokes::init_ConvectedVortex (Box const& vbx,
       case -3 :
          AMREX_D_TERM(vel(i,j,k,0) = -IC.meanFlowMag + u_vort;,
                       vel(i,j,k,1) = -IC.meanFlowMag + v_vort;,
+                      vel(i,j,k,2) = w_vort);
+         break;
+      default : // no mean flow, i.e. the vortex alone
+         AMREX_D_TERM(vel(i,j,k,0) = u_vort;,
+                      vel(i,j,k,1) = v_vort;,
                       vel(i,j,k,2) = w_vort);
          break;
     }
