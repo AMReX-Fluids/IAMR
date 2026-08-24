@@ -3,6 +3,8 @@ name: GCC
 
 on:
   push:
+    branches-ignore:
+      - 'dependabot/**'
   pull_request:
   schedule:
     - cron: "23 8 * * *"
@@ -18,16 +20,16 @@ jobs:
     runs-on: ubuntu-latest
     steps:
     - name: Checkout IAMR
-      uses: actions/checkout@v4
+      uses: actions/checkout@v7
       with:
         path: IAMR
     - name: Checkout AMReX-Hydro
-      uses: actions/checkout@v4
+      uses: actions/checkout@v7
       with:
         repository: AMReX-Fluids/AMReX-Hydro
         path: AMReX-Hydro
     - name: Checkout AMReX
-      uses: actions/checkout@v4
+      uses: actions/checkout@v7
       with:
         repository: AMReX-Codes/amrex
         path: amrex
@@ -41,7 +43,7 @@ jobs:
     - name: Load Dependencies
       run: |
         amrex/.github/workflows/dependencies/dependencies.sh
-        amrex/.github/workflows/dependencies/dependencies_clang-tidy.sh 14
+        amrex/.github/workflows/dependencies/dependencies_clang-tidy-apt-llvm.sh 21
         amrex/.github/workflows/dependencies/dependencies_ccache.sh
     - name: Build
       run: |
@@ -60,7 +62,7 @@ jobs:
 
         ${{github.workspace}}/amrex/Tools/C_scripts/mmclt.py --input ${{github.workspace}}/ccache.log.txt --identifier Source
         make -j2 -f clang-tidy-ccache-misses.mak \
-            CLANG_TIDY=clang-tidy-14 \
+            CLANG_TIDY=clang-tidy-21 \
             CLANG_TIDY_ARGS="--config-file=${{github.workspace}}/IAMR/.clang-tidy --warnings-as-errors=*"
 
         ccache -s
@@ -77,16 +79,16 @@ jobs:
     runs-on: ubuntu-latest
     steps:
     - name: Checkout IAMR
-      uses: actions/checkout@v4
+      uses: actions/checkout@v7
       with:
         path: IAMR
     - name: Checkout AMReX-Hydro
-      uses: actions/checkout@v4
+      uses: actions/checkout@v7
       with:
         repository: AMReX-Fluids/AMReX-Hydro
         path: AMReX-Hydro
     - name: Checkout AMReX
-      uses: actions/checkout@v4
+      uses: actions/checkout@v7
       with:
         repository: AMReX-Codes/amrex
         path: amrex
@@ -100,7 +102,7 @@ jobs:
     - name: Load Dependencies
       run: |
         amrex/.github/workflows/dependencies/dependencies.sh
-        amrex/.github/workflows/dependencies/dependencies_clang-tidy.sh 14
+        amrex/.github/workflows/dependencies/dependencies_clang-tidy-apt-llvm.sh 21
         amrex/.github/workflows/dependencies/dependencies_ccache.sh
     - name: Build
       run: |
@@ -119,7 +121,7 @@ jobs:
 
         ${{github.workspace}}/amrex/Tools/C_scripts/mmclt.py --input ${{github.workspace}}/ccache.log.txt --identifier Source
         make -j2 -f clang-tidy-ccache-misses.mak \
-            CLANG_TIDY=clang-tidy-14 \
+            CLANG_TIDY=clang-tidy-21 \
             CLANG_TIDY_ARGS="--config-file=${{github.workspace}}/IAMR/.clang-tidy --warnings-as-errors=*"
 
         ccache -s
@@ -136,16 +138,16 @@ jobs:
     runs-on: ubuntu-latest
     steps:
     - name: Checkout IAMR
-      uses: actions/checkout@v4
+      uses: actions/checkout@v7
       with:
         path: IAMR
     - name: Checkout AMReX-Hydro
-      uses: actions/checkout@v4
+      uses: actions/checkout@v7
       with:
         repository: AMReX-Fluids/AMReX-Hydro
         path: AMReX-Hydro
     - name: Checkout AMReX
-      uses: actions/checkout@v4
+      uses: actions/checkout@v7
       with:
         repository: AMReX-Codes/amrex
         path: amrex
@@ -159,7 +161,7 @@ jobs:
     - name: Load Dependencies
       run: |
         amrex/.github/workflows/dependencies/dependencies.sh
-        amrex/.github/workflows/dependencies/dependencies_clang-tidy.sh 14
+        amrex/.github/workflows/dependencies/dependencies_clang-tidy-apt-llvm.sh 21
         amrex/.github/workflows/dependencies/dependencies_ccache.sh
     - name: Build
       run: |
@@ -178,7 +180,7 @@ jobs:
 
         ${{github.workspace}}/amrex/Tools/C_scripts/mmclt.py --input ${{github.workspace}}/ccache.log.txt --identifier Source
         make -j2 -f clang-tidy-ccache-misses.mak \
-            CLANG_TIDY=clang-tidy-14 \
+            CLANG_TIDY=clang-tidy-21 \
             CLANG_TIDY_ARGS="--config-file=${{github.workspace}}/IAMR/.clang-tidy --warnings-as-errors=*"
 
         ccache -s
@@ -196,16 +198,16 @@ jobs:
     runs-on: ubuntu-latest
     steps:
     - name: Checkout IAMR
-      uses: actions/checkout@v4
+      uses: actions/checkout@v7
       with:
         path: IAMR
     - name: Checkout AMReX-Hydro
-      uses: actions/checkout@v4
+      uses: actions/checkout@v7
       with:
         repository: AMReX-Fluids/AMReX-Hydro
         path: AMReX-Hydro
     - name: Checkout AMReX
-      uses: actions/checkout@v4
+      uses: actions/checkout@v7
       with:
         repository: AMReX-Codes/amrex
         path: amrex
@@ -219,7 +221,7 @@ jobs:
     - name: Load Dependencies
       run: |
         amrex/.github/workflows/dependencies/dependencies.sh
-        amrex/.github/workflows/dependencies/dependencies_clang-tidy.sh 14
+        amrex/.github/workflows/dependencies/dependencies_clang-tidy-apt-llvm.sh 21
         amrex/.github/workflows/dependencies/dependencies_ccache.sh
     - name: Build
       run: |
@@ -238,7 +240,7 @@ jobs:
 
         ${{github.workspace}}/amrex/Tools/C_scripts/mmclt.py --input ${{github.workspace}}/ccache.log.txt --identifier Source
         make -j2 -f clang-tidy-ccache-misses.mak \
-            CLANG_TIDY=clang-tidy-14 \
+            CLANG_TIDY=clang-tidy-21 \
             CLANG_TIDY_ARGS="--config-file=${{github.workspace}}/IAMR/.clang-tidy --warnings-as-errors=*"
 
         ccache -s
