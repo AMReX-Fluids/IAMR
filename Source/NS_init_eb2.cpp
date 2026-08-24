@@ -258,19 +258,19 @@ initialize_EB2 (const Geometry& geom, int required_coarsening_level,
     offset = sqrt(offset);
 
     // Print info about cylinders
-    amrex::Print() << " CYLINDER 1" << std::endl;
-    amrex::Print() << " Direction:       " << direction1 << std::endl;
-    amrex::Print() << " Radius:    " << radius1 << std::endl;
+    amrex::Print() << " CYLINDER 1" << '\n';
+    amrex::Print() << " Direction:       " << direction1 << '\n';
+    amrex::Print() << " Radius:    " << radius1 << '\n';
     amrex::Print() << " Center:    "
-                   << center1[0] << ", " << center1[1] << ", " << center1[2] << std::endl;
+                   << center1[0] << ", " << center1[1] << ", " << center1[2] << '\n';
 
-    amrex::Print() << " CYLINDER 2" << std::endl;
-    amrex::Print() << " Direction:       " << direction2 << std::endl;
-    amrex::Print() << " Radius:    " << radius2 << std::endl;
+    amrex::Print() << " CYLINDER 2" << '\n';
+    amrex::Print() << " Direction:       " << direction2 << '\n';
+    amrex::Print() << " Radius:    " << radius2 << '\n';
     amrex::Print() << " Center:    "
-                   << center2[0] << ", " << center2[1] << ", " << center2[2] << std::endl;
+                   << center2[0] << ", " << center2[1] << ", " << center2[2] << '\n';
 
-    amrex::Print() << "\n Offset:          " << offset << std::endl;
+    amrex::Print() << "\n Offset:          " << offset << '\n';
 
         // Build the implicit function as a union of two cylinders
     EB2::CylinderIF cyl1(radius1, height1, direction1, center1, false);
@@ -308,11 +308,11 @@ initialize_EB2 (const Geometry& geom, int required_coarsening_level,
     Array<Real, 3> center = {centervec[0], centervec[1], centervec[2]};
 
     // Print info about cylinders
-    amrex::Print() << " CYLINDER " << std::endl;
-    amrex::Print() << " Direction:       " << direction << std::endl;
-    amrex::Print() << " Radius:    " << radius << std::endl;
+    amrex::Print() << " CYLINDER " << '\n';
+    amrex::Print() << " Direction:       " << direction << '\n';
+    amrex::Print() << " Radius:    " << radius << '\n';
     amrex::Print() << " Center:    "
-                   << center[0] << ", " << center[1] << ", " << center[2] << std::endl;
+                   << center[0] << ", " << center[1] << ", " << center[2] << '\n';
 
 
 
@@ -356,14 +356,14 @@ initialize_EB2 (const Geometry& geom, int required_coarsening_level,
 
 
     // Print info about the square grid parameters
-    amrex::Print() << " SQUARE GRID PARAMETERS " << std::endl;
-    amrex::Print() << " dim_L0:       " << dim_L0 << std::endl;
-    amrex::Print() << " computed cross section dim_t0:       " << cross_dim_t0 << std::endl;
-    amrex::Print() << " computed streamwise section length:       " << stream_length << std::endl;
-    amrex::Print() << " ratio_t0_L0_cross:    " << ratio_t0_L0_cross << std::endl;
-    amrex::Print() << " ratio_t0_stream_thickness:    " << ratio_t0_stream_thickness << std::endl;
-    amrex::Print() << " pos_big_square:    " << pos_big_square << std::endl;
-    amrex::Print() << " pos_small_square:    " << pos_small_square << std::endl;
+    amrex::Print() << " SQUARE GRID PARAMETERS " << '\n';
+    amrex::Print() << " dim_L0:       " << dim_L0 << '\n';
+    amrex::Print() << " computed cross section dim_t0:       " << cross_dim_t0 << '\n';
+    amrex::Print() << " computed streamwise section length:       " << stream_length << '\n';
+    amrex::Print() << " ratio_t0_L0_cross:    " << ratio_t0_L0_cross << '\n';
+    amrex::Print() << " ratio_t0_stream_thickness:    " << ratio_t0_stream_thickness << '\n';
+    amrex::Print() << " pos_big_square:    " << pos_big_square << '\n';
+    amrex::Print() << " pos_small_square:    " << pos_small_square << '\n';
 
 
         // Build the implicit function as a union of two cylinders
@@ -398,7 +398,7 @@ NavierStokesBase::init_eb (const Geometry& /*level_geom*/, const BoxArray& /*ba*
 void
 NavierStokesBase::initialize_eb2_structs() {
 
-  amrex::Print() << "Initializing EB2 structs" << std::endl;
+  amrex::Print() << "Initializing EB2 structs" << '\n';
 
   // NOTE: THIS NEEDS TO BE REPLACED WITH A FLAGFAB
 
@@ -463,7 +463,7 @@ NavierStokesBase::initialize_eb2_structs() {
       }
     }
     else {
-      amrex::Print() << "unknown (or multivalued) fab type" << std::endl;
+      amrex::Print() << "unknown (or multivalued) fab type" << '\n';
       amrex::Abort();
     }
   }

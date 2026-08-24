@@ -142,7 +142,7 @@ main (int   argc,
 
     ParallelDescriptor::ReduceRealMax(run_stop,IOProc);
 
-    amrex::Print() << "Run time = " << run_stop << std::endl;
+    amrex::Print() << "Run time = " << run_stop << '\n';
 
     BL_PROFILE_VAR_STOP(pmain);
     BL_PROFILE_REGION_STOP("main()");
