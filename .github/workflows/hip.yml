@@ -34,7 +34,7 @@ jobs:
         repository: AMReX-Codes/amrex
         path: amrex
     - name: Set Up Cache
-      uses: actions/cache@v4
+      uses: actions/cache@v6
       with:
         path: ~/.cache/ccache
         key: ccache-${{ github.workflow }}-${{ github.job }}-git-${{ github.sha }}
