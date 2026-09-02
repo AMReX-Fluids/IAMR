@@ -627,7 +627,7 @@ Diffusion::diffuse_velocity (Real                   dt,
                              const MultiFab* const  betanp1CC,
                              int                    betaComp)
 {
-  if (verbose) amrex::Print() << "... Diffusion::diffuse_velocity() lev: " << level << std::endl;
+  if (verbose) amrex::Print() << "... Diffusion::diffuse_velocity() lev: " << level << '\n';
 
     const Real strt_time = ParallelDescriptor::second();
 

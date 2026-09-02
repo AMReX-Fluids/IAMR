@@ -6,7 +6,7 @@ using namespace amrex;
 #ifdef AMREX_USE_EB
 #include <AMReX_EB2.H>
 #include <AMReX_EB2_IF.H>
-void
+inline void
 EBUserDefined(const Geometry& /*geom*/,
               const int /*required_coarsening_level*/,
               const int /*max_coarsening_level*/)

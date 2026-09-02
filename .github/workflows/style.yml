@@ -1,6 +1,10 @@
 name: Style
 
-on: [push, pull_request]
+on:
+  push:
+    branches-ignore:
+      - 'dependabot/**'
+  pull_request:
 
 concurrency:
   group: ${{ github.ref }}-${{ github.head_ref }}-style
@@ -10,13 +14,13 @@ jobs:
   tabs:
     runs-on: ubuntu-22.04
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - name: Tabs
         run: .github/workflows/style/check_tabs.sh
 
   trailing_whitespaces:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - name: Trailing Whitespaces
         run: .github/workflows/style/check_trailing_whitespaces.sh

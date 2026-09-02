@@ -37,7 +37,7 @@ using namespace amrex;
 
 #define VSHOWVAL(verbose, val) { if(verbose && \
                                    ParallelDescriptor::IOProcessor()) { \
-                                   cout << #val << " = " << val << endl; } }
+                                   cout << #val << " = " << val << '\n'; } }
 LevelBld *getLevelBld() {
   return 0;
 }
@@ -48,7 +48,6 @@ LevelBld *getLevelBld() {
 
 using std::cout;
 using std::cerr;
-using std::endl;
 
 using namespace amrex;
 
@@ -149,7 +148,7 @@ static void PrintUsage (char *progName) {
          << "checkout=outfilename "
          << "user_ratio= 2 or 4 "
          << "interp_kind= refine or coarsen "
-         << "[verbose=trueorfalse]" << endl;
+         << "[verbose=trueorfalse]" << '\n';
     exit(1);
 }
 
@@ -242,14 +241,14 @@ static void ReadCheckpointFile(const std::string& fileName) {
 
       if (ParallelDescriptor::IOProcessor()) {
         if (lev == 0) {
-           std::cout << " " << std::endl;
-           std::cout << " **************************************** " << std::endl;
-           std::cout << " " << std::endl;
+           std::cout << " " << '\n';
+           std::cout << " **************************************** " << '\n';
+           std::cout << " " << '\n';
         }
-           std::cout << "Old checkpoint level    " << lev << std::endl;
-           std::cout << " ... domain is       " << fakeAmr_src.geom[lev].Domain() << std::endl;
-           std::cout << " ...     dx is       " << fakeAmr_src.geom[lev].CellSize()[0] << std::endl;
-           std::cout << "  " << std::endl;
+           std::cout << "Old checkpoint level    " << lev << '\n';
+           std::cout << " ... domain is       " << fakeAmr_src.geom[lev].Domain() << '\n';
+           std::cout << " ...     dx is       " << fakeAmr_src.geom[lev].CellSize()[0] << '\n';
+           std::cout << "  " << '\n';
       }
 
       FakeAmrLevel &falRef = fakeAmr_src.fakeAmrLevels[lev];
@@ -534,14 +533,14 @@ static void WriteCheckpointFile(const std::string& inFileName, const std::string
 
        if (ParallelDescriptor::IOProcessor()) {
           if (lev == 0) {
-             std::cout << " " << std::endl;
-             std::cout << " **************************************** " << std::endl;
-             std::cout << " " << std::endl;
+             std::cout << " " << '\n';
+             std::cout << " **************************************** " << '\n';
+             std::cout << " " << '\n';
           }
-          std::cout << "New checkpoint level    " << lev << std::endl;
-          std::cout << " ... domain is       " << fakeAmr_trgt.geom[lev].Domain() << std::endl;
-          std::cout << " ...     dx is       " << fakeAmr_trgt.geom[lev].CellSize()[0] << std::endl;
-          std::cout << "  " << std::endl;
+          std::cout << "New checkpoint level    " << lev << '\n';
+          std::cout << " ... domain is       " << fakeAmr_trgt.geom[lev].Domain() << '\n';
+          std::cout << " ...     dx is       " << fakeAmr_trgt.geom[lev].CellSize()[0] << '\n';
+          std::cout << "  " << '\n';
        }
 
     }
@@ -767,9 +766,9 @@ int main(int argc, char *argv[]) {
     ScanArguments();
 
     if(verbose && ParallelDescriptor::IOProcessor()) {
-      cout << " " << std::endl;
-      cout << "Reading from old checkpoint file: " <<  CheckFileIn << endl;
-      cout << " " << std::endl;
+      cout << " " << '\n';
+      cout << "Reading from old checkpoint file: " <<  CheckFileIn << '\n';
+      cout << " " << '\n';
     }
 
     // Read in the original checkpoint directory
@@ -782,9 +781,9 @@ int main(int argc, char *argv[]) {
     WriteCheckpointFile(CheckFileIn, CheckFileOut);
 
     if(verbose && ParallelDescriptor::IOProcessor()) {
-      cout << " " << std::endl;
-      cout << "Finished writing to new checkpoint file: " <<  CheckFileOut << endl;
-      cout << " " << std::endl;
+      cout << " " << '\n';
+      cout << "Finished writing to new checkpoint file: " <<  CheckFileOut << '\n';
+      cout << " " << '\n';
     }
 
     amrex::Finalize();

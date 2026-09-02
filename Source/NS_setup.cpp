@@ -9,8 +9,10 @@
 
 using namespace amrex;
 
-static Box the_same_box (const Box& b)    { return b;                }
-static Box grow_box_by_two (const Box& b) { return amrex::grow(b,2); }
+namespace {
+    Box the_same_box (const Box& b)    { return b;                }
+    Box grow_box_by_two (const Box& b) { return amrex::grow(b,2); }
+}
 
 // NOTE: the int arrays that define the mapping from physical BCs to mathematical
 // (norm_vel_bc, tang_vel_bc, scalar_bc, temp_bc, press_bc, divu_bc, dsdt_bc)
@@ -216,18 +218,18 @@ set_average_bc(BCRec& bc, const BCRec& phys_bc)
 
 typedef StateDescriptor::BndryFunc BndryFunc;
 
+void
+NavierStokes::variableSetUp ()
+{
 //
 // Get EB-aware interpolater when needed
 //
 #ifdef AMREX_USE_EB
-  static auto& cc_interp = eb_cell_cons_interp;
+    auto& cc_interp = eb_cell_cons_interp;
 #else
-  static auto& cc_interp = cell_cons_interp;
+    auto& cc_interp = cell_cons_interp;
 #endif
 
-void
-NavierStokes::variableSetUp ()
-{
     AMREX_ASSERT(desc_lst.size() == 0);
 
     Initialize();

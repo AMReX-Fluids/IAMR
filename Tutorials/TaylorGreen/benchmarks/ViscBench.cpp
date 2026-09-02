@@ -145,8 +145,8 @@ main (int   argc,
     Vector<MultiFab*> error(finestLevel+1);
     Vector<MultiFab*> dataE(finestLevel+1);
 
-    std::cout << "Level Delta L"<< norm << " norm of Error in Each Component" << std::endl
-         << "-----------------------------------------------" << std::endl;
+    std::cout << "Level Delta L"<< norm << " norm of Error in Each Component" << '\n'
+         << "-----------------------------------------------" << '\n';
 
     for (int iLevel = 0; iLevel <= finestLevel; ++iLevel)
     {
@@ -232,7 +232,7 @@ main (int   argc,
             }
             std::cout << Ln << "  ";
         }
-        std::cout << std::endl;
+        std::cout << '\n';
     }
 
     //

@@ -799,7 +799,7 @@ NavierStokesBase::buildMetrics ()
         if (std::abs(dx[i]-dx[i-1]) > 1.e-12*dx[0]){
             Print()<<"dx = "
                    <<AMREX_D_TERM(dx[0], <<" "<<dx[1], <<" "<<dx[2])
-                   <<std::endl;
+                   <<'\n';
             amrex::Abort("EB requires dx == dy (== dz)\n");
         }
     }
@@ -1478,7 +1478,7 @@ NavierStokesBase::estTimeStep ()
       Print()<<"\nNavierStokesBase::estTimeStep() failed to provide a good timestep "
              <<"(probably because initial velocity field is zero with no external forcing).\n"
              <<"Use ns.init_dt to provide a reasonable timestep on coarsest level.\n"
-             <<"Note that ns.init_shrink will be applied to init_dt."<<std::endl;
+             <<"Note that ns.init_shrink will be applied to init_dt."<<'\n';
       amrex::Abort("\n");
     }
 
@@ -1503,7 +1503,7 @@ NavierStokesBase::estTimeStep ()
            }
            amrex::Print() << '\n';
         }
-        Print()<<"estimated timestep: dt = "<<estdt<<std::endl;
+        Print()<<"estimated timestep: dt = "<<estdt<<'\n';
     }
 
     return estdt;
@@ -2287,13 +2287,13 @@ NavierStokesBase::steadyState()
     if (verbose)
     {
         amrex::Print() << "steadyState :: \n" << "LEV = " << level
-                       << " MAX_CHANGE = " << max_change << std::endl;
+                       << " MAX_CHANGE = " << max_change << '\n';
 
         if (steady)
         {
             amrex::Print()
                 << "System reached steady-state, stopping simulation."
-                << std::endl;
+                << '\n';
         }
     }
 
@@ -2381,11 +2381,11 @@ NavierStokesBase::post_init_state ()
         //
         AMREX_ASSERT(projector != nullptr);
 
-        if (verbose) amrex::Print() << "calling initialVorticityProject" << std::endl;
+        if (verbose) amrex::Print() << "calling initialVorticityProject" << '\n';
 
         projector->initialVorticityProject(0);
 
-        if (verbose) amrex::Print() << "done calling initialVorticityProject" << std::endl;
+        if (verbose) amrex::Print() << "done calling initialVorticityProject" << '\n';
     }
 
     if (do_init_proj && projector)
@@ -2393,11 +2393,11 @@ NavierStokesBase::post_init_state ()
       //
       // Do sync project to define divergence free velocity field.
       //
-      if (verbose) amrex::Print() << "calling initialVelocityProject" << std::endl;
+      if (verbose) amrex::Print() << "calling initialVelocityProject" << '\n';
 
       projector->initialVelocityProject(0,divu_time,have_divu,init_vel_iter);
 
-      if (verbose) amrex::Print() << "done calling initialVelocityProject" << std::endl;
+      if (verbose) amrex::Print() << "done calling initialVelocityProject" << '\n';
     }
 
     NavierStokesBase::initial_step = true;
@@ -2418,11 +2418,11 @@ NavierStokesBase::post_init_state ()
       //
       // Do projection to establish initially hydrostatic pressure field.
       //
-      if (verbose) amrex::Print() << "calling initialPressureProject" << std::endl;
+      if (verbose) amrex::Print() << "calling initialPressureProject" << '\n';
 
       projector->initialPressureProject(0);
 
-      if (verbose) amrex::Print() << "done calling initialPressureProject" << std::endl;
+      if (verbose) amrex::Print() << "done calling initialPressureProject" << '\n';
     }
     //
     // Make sure there's not NANs in old pressure field.
@@ -2478,7 +2478,7 @@ NavierStokesBase::post_restart ()
     if ( average_in_checkpoint==0 )
     {
       Print()<<"WARNING! Average not found in checkpoint file. Creating data"
-             <<std::endl;
+             <<'\n';
 
       Real cur_time = state[State_Type].curTime();
       Real prev_time = state[State_Type].prevTime();
@@ -2707,14 +2707,14 @@ NavierStokesBase::restart (Amr&          papa,
 {
     Print()<<"\nWARNING! Note that you can't drop data from the checkpoint file.\n"
            <<" If your checkpoint file contains Average_Type, then your inputs\n"
-           <<" must also specify ns.avg_interval>0.\n"<<std::endl;
+           <<" must also specify ns.avg_interval>0.\n"<<'\n';
 
     AmrLevel::restart(papa,is,bReadSpecial);
 
     if ( gradp_in_checkpoint==0 )
     {
       Print()<<"WARNING! GradP not found in checkpoint file. Recomputing from Pressure."
-             <<std::endl;
+             <<'\n';
 
       //
       // Compute GradP from the Pressure
@@ -3631,24 +3631,24 @@ NavierStokesBase::velocity_advection_update (Real dt)
     {
        if (U_old.contains_nan(sigma,1,0))
        {
-         amrex::Print() << "VAU: Old velocity " << sigma << " contains Nans" << std::endl;
+         amrex::Print() << "VAU: Old velocity " << sigma << " contains Nans" << '\n';
 
          IntVect mpt(AMREX_D_DECL(-100,100,-100));
          for (MFIter mfi(U_old); mfi.isValid(); ++mfi){
            const Box& bx = mfi.tilebox();
            if ( U_old[mfi].contains_nan<RunOn::Device>(bx, sigma, 1, mpt) )
-             amrex::Print() << " Nans at " << mpt << std::endl;
+             amrex::Print() << " Nans at " << mpt << '\n';
          }
        }
        if (U_new.contains_nan(sigma,1,0))
        {
-         amrex::Print() << "VAU: New velocity " << sigma << " contains Nans" << std::endl;
+         amrex::Print() << "VAU: New velocity " << sigma << " contains Nans" << '\n';
 
          IntVect mpt(AMREX_D_DECL(-100,100,-100));
          for (MFIter mfi(U_new); mfi.isValid(); ++mfi){
            const Box& bx = mfi.tilebox();
            if ( U_new[mfi].contains_nan<RunOn::Device>(bx, sigma, 1, mpt) )
-             amrex::Print() << " Nans at " << mpt << std::endl;
+             amrex::Print() << " Nans at " << mpt << '\n';
          }
        }
     }
@@ -4214,7 +4214,7 @@ NavierStokesBase::printMaxVel (bool new_data)
                    << "  "
                    << S.norm0( Xvel+2, 0, false, true )
 #endif
-                   << std::endl;
+                   << '\n';
 }
 
 
@@ -4238,7 +4238,7 @@ NavierStokesBase::printMaxGp (bool new_data)
 #endif
                    << "  "
                    << P.norm0(0, 0, false, true )
-                   << std::endl;
+                   << '\n';
 }
 
 void
@@ -5110,7 +5110,7 @@ NavierStokesBase::InitialRedistribution ()
     }
 
     if (verbose) {
-      amrex::Print() << "Doing initial redistribution... " << std::endl;
+      amrex::Print() << "Doing initial redistribution... " << '\n';
     }
 
     // Initial data are set at new time step
