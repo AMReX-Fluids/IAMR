@@ -26,6 +26,16 @@ NavierStokesBase::time_average(amrex::Real&  a_time_avg, amrex::Real&  a_time_av
   {
     MultiFab& Sstate = get_new_data(State_Type);
     MultiFab& Savg   = get_new_data(Average_Type);
+    //
+    // Old data may not have been allocated yet, e.g. when this is called from
+    // post_init and no advance has taken place (ns.init_iter <= 0).
+    // Zero is the right seed: the kernel below copies S_avg back into
+    // S_avg_old on every sample, so both time levels agree by construction.
+    //
+    if (! state[Average_Type].hasOldData()) {
+        state[Average_Type].allocOldData();
+        state[Average_Type].oldData().setVal(0.);
+    }
     MultiFab& Savg_old   = get_old_data(Average_Type);
 
 #ifdef _OPENMP

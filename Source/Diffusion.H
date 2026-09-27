@@ -118,6 +118,7 @@ public:
                         const amrex::MultiFab&        rho_half,
                         int                           rho_flag,
                         const amrex::MultiFab*        const* beta,
+                        const amrex::MultiFab*        betaCC,
                         int                           betaComp = 0,
                         bool                          update_fluxreg = true);
 
@@ -127,6 +128,7 @@ public:
                                const amrex::MultiFab&        rho_half,
                                int                           rho_flag,
                                const amrex::MultiFab* const* beta,
+                               const amrex::MultiFab*        betaCC,
                                int                           betaComp,
                                bool                          update_fluxreg);
 

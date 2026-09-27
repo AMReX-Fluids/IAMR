@@ -1561,7 +1561,9 @@ NavierStokes::mac_sync ()
       loc_viscn = fb_viscn.define(this);
       getViscosity(loc_viscn, viscTime);
 
-      diffusion->diffuse_Vsync(Vsync,dt,be_cn_theta,Rh,rho_flag,loc_viscn,0);
+      // viscn_cc holds the cell-centered viscosity at prevTime; needed by
+      // MLEBTensorOp::setEBShearViscosity in EB builds.
+      diffusion->diffuse_Vsync(Vsync,dt,be_cn_theta,Rh,rho_flag,loc_viscn,viscn_cc,0);
     }
 
     FluxBoxes fb_SC;

@@ -394,6 +394,14 @@ Diffusion::diffuse_scalar (const Vector<MultiFab*>&  S_old,
                 }
                 opn.setCoarseFineBC(Solnc.get(), cratio[0]);
             }
+            else if (level > 0) {
+                //
+                // No coarse data supplied, but this is a level > 0 solve, so
+                // we still must tell MLMG the true refinement ratio for the
+                // homogeneous Dirichlet coarse-fine boundary condition.
+                //
+                opn.setCoarseFineBC(nullptr, cratio[0]);
+            }
             MultiFab::Copy(Soln,*S_old[0],sigma,0,nComp,ng);
             if (rho_flag == 2) {
 #ifdef AMREX_USE_OMP
@@ -516,6 +524,9 @@ Diffusion::diffuse_scalar (const Vector<MultiFab*>&  S_old,
             });
         }
         opnp1.setCoarseFineBC(Solnc.get(), cratio[0]);
+    }
+    else if (level > 0) {
+        opnp1.setCoarseFineBC(nullptr, cratio[0]);
     }
 #ifdef AMREX_USE_OMP
 #pragma omp parallel if (Gpu::notInLaunchRegion())
@@ -847,7 +858,6 @@ Diffusion::diffuse_tensor_velocity (Real                   dt,
       // const Real tol_abs = 0.0;
       // cribbing from scalar
       const Real tol_rel = visc_tol;
-      const Real tol_abs = get_scaled_abs_tol(Rhs, visc_tol);
 
       LPInfo info;
       info.setAgglomeration(agglomeration);
@@ -889,10 +899,10 @@ Diffusion::diffuse_tensor_velocity (Real                   dt,
          tensorop.setLevelBC(0, &Soln);
       }
 
+      Real rhsscale = 1.0;
       {
          MultiFab acoef;
          std::pair<Real,Real> scalars;
-         Real rhsscale = 1.0;
          const MultiFab& rho = (rho_flag == 1) ? rho_half : navier_stokes->get_new_data(State_Type);
          const int rho_comp = (rho_flag == 1) ? 0 : Density;
          computeAlpha(acoef, scalars, a, b,
@@ -901,6 +911,12 @@ Diffusion::diffuse_tensor_velocity (Real                   dt,
          tensorop.setScalars(scalars.first, scalars.second);
          tensorop.setACoeffs(0, acoef);
       }
+      //
+      // computeAlpha scaled the operator scalars by rhsscale; the RHS must be
+      // scaled to match (cf. diffuse_scalar and diffuse_Ssync).
+      //
+      Rhs.mult(rhsscale,0,AMREX_SPACEDIM);
+      const Real tol_abs = get_scaled_abs_tol(Rhs, visc_tol);
 
 #ifdef AMREX_USE_EB
       setViscosity(tensorop, betanp1, betaComp, *betanp1CC);
@@ -966,6 +982,7 @@ Diffusion::diffuse_Vsync (MultiFab&              Vsync,
                           const MultiFab&        rho_half,
                           int                    rho_flag,
                           const MultiFab* const* beta,
+                          const MultiFab*        betaCC,
                           int                    betaComp,
                           bool                   update_fluxreg)
 {
@@ -979,7 +996,7 @@ Diffusion::diffuse_Vsync (MultiFab&              Vsync,
         AMREX_ASSERT(beta[d]->min(0,0) >= 0.0);
 #endif
 
-    diffuse_tensor_Vsync(Vsync,dt,be_cn_theta,rho_half,rho_flag,beta,betaComp,update_fluxreg);
+    diffuse_tensor_Vsync(Vsync,dt,be_cn_theta,rho_half,rho_flag,beta,betaCC,betaComp,update_fluxreg);
     //
     // applyBC has put "incorrect" values in the ghost cells
     // outside external Dirichlet boundaries. Reset these to zero
@@ -1017,8 +1034,9 @@ Diffusion::diffuse_tensor_Vsync (MultiFab&              Vsync,
                                  Real                   be_cn_theta,
                                  const MultiFab&        rho_half,
                                  int                    rho_flag,
-                                 const MultiFab* const* /*beta*/,
-                                 int                    /*betaComp*/,
+                                 const MultiFab* const* beta,
+                                 const MultiFab*        betaCC,
+                                 int                    betaComp,
                                  bool                   update_fluxreg)
 {
     AMREX_ASSERT(rho_flag == 1 || rho_flag == 3);
@@ -1045,7 +1063,9 @@ Diffusion::diffuse_tensor_Vsync (MultiFab&              Vsync,
     {
        const Box& bx = mfi.tilebox();
        auto const& rhs = Rhs.array(mfi);
-       auto const& rho = (rho_flag == 1) ? rho_half.array(mfi) : navier_stokes->get_old_data(State_Type).array(mfi,Density);
+       // NOTE: must use the new-time density here to match the acoef built
+       //       below and mac_sync's normalization of Vsync by rho^{n+1}.
+       auto const& rho = (rho_flag == 1) ? rho_half.array(mfi) : navier_stokes->get_new_data(State_Type).array(mfi,Density);
 
        amrex::ParallelFor(bx, [rhs, rho]
        AMREX_GPU_DEVICE (int i, int j, int k) noexcept
@@ -1113,22 +1133,13 @@ Diffusion::diffuse_tensor_Vsync (MultiFab&              Vsync,
       tensorop.setACoeffs(0, acoef);
     }
 
-    {
-      FluxBoxes  fb_bcoef;
-      MultiFab** face_bcoef = nullptr;
-      face_bcoef = fb_bcoef.define(navier_stokes);
-      for (int dir=0; dir<AMREX_SPACEDIM; dir++) {
-         face_bcoef[dir]->setVal(1.0);
-      }
-
 #ifdef AMREX_USE_EB
-      MultiFab bcoefCC(grids,dmap,1,0,MFInfo(),navier_stokes->Factory());
-      bcoefCC.setVal(1.0);
-      setViscosity(tensorop, face_bcoef, 0, bcoefCC);
+    AMREX_ALWAYS_ASSERT(betaCC != nullptr);
+    setViscosity(tensorop, beta, betaComp, *betaCC);
 #else
-      setViscosity(tensorop, face_bcoef, 0);
+    amrex::ignore_unused(betaCC);
+    setViscosity(tensorop, beta, betaComp);
 #endif
-    }
 
     MLMG mlmg(tensorop);
     if (max_iter > 0) {
@@ -1144,7 +1155,7 @@ Diffusion::diffuse_tensor_Vsync (MultiFab&              Vsync,
     mlmg.setMaxFmgIter(max_fmg_iter);
     mlmg.setVerbose(verbose);
 
-    Rhs.mult(rhsscale,0,1);
+    Rhs.mult(rhsscale,0,AMREX_SPACEDIM);
 
     mlmg.setFinalFillBC(true);
     mlmg.solve({&Soln}, {&Rhs}, tol_rel, tol_abs);

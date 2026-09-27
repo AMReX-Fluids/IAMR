@@ -852,6 +852,25 @@ NavierStokesBase::calc_dsdt (Real      /*time*/,
     }
 }
 
+//
+// Grow the on-the-fly averaging accumulators so that every level up to
+// a_finest_level has an entry. A regrid can create levels that did not exist
+// when these were sized in post_init/post_restart. resize() zero-fills the new
+// entries and leaves the existing accumulations alone.
+//
+void
+NavierStokesBase::grow_avg_vectors (int a_finest_level)
+{
+    const int nlev = a_finest_level + 1;
+
+    if (static_cast<int>(NavierStokesBase::time_avg.size()) < nlev)
+    {
+        NavierStokesBase::time_avg.resize(nlev,0.);
+        NavierStokesBase::time_avg_fluct.resize(nlev,0.);
+        NavierStokesBase::dt_avg.resize(nlev,0.);
+    }
+}
+
 void
 NavierStokesBase::checkPoint (const std::string& dir,
                               std::ostream&      os,
@@ -860,7 +879,11 @@ NavierStokesBase::checkPoint (const std::string& dir,
 {
     AmrLevel::checkPoint(dir, os, how, dump_old);
 
-    if (avg_interval > 0)
+    //
+    // There is a single TimeAverage file per checkpoint, so only level 0
+    // writes it -- and it writes the data for every level.
+    //
+    if (avg_interval > 0 && level == 0)
     {
         VisMF::IO_Buffer io_buffer(VisMF::IO_Buffer_Size);
 
@@ -882,8 +905,15 @@ NavierStokesBase::checkPoint (const std::string& dir,
             // write out title line
             TImeAverageFile << "Writing time_average to checkpoint\n";
 
-            TImeAverageFile << NavierStokesBase::time_avg[level] << "\n";
-            TImeAverageFile << NavierStokesBase::time_avg_fluct[level] << "\n";
+            //
+            // One (time_avg, time_avg_fluct, dt_avg) triple per level.
+            //
+            for (int lev = 0; lev <= parent->finestLevel(); lev++)
+            {
+                TImeAverageFile << NavierStokesBase::time_avg[lev] << "\n";
+                TImeAverageFile << NavierStokesBase::time_avg_fluct[lev] << "\n";
+                TImeAverageFile << NavierStokesBase::dt_avg[lev] << "\n";
+            }
         }
     }
 
@@ -1732,6 +1762,7 @@ NavierStokesBase::init (AmrLevel &old)
     FillPatch(old,Gp_new,Gp_new.nGrow(),cur_pres_time,Gradp_Type,0,AMREX_SPACEDIM);
 
     if (avg_interval > 0){
+      grow_avg_vectors(level);
       MultiFab& Save_new = get_new_data(Average_Type);
       FillPatch(old,Save_new,0,cur_time,Average_Type,0,AMREX_SPACEDIM*2);
     }
@@ -1794,6 +1825,23 @@ NavierStokesBase::init ()
     FillCoarsePatch(S_new,0,cur_time,State_Type,0,NUM_STATE);
     FillCoarsePatch(P_new,0,cur_pres_time,Press_Type,0,1);
     FillCoarsePatch(Gp_new,0,cur_pres_time,Gradp_Type,0,AMREX_SPACEDIM,Gp_new.nGrow());
+    //
+    // Get the best coarse time-average data. post_regrid has not run yet, so
+    // make room for this level here; the interpolated average is the integral
+    // over the *coarser* level's averaging window, so the accumulators must be
+    // seeded from the coarser level too or der_vel_avg will mis-normalize it.
+    //
+    if (avg_interval > 0)
+    {
+        grow_avg_vectors(level);
+
+        MultiFab& Save_new = get_new_data(Average_Type);
+        FillCoarsePatch(Save_new,0,cur_time,Average_Type,0,AMREX_SPACEDIM*2);
+
+        NavierStokesBase::time_avg[level]       = NavierStokesBase::time_avg[level-1];
+        NavierStokesBase::time_avg_fluct[level] = NavierStokesBase::time_avg_fluct[level-1];
+        NavierStokesBase::dt_avg[level]         = NavierStokesBase::dt_avg[level-1];
+    }
     //
     // Get best coarse divU and dSdt data.
     //
@@ -2445,6 +2493,14 @@ void
 NavierStokesBase::post_regrid (int lbase,
                                int /*new_finest*/)
 {
+    //
+    // A regrid may have created levels that did not exist when the on-the-fly
+    // averaging data were sized in post_init/post_restart.
+    //
+    if (avg_interval > 0) {
+        grow_avg_vectors(parent->finestLevel());
+    }
+
 #ifdef AMREX_PARTICLES
     if (NSPC && level == lbase)
     {
@@ -2514,9 +2570,19 @@ NavierStokesBase::post_restart ()
       // read in title line
       std::getline(isp, line);
 
-      isp >> NavierStokesBase::time_avg[level];
-      isp >> NavierStokesBase::time_avg_fluct[level];
-      NavierStokesBase::dt_avg[level]   = 0;
+      //
+      // The file holds one (time_avg, time_avg_fluct, dt_avg) triple per
+      // level, so read forward to this level's triple. Note that a
+      // checkpoint written by an older version of the code holds only
+      // level 0's (time_avg, time_avg_fluct) pair; the failed extractions
+      // then leave zeros behind, which is the best we can do.
+      //
+      for (int lev = 0; lev <= level; lev++)
+      {
+          isp >> NavierStokesBase::time_avg[level];
+          isp >> NavierStokesBase::time_avg_fluct[level];
+          isp >> NavierStokesBase::dt_avg[level];
+      }
 
     }
   }
@@ -2717,10 +2783,31 @@ NavierStokesBase::restart (Amr&          papa,
              <<'\n';
 
       //
-      // Compute GradP from the Pressure
+      // AmrLevel::restart skipped state[Gradp_Type].restart() because Gradp
+      // was not in the checkpoint, so the StateData is still undefined.
+      // Define it here (mirroring the Average_Type recovery in post_restart)
+      // before computing GradP from the Pressure.
       //
-      computeGradP(state[Press_Type].curTime());
-      computeGradP(state[Press_Type].prevTime());
+      Real cur_time  = state[Press_Type].curTime();
+      Real prev_time = state[Press_Type].prevTime();
+      Real dt_gp     = cur_time - prev_time;
+
+      //
+      // Gradp_Type is registered StateDescriptor::Interval, so StateData::define
+      // builds new_time = [t,t+dt] and old_time = [t-dt,t]. Passing the midpoint
+      // of Press's own interval makes Gradp's curTime()/prevTime() match Press's
+      // exactly, so both get_data() lookups inside computeGradP resolve.
+      //
+      state[Gradp_Type].define(geom.Domain(), grids, dmap, desc_lst[Gradp_Type],
+                               0.5*(prev_time+cur_time), dt_gp, Factory());
+
+      computeGradP(cur_time);
+
+      //
+      // Now allocate the old data and fill it.
+      //
+      state[Gradp_Type].allocOldData();
+      computeGradP(prev_time);
     }
 
     define_workspace();
@@ -3916,7 +4003,9 @@ NavierStokesBase::post_timestep_particle (int crse_iteration)
 
                 if (tindices.size() > 0)
                 {
-                    tmf.define(S_new.boxArray(), S_new.DistributionMap(), tindices.size(), ng, MFInfo(), Factory());
+                    // NOTE: must use the factory of the level being timestamped,
+                    //       not this level's.
+                    tmf.define(S_new.boxArray(), S_new.DistributionMap(), tindices.size(), ng, MFInfo(), amr_level.Factory());
 
                     if (n > 0)
                     {
@@ -3943,6 +4032,15 @@ NavierStokesBase::post_timestep_particle (int crse_iteration)
                     {
                         timestamp_add_extras(lev, curr_time, tmf);
                     }
+                }
+                else
+                {
+                    //
+                    // Timestamp indexes tmf's BoxArray/DistributionMap even
+                    // when tindices is empty, so tmf must always be defined.
+                    //
+                    tmf.define(S_new.boxArray(), S_new.DistributionMap(), 1, ng,
+                               MFInfo(), amr_level.Factory());
                 }
 
                 NSPC->Timestamp(basename, tmf, lev, curr_time, tindices);
@@ -4004,7 +4102,9 @@ NavierStokesBase::ParticleDerive (const std::string& name,
             {
                 BoxArray ba = parent->boxArray(lev);
 
-                MultiFab temp_dat(ba,parent->DistributionMap(lev),1,0,MFInfo(),Factory());
+                // NOTE: must use lev's factory, not this level's.
+                MultiFab temp_dat(ba,parent->DistributionMap(lev),1,0,MFInfo(),
+                                  parent->getLevel(lev).Factory());
 
                 trr *= parent->refRatio(lev-1);
 
@@ -4018,22 +4118,28 @@ NavierStokesBase::ParticleDerive (const std::string& name,
                 NSPC->Increment(temp_dat,lev);
 
 #ifdef _OPENMP
-#pragma omp parallel
+#pragma omp parallel if (Gpu::notInLaunchRegion())
 #endif
-                for (MFIter mfi(temp_dat,true); mfi.isValid(); ++mfi)
+                for (MFIter mfi(temp_dat,TilingIfNotGPU()); mfi.isValid(); ++mfi)
                 {
-                    const FArrayBox& ffab =  temp_dat[mfi];
-                    FArrayBox&       cfab = ctemp_dat[mfi];
-                    const Box&       fbx  = mfi.tilebox();
+                    const Box& fbx = mfi.tilebox();
+                    auto const& ffab = temp_dat.const_array(mfi);
+                    auto const& cfab = ctemp_dat.array(mfi);
+                    const IntVect ratio = trr;
 
-                    AMREX_ASSERT(cfab.box() == amrex::coarsen(fbx,trr));
-
-                    for (IntVect p = fbx.smallEnd(); p <= fbx.bigEnd(); fbx.next(p))
+                    // NOTE: Increment() fills temp_dat on the device, so this
+                    //       accumulation must run there too. The atomic also
+                    //       removes the OpenMP race between tiles mapping to
+                    //       the same coarse cell.
+                    amrex::ParallelFor(fbx, [ffab, cfab, ratio]
+                    AMREX_GPU_DEVICE (int i, int j, int k) noexcept
                     {
-                        const Real val = ffab(p);
-                        if (val > 0)
-                            cfab(amrex::coarsen(p,trr)) += val;
-                    }
+                        const Real val = ffab(i,j,k);
+                        if (val > 0) {
+                            const auto cp = amrex::coarsen(Dim3{i,j,k}, ratio);
+                            Gpu::Atomic::AddNoRet(&cfab(cp.x,cp.y,cp.z), val);
+                        }
+                    });
                 }
 
                 temp_dat.clear();
@@ -4874,6 +4980,13 @@ NavierStokesBase::ComputeAofs ( MultiFab& advc, int a_comp, // Advection term "A
         rstate_tmp.define(S.boxArray(),S.DistributionMap(),ncomp,S.nGrow(),
                           MFInfo(),ebfact);
         MultiFab::Copy(rstate_tmp,advc,a_comp,0,ncomp,S.nGrow());
+        //
+        // Vsync/Ssync only hold valid-region data (reflux writes valid cells
+        // only), so fill the grid-overlap ghost cells before using this as the
+        // state redistribution "state". Otherwise the sync correction near
+        // every box boundary depends on the grid decomposition.
+        //
+        rstate_tmp.FillBoundary(geom.periodicity());
     }
     MultiFab const* rstate = (is_sync && redistribution_type == "StateRedist")
                              ? &rstate_tmp : &S;
@@ -4929,6 +5042,14 @@ NavierStokesBase::ComputeAofs ( MultiFab& advc, int a_comp, // Advection term "A
             FArrayBox         dm_as_fine(Box::TheUnitBox(),ncomp);
             FArrayBox   fab_drho_as_crse(Box::TheUnitBox(),ncomp);
             IArrayBox fab_rrflag_as_crse(Box::TheUnitBox());
+
+            // This is a hack-y way of testing whether this ComputeAofs call
+            // came from the mac_sync (do_crse_add = false)
+            // or from the regular advance (do_crse_add = true).  When the call
+            // comes from the mac_sync, the multiplier in FineAdd needs to have
+            // the opposite sign -- and so does the re-redistributed mass that
+            // the redistribution puts into dm_as_fine/drho_as_crse.
+            Real sync_factor = do_crse_add ? 1.0 : -1.0;
 
             if (flagfab.getType(grow(bx,4)) != FabType::regular)
             {
@@ -4998,7 +5119,9 @@ NavierStokesBase::ComputeAofs ( MultiFab& advc, int a_comp, // Advection term "A
                                            geom, dt, redistribution_type,
                                            as_crse, p_drho_as_crse->array(), p_rrflag_as_crse->array(),
                                            as_fine, dm_as_fine.array(), coarse_fine_mask->const_array(mfi),
-                                           level_mask_notcovered, use_wts_in_divnc);
+                                           level_mask_notcovered,
+                                           /*fac_for_deltaR*/ sync_factor,
+                                           use_wts_in_divnc);
                 } else {
                     bool use_wts_in_divnc = true;
                     ApplyRedistribution( bx, ncomp, redist_arr, update_arr,
@@ -5043,6 +5166,63 @@ NavierStokesBase::ComputeAofs ( MultiFab& advc, int a_comp, // Advection term "A
                          FArrayBox fy_fr_fab(fy_fab,amrex::make_alias,flux_comp,ncomp);,
                          FArrayBox fz_fr_fab(fz_fab,amrex::make_alias,flux_comp,ncomp););
 
+            //
+            // The cut-cell overloads of CrseAdd/FineAdd multiply the fluxes by
+            // the EB area fraction themselves, but the fluxes computed by
+            // AMReX-Hydro are already area-fraction weighted. Un-weight them
+            // here so cut faces are not refluxed with ap^2.
+            //
+            AMREX_D_TERM(FArrayBox fx_unwtd_fab;,
+                         FArrayBox fy_unwtd_fab;,
+                         FArrayBox fz_unwtd_fab;);
+
+            const bool need_unwtd_flux =
+                 ( do_reflux &&
+                   ( (do_crse_add && level < parent->finestLevel()) ||
+                     (do_fine_add && level > 0) ) &&
+                   flagfab.getType(amrex::grow(bx,1)) != FabType::regular );
+
+            if ( need_unwtd_flux )
+            {
+                AMREX_D_TERM(const FArrayBox& apx_fab = (*areafrac[0])[mfi];,
+                             const FArrayBox& apy_fab = (*areafrac[1])[mfi];,
+                             const FArrayBox& apz_fab = (*areafrac[2])[mfi];);
+
+                AMREX_D_TERM(fx_unwtd_fab.resize(fx_fr_fab.box(),ncomp,The_Async_Arena());,
+                             fy_unwtd_fab.resize(fy_fr_fab.box(),ncomp,The_Async_Arena());,
+                             fz_unwtd_fab.resize(fz_fr_fab.box(),ncomp,The_Async_Arena()););
+                AMREX_D_TERM(fx_unwtd_fab.template setVal<RunOn::Device>(0.0);,
+                             fy_unwtd_fab.template setVal<RunOn::Device>(0.0);,
+                             fz_unwtd_fab.template setVal<RunOn::Device>(0.0););
+
+                AMREX_D_TERM(auto const& fxu = fx_unwtd_fab.array();,
+                             auto const& fyu = fy_unwtd_fab.array();,
+                             auto const& fzu = fz_unwtd_fab.array(););
+                AMREX_D_TERM(auto const& fxw = fx_fr_fab.const_array();,
+                             auto const& fyw = fy_fr_fab.const_array();,
+                             auto const& fzw = fz_fr_fab.const_array(););
+                AMREX_D_TERM(auto const& apx_a = apx_fab.const_array();,
+                             auto const& apy_a = apy_fab.const_array();,
+                             auto const& apz_a = apz_fab.const_array(););
+
+                AMREX_D_TERM(const Box& uxbx = fx_unwtd_fab.box() & apx_fab.box();,
+                             const Box& uybx = fy_unwtd_fab.box() & apy_fab.box();,
+                             const Box& uzbx = fz_unwtd_fab.box() & apz_fab.box(););
+
+                amrex::ParallelFor(uxbx, ncomp, [fxu,fxw,apx_a]
+                AMREX_GPU_DEVICE (int i, int j, int k, int n) noexcept
+                { fxu(i,j,k,n) = (apx_a(i,j,k) > 0.) ? fxw(i,j,k,n)/apx_a(i,j,k) : 0.; });
+
+                amrex::ParallelFor(uybx, ncomp, [fyu,fyw,apy_a]
+                AMREX_GPU_DEVICE (int i, int j, int k, int n) noexcept
+                { fyu(i,j,k,n) = (apy_a(i,j,k) > 0.) ? fyw(i,j,k,n)/apy_a(i,j,k) : 0.; });
+#if (AMREX_SPACEDIM == 3)
+                amrex::ParallelFor(uzbx, ncomp, [fzu,fzw,apz_a]
+                AMREX_GPU_DEVICE (int i, int j, int k, int n) noexcept
+                { fzu(i,j,k,n) = (apz_a(i,j,k) > 0.) ? fzw(i,j,k,n)/apz_a(i,j,k) : 0.; });
+#endif
+            }
+
             // Now update the flux registers (inside test on AMREX_USE_EB)
             if ( do_reflux && do_crse_add && (level < parent->finestLevel()) ) {
               if (flagfab.getType(amrex::grow(bx,1)) == FabType::regular)
@@ -5053,19 +5233,12 @@ NavierStokesBase::ComputeAofs ( MultiFab& advc, int a_comp, // Advection term "A
 
               } else if (flagfab.getType(bx) != FabType::covered ) {
                    getAdvFluxReg(level + 1).CrseAdd(mfi,
-                      {AMREX_D_DECL(&fx_fr_fab,&fy_fr_fab,&fz_fr_fab)},
+                      {AMREX_D_DECL(&fx_unwtd_fab,&fy_unwtd_fab,&fz_unwtd_fab)},
                       dxDp, dt, (*volfrac)[mfi],
                       {AMREX_D_DECL(&(*areafrac[0])[mfi], &(*areafrac[1])[mfi], &(*areafrac[2])[mfi])},
                       0, state_indx, ncomp, amrex::RunOn::Device);
               }
             } // do_reflux && level < finest_level
-
-            // This is a hack-y way of testing whether this ComputeAofs call
-            // came from the mac_sync (do_crse_add = false)
-            // or from the regular advance (do_crse_add = true).  When the call
-            // comes from the mac_sync, the multiplier in FineAdd needs to have
-            // the opposite sign
-            Real sync_factor = do_crse_add ? 1.0 : -1.0;
 
             if ( do_reflux && do_fine_add && (level > 0)) {
               if (flagfab.getType(amrex::grow(bx,1)) == FabType::regular)
@@ -5075,7 +5248,7 @@ NavierStokesBase::ComputeAofs ( MultiFab& advc, int a_comp, // Advection term "A
                      dxDp, sync_factor*dt, 0, state_indx, ncomp, amrex::RunOn::Device);
               } else if (flagfab.getType(bx) != FabType::covered ) {
                   advflux_reg->FineAdd(mfi,
-                     {AMREX_D_DECL(&fx_fr_fab,&fy_fr_fab,&fz_fr_fab)},
+                     {AMREX_D_DECL(&fx_unwtd_fab,&fy_unwtd_fab,&fz_unwtd_fab)},
                      dxDp, sync_factor*dt, (*volfrac)[mfi],
                      {AMREX_D_DECL(&(*areafrac[0])[mfi], &(*areafrac[1])[mfi], &(*areafrac[2])[mfi])},
                      dm_as_fine, 0, state_indx, ncomp, amrex::RunOn::Device);

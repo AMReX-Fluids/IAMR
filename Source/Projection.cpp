@@ -1292,8 +1292,12 @@ Projection::scaleVar (MultiFab*       sig,
           amrex::ParallelFor(bx, AMREX_SPACEDIM, [=]
           AMREX_GPU_DEVICE (int i, int j, int k, int n) noexcept
           {
-            if ( i >= domlox && i <= domhix &&
-                 j >= domloy && j <= domhiy)
+            // NOTE: cells outside the domain in the axial (j) direction are
+            // multiplied by the radius rather than zeroed, because the divu
+            // stencil in the nodal solver includes them and they might hold
+            // inflow values. set_boundary_velocity() later zeroes the ghost
+            // cells that really must be zero.
+            if ( i >= domlox && i <= domhix )
             {
               velarr(i,j,k,n) = (static_cast<Real>(i)+ Real(0.5))*dxr*velarr(i,j,k,n);
             }
@@ -1411,9 +1415,15 @@ Projection::rescaleVar (MultiFab*       sig,
           amrex::ParallelFor(bx, AMREX_SPACEDIM, [=]
           AMREX_GPU_DEVICE (int i, int j, int k, int n) noexcept
           {
-            if ( i >= domlox && i <= domhix &&
-                 j >= domloy && j <= domhiy)
+            // Mirrors scaleVar: the axial out-of-domain ghosts were scaled
+            // there, so undo the scaling here rather than trashing them.
+            if ( i >= domlox && i <= domhix )
             {
+              velarr(i,j,k,n) /= (static_cast<Real>(i)+ Real(0.5))*dxr;
+            }
+            else if ( n == 0 && i > domhix )
+            {
+              // high-r inflow, scaled in scaleVar
               velarr(i,j,k,n) /= (static_cast<Real>(i)+ Real(0.5))*dxr;
             }
             else
@@ -2305,7 +2315,7 @@ Projection::computeRhoG(FArrayBox*         rhoFab,
 
                   for (int k = hi.z-1; k >= lo.z; k--) {
                     rho_i   = 0.5 * (rho(i,j-1,k) + rho(i-1,j-1,k));
-                    rho_ii = 0.5 * (rho(i,j-1,k) + rho(i-1,j-2,k));
+                    rho_ii = 0.5 * (rho(i,j-2,k) + rho(i-1,j-2,k));
                     add_rhog(rho_i, rho_ii, rhog, phi(i,j,k));
                   }
                 }
@@ -2320,7 +2330,7 @@ Projection::computeRhoG(FArrayBox*         rhoFab,
                   if ( has_extdir_lo ) {
                     for (int k = hi.z-1; k >= lo.z; k--) {
                       rho_i   = rho(i-1,j-1,k);
-                      rho_ii = rho(i-2,j-1,k);
+                      rho_ii = rho(i-1,j-2,k);
                       add_rhog(rho_i, rho_ii, rhog, phi(i,j,k));
                     }
                   } else if ( has_hoextrap_lo ) {

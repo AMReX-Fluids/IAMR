@@ -64,7 +64,9 @@ SyncRegister::InitRHS (MultiFab& rhs, const Geometry& geom, const BCRec& phys_bc
     const int* phys_lo = phys_bc.lo();
     const int* phys_hi = phys_bc.hi();
 
-    int outflow_dirs[AMREX_SPACEDIM-1]={-1};
+    // One entry per coordinate direction: the loop below appends for any axis
+    // with an outflow face on either side.
+    int outflow_dirs[AMREX_SPACEDIM]={AMREX_D_DECL(-1,-1,-1)};
     int nOutflow = 0;
     for (int dir = 0; dir < AMREX_SPACEDIM; dir++)
     {
@@ -262,7 +264,10 @@ SyncRegister::InitRHS (MultiFab& rhs, const Geometry& geom, const BCRec& phys_bc
             FArrayBox& fab   = fs[fsi];
             const Box& bx    = fab.box();
             auto const& mask = fab.array();
-            const Real maxcount = AMREX_D_TERM(AMREX_SPACEDIM,*AMREX_SPACEDIM,*AMREX_SPACEDIM) - 0.5;
+            // The sum built above counts the 2^AMREX_SPACEDIM cells touching a
+            // node, so the threshold is 2^AMREX_SPACEDIM - 0.5 (3.5 in 2D,
+            // 7.5 in 3D), as in the Fortran convertmask this replaced.
+            const Real maxcount = AMREX_D_TERM(2.,*2.,*2.) - 0.5;
             amrex::ParallelFor(bx, [mask,maxcount]
             AMREX_GPU_DEVICE (int i, int j, int k) noexcept
             {

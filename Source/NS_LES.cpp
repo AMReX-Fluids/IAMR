@@ -125,7 +125,13 @@ NavierStokesBase::calc_mut_LES(MultiFab* mu_LES[AMREX_SPACEDIM], const Real time
             Real smag = 0;
             for (int i_symij = 0; i_symij < dim_fluxes; ++i_symij)
             {
-              Real symij = src(i,j,k,i_symij) + src(i,j,k,i_symij);
+              // compVelGrad stores du_m/dx_n in component AMREX_SPACEDIM*n+m,
+              // so the transpose of flat index c is
+              // (c%AMREX_SPACEDIM)*AMREX_SPACEDIM + c/AMREX_SPACEDIM. Pairing
+              // each component with its transpose gives symij = 2*S_mn, so
+              // smag below is 2*S:S and mu_t = (Cs*dx)^2*sqrt(2 S_ij S_ij).
+              int i_symji = (i_symij%AMREX_SPACEDIM)*AMREX_SPACEDIM + i_symij/AMREX_SPACEDIM;
+              Real symij = src(i,j,k,i_symij) + src(i,j,k,i_symji);
               smag += symij * symij;
             }
 
