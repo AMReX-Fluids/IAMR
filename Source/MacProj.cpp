@@ -561,6 +561,14 @@ MacProj::mac_sync_compute (int                   level,
         forcing_term = std::make_unique<MultiFab>(grids, dmap, num_state_comps, NavierStokesBase::nghost_force());
         divu_fp.reset(ns_level.getDivCond(NavierStokesBase::nghost_force(),prev_time));
 
+        // Get divu to time n+1/2, exactly as velocity_advection and
+        // scalar_advection do before predicting the edge states, so that the
+        // sync rebuilds the edge states the way the advance made them.
+        {
+            std::unique_ptr<MultiFab> dsdt(ns_level.getDsdt(NavierStokesBase::nghost_force(),prev_time));
+            MultiFab::Saxpy(*divu_fp, 0.5*dt, *dsdt, 0, 0, 1, NavierStokesBase::nghost_force());
+        }
+
         MultiFab& Gp = ns_level.get_old_data(Gradp_Type);
 
         visc_terms.setVal(0.0); // Initialize to make calls below safe
@@ -771,11 +779,19 @@ MacProj::mac_sync_compute (int                    level,
     bool do_fine_add = update_fluxreg;
 
     //
+    // ComputeAofs always builds an Array4 from the state MultiFab, even though
+    // it does not use the values when the edge states are known. So it must be
+    // handed a defined MultiFab; an alias of Sync has the right BoxArray and
+    // DistributionMap.
+    //
+    MultiFab Smf(Sync, amrex::make_alias, Sync_indx, ncomp);
+
+    //
     // Compute the mac sync correction.
     //
     ns_level.ComputeAofs(Sync, /*Ssync_comp*/ Sync_indx, state_comp,
                          ncomp,
-                         /*State*/ MultiFab(), /*S_comp*/ int(),//not used when known_edgestates
+                         /*State*/ Smf, /*S_comp*/ 0,           //not used when known_edgestates
                          /*forcing*/ nullptr, /*f_comp*/ int(), //not used when known_edgestates
                          /*constraint divU*/ nullptr,           //not used when known_edgestates
                          fluxes, /*flux_comp*/ 0,
@@ -988,6 +1004,11 @@ MacProj::test_umac_periodic (int       level,
     Vector<IntVect>         pshifts(27);
     std::vector< std::pair<int,Box> > isects;
 
+    //
+    // MultiFabCopyDescriptor and the FArrayBox comparison below both operate
+    // on the host, so give them host-accessible copies of u_mac.
+    //
+    Array<MultiFab,AMREX_SPACEDIM> h_umac;
 
     for (int dim = 0; dim < AMREX_SPACEDIM; dim++)
     {
@@ -995,7 +1016,13 @@ MacProj::test_umac_periodic (int       level,
         {
             Box eDomain = amrex::surroundingNodes(geom.Domain(),dim);
 
-            mfid[dim] = mfcd.RegisterMultiFab(&u_mac[dim]);
+            h_umac[dim].define(u_mac[dim].boxArray(), u_mac[dim].DistributionMap(),
+                               u_mac[dim].nComp(), u_mac[dim].nGrowVect(),
+                               MFInfo().SetArena(The_Pinned_Arena()));
+            amrex::dtoh_memcpy(h_umac[dim], u_mac[dim]);
+            Gpu::streamSynchronize();
+
+            mfid[dim] = mfcd.RegisterMultiFab(&h_umac[dim]);
 
             // How to combine pirm into one global pirm?
             // don't think std::vector::push_back() is thread safe
@@ -1061,11 +1088,11 @@ MacProj::test_umac_periodic (int       level,
         AMREX_ASSERT(pirm_i.m_srcBox.sameSize(pirm_i.m_dstBox));
         AMREX_ASSERT(u_mac[dim].DistributionMap()[pirm_i.m_idx] == ParallelDescriptor::MyProc());
 
-        diff.resize(pirm_i.m_srcBox, 1);
+        diff.resize(pirm_i.m_srcBox, 1, The_Pinned_Arena());
 
         mfcd.FillFab(mfid[dim], pirm_i.m_fbid, diff);
 
-        diff.minus<RunOn::Host>(u_mac[dim][pirm_i.m_idx],pirm_i.m_dstBox,diff.box(),0,0,1);
+        diff.minus<RunOn::Host>(h_umac[dim][pirm_i.m_idx],pirm_i.m_dstBox,diff.box(),0,0,1);
 
         const Real max_norm = diff.norm<RunOn::Host>(0);
 

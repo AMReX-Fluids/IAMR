@@ -2774,17 +2774,15 @@ NavierStokesBase::scalar_advection_update (Real dt,
             // Must do FillPatch here instead of MF iterator because we need the
             // boundary values in the old data (especially at inflow)
             //
-            const int index_new_s   = Density;
-            const int index_new_rho = Density;
-            const int index_old_s   = index_new_s   - Density;
-            const int index_old_rho = index_new_rho - Density;
-
             FillPatchIterator S_fpi(*this,S_old,1,prev_time,State_Type,Density,1);
             MultiFab& Smf=S_fpi.get_mf();
 
-            ConservativeScalMinMax(S_new, index_new_s, index_new_rho,
-                                   Smf,   index_old_s, index_old_rho);
-
+            //
+            // Clamp the new density to the min/max of the old-time density in
+            // the neighborhood. (The conservative s/rho form with s = rho is
+            // an identity, i.e. a no-op.)
+            //
+            ConvectiveScalMinMax(S_new, Density, Smf, 0);
         }
 
         ++sComp;
@@ -4277,8 +4275,13 @@ NavierStokesBase::ConservativeScalMinMax ( amrex::MultiFab&       Snew, const in
         amrex::ParallelFor(bx, [=]
         AMREX_GPU_DEVICE (int i, int j, int k) noexcept
         {
+#ifdef AMREX_USE_EB
+            // Leave covered cells alone; their stencil holds no valid data.
+            if ( vfrac(i,j,k) == 0. ) { return; }
+#endif
+
             Real smn = std::numeric_limits<Real>::max();
-            Real smx = std::numeric_limits<Real>::min();
+            Real smx = std::numeric_limits<Real>::lowest();
 
 #if (AMREX_SPACEDIM==3)
             int ks = -1;
@@ -4335,8 +4338,13 @@ NavierStokesBase::ConvectiveScalMinMax ( amrex::MultiFab&       Snew, const int 
         amrex::ParallelFor(bx, [=]
         AMREX_GPU_DEVICE (int i, int j, int k) noexcept
         {
+#ifdef AMREX_USE_EB
+            // Leave covered cells alone; their stencil holds no valid data.
+            if ( vfrac(i,j,k) == 0. ) { return; }
+#endif
+
             Real smn = std::numeric_limits<Real>::max();
-            Real smx = std::numeric_limits<Real>::min();
+            Real smx = std::numeric_limits<Real>::lowest();
 
 #if (AMREX_SPACEDIM==3)
             int ks = -1;

@@ -145,7 +145,7 @@ main (int   argc,
     Vector<MultiFab*> error(finestLevel+1);
     Vector<MultiFab*> dataE(finestLevel+1);
 
-    std::cout << "Level Delta L"<< norm << " norm of Error in Each Component" << '\n'
+    amrex::Print() << "Level Delta L"<< norm << " norm of Error in Each Component" << '\n'
          << "-----------------------------------------------" << '\n';
 
     for (int iLevel = 0; iLevel <= finestLevel; ++iLevel)
@@ -162,18 +162,20 @@ main (int   argc,
 
         MultiFab dataI(baI, dmap, nComp, 0);
 
-        for (int iGrid=0; iGrid<baI.size(); ++iGrid)
+        //
+        // Fill the data from the plotfile. Use the distributed MultiFab
+        // overload of FillVar so that each rank fills only the boxes it owns;
+        // the FArrayBox overload fills on a single rank only.
+        //
+        for (int iComp=0; iComp<nComp; ++iComp)
         {
-            const Box& dataGrid = baI[iGrid];
+            amrDataI.FillVar(dataI, iLevel, derives[iComp], iComp);
+        }
 
-            for (int iComp=0; iComp<nComp; ++iComp)
-            {
-                FArrayBox tmpFab(dataGrid,1);
-
-                amrDataI.FillVar(&tmpFab, dataGrid,
-                                 iLevel, derives[iComp], 0);
-                dataI[iGrid].copy(tmpFab,0,iComp,1);
-            }
+        for (MFIter mfi(*dataE[iLevel]); mfi.isValid(); ++mfi)
+        {
+            const int iGrid = mfi.index();
+            const Box& dataGrid = mfi.validbox();
 
             //
             // Fill exact solution
@@ -186,14 +188,14 @@ main (int   argc,
 #if (AMREX_SPACEDIM == 3)
             FORT_VISCBENCH(&time, &mu, &unifDir,
                            lo, hi, &nComp,
-                           ((*dataE[iLevel])[iGrid]).dataPtr(),
+                           ((*dataE[iLevel])[mfi]).dataPtr(),
                            AMREX_ARLIM(lo), AMREX_ARLIM(hi),
                            delI.dataPtr(),
                            xlo.dataPtr(), xhi.dataPtr());
 #else
             FORT_VISCBENCH(&time, &mu,
                            lo, hi, &nComp,
-                           ((*dataE[iLevel])[iGrid]).dataPtr(),
+                           ((*dataE[iLevel])[mfi]).dataPtr(),
                            AMREX_ARLIM(lo), AMREX_ARLIM(hi),
                            delI.dataPtr(),
                            xlo.dataPtr(), xhi.dataPtr());
@@ -213,7 +215,7 @@ main (int   argc,
 
         Real delAvg = pow(cellvol, (1.0/BL_SPACEDIM));
 
-        std::cout << "  " << iLevel << " " << delAvg << "    ";
+        amrex::Print() << "  " << iLevel << " " << delAvg << "    ";
         Real Ln = 0.0;
 
         for (int iComp=0; iComp<nComp; ++iComp)
@@ -230,9 +232,9 @@ main (int   argc,
                 // L_2 norm
                 Ln = (*error[iLevel]).norm2(iComp)*sqrt(cellvol);
             }
-            std::cout << Ln << "  ";
+            amrex::Print() << Ln << "  ";
         }
-        std::cout << '\n';
+        amrex::Print() << '\n';
     }
 
     //

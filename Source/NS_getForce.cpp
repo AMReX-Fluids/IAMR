@@ -92,10 +92,13 @@ NavierStokesBase::getForce (FArrayBox&       force,
 #endif
 
        // Compute min/max
-       for (int n=0; n<ncomp; n++) {
-           amrex::Print() << "State comp " << scomp+n << " min/max "
-                          << State.min<RunOn::Gpu>(scomp+n) << " / "
-                          << State.max<RunOn::Gpu>(scomp+n) << '\n';
+       // State may not hold all of the state components (scalar callers pass
+       // a velocity-only FAB), so index it by its own layout rather than by
+       // the absolute state component scomp+n.
+       for (int n=0; n<State.nComp(); n++) {
+           amrex::Print() << "State comp " << n << " min/max "
+                          << State.min<RunOn::Gpu>(n) << " / "
+                          << State.max<RunOn::Gpu>(n) << '\n';
        }
        for (int n=auxScomp; n<Aux.nComp(); n++) {
            amrex::Print() << "aux comp " << n << " min/max "
@@ -178,10 +181,14 @@ NavierStokesBase::getForce (FArrayBox&       force,
 
    if (ParallelDescriptor::IOProcessor() && getForceVerbose) {
        // Compute min/max
+       // For scalar-only calls force holds ncomp components starting at
+       // component 0 (see scomp_scal above), so index force by its own layout
+       // while still reporting the absolute state component in the label.
        for (int n=0; n<ncomp; n++) {
+           const int fcomp = ( scomp<AMREX_SPACEDIM ) ? scomp+n : n;
            amrex::Print() << "Force comp " << scomp+n << " min/max "
-                          << force.min<RunOn::Gpu>(scomp+n) << " / "
-                          << force.max<RunOn::Gpu>(scomp+n) << '\n';
+                          << force.min<RunOn::Gpu>(fcomp) << " / "
+                          << force.max<RunOn::Gpu>(fcomp) << '\n';
        }
 
       amrex::Print() << "NavierStokesBase::getForce(): Leaving..."

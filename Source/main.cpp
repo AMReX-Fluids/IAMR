@@ -105,7 +105,8 @@ main (int   argc,
     //
     if (Amr::RegridOnRestart())
     {
-        if (    (amrptr->levelSteps(0) >= max_step ) ||
+        if (    ( (max_step >= 0) &&
+                  (amrptr->levelSteps(0) >= max_step) ) ||
                 ( (stop_time >= 0.0) &&
                   (amrptr->cumTime() >= stop_time)  )    )
         {

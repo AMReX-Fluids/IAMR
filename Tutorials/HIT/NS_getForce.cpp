@@ -318,9 +318,10 @@ NavierStokesBase::getForce (FArrayBox&       force,
      int ff_jlo = jlo/TurbulentForcing::ff_factor;
      int ff_klo = klo/TurbulentForcing::ff_factor;
 
-     int ff_ihi = (ihi+1)/TurbulentForcing::ff_factor;
-     int ff_jhi = (jhi+1)/TurbulentForcing::ff_factor;
-     int ff_khi = (khi+1)/TurbulentForcing::ff_factor;
+     // +1 so that the (ff_i+1) node used by the interpolation below always exists
+     int ff_ihi = ihi/TurbulentForcing::ff_factor + 1;
+     int ff_jhi = jhi/TurbulentForcing::ff_factor + 1;
+     int ff_khi = khi/TurbulentForcing::ff_factor + 1;
 
      // adjust for ghost cells
      if (ilo < (ff_ilo*TurbulentForcing::ff_factor)) {
@@ -332,20 +333,13 @@ NavierStokesBase::getForce (FArrayBox&       force,
      if (klo < (ff_klo*TurbulentForcing::ff_factor)) {
          ff_klo=ff_klo-1;
      }
-     if (ihi == (ff_ihi*TurbulentForcing::ff_factor)) {
-         ff_ihi=ff_ihi+1;
-     }
-     if (jhi == (ff_jhi*TurbulentForcing::ff_factor)) {
-         ff_jhi=ff_jhi+1;
-     }
-     if (khi == (ff_khi*TurbulentForcing::ff_factor)) {
-         ff_khi=ff_khi+1;
-     }
 
      // allocate coarse force array
      Box ffbx(IntVect(ff_ilo, ff_jlo, ff_klo), IntVect(ff_ihi, ff_jhi, ff_khi));
-     // not sure if want elixir, gpu::sync, or async_arena here...
      FArrayBox ff_force(ffbx,AMREX_SPACEDIM);
+     // The Elixir defers freeing ff_force's device memory until the
+     // asynchronous kernels below that read it have completed. No-op on CPU.
+     Elixir ff_force_i = ff_force.elixir();
      const auto& ffarr = ff_force.array();
 
      // Construct node-based coarse forcing
