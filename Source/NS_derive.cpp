@@ -131,25 +131,51 @@ namespace derive_functions
         // Need to check if there are covered cells in neighbours --
         // -- if so, use one-sided difference computation (but still quadratic)
         if (!flag_fab(i,j,k).isConnected( 1,0,0)) {
-          vx = - (c0 * dat_arr(i  ,j,k,1)
-              + c1 * dat_arr(i-1,j,k,1)
-              + c2 * dat_arr(i-2,j,k,1)) * idx;
+          if (flag_fab(i,j,k).isConnected(-1,0,0)) {
+            if (flag_fab(i-1,j,k).isConnected(-1,0,0)) {
+              vx = - (c0 * dat_arr(i  ,j,k,1)
+                  + c1 * dat_arr(i-1,j,k,1)
+                  + c2 * dat_arr(i-2,j,k,1)) * idx;
+            } else {
+              // Only one uncovered cell that way, drop to linear
+              vx = (dat_arr(i  ,j,k,1) - dat_arr(i-1,j,k,1)) * idx;
+            }
+          }
+          // Covered on both sides, leave the derivative at zero
         } else if (!flag_fab(i,j,k).isConnected(-1,0,0)) {
-          vx = (c0 * dat_arr(i  ,j,k,1)
-            + c1 * dat_arr(i+1,j,k,1)
-            + c2 * dat_arr(i+2,j,k,1)) * idx;
+          if (flag_fab(i+1,j,k).isConnected( 1,0,0)) {
+            vx = (c0 * dat_arr(i  ,j,k,1)
+              + c1 * dat_arr(i+1,j,k,1)
+              + c2 * dat_arr(i+2,j,k,1)) * idx;
+          } else {
+            // Only one uncovered cell that way, drop to linear
+            vx = (dat_arr(i+1,j,k,1) - dat_arr(i  ,j,k,1)) * idx;
+          }
         } else {
           vx = 0.5 * (dat_arr(i+1,j,k,1) - dat_arr(i-1,j,k,1)) * idx;
         }
         // Do the same in y-direction
         if (!flag_fab(i,j,k).isConnected( 0,1,0)) {
-          uy = - (c0 * dat_arr(i,j  ,k,0)
-              + c1 * dat_arr(i,j-1,k,0)
-              + c2 * dat_arr(i,j-2,k,0)) * idy;
+          if (flag_fab(i,j,k).isConnected(0,-1,0)) {
+            if (flag_fab(i,j-1,k).isConnected(0,-1,0)) {
+              uy = - (c0 * dat_arr(i,j  ,k,0)
+                  + c1 * dat_arr(i,j-1,k,0)
+                  + c2 * dat_arr(i,j-2,k,0)) * idy;
+            } else {
+              // Only one uncovered cell that way, drop to linear
+              uy = (dat_arr(i,j  ,k,0) - dat_arr(i,j-1,k,0)) * idy;
+            }
+          }
+          // Covered on both sides, leave the derivative at zero
         } else if (!flag_fab(i,j,k).isConnected(0,-1,0)) {
-          uy = (c0 * dat_arr(i,j  ,k,0)
-            + c1 * dat_arr(i,j+1,k,0)
-            + c2 * dat_arr(i,j+2,k,0)) * idy;
+          if (flag_fab(i,j+1,k).isConnected( 0,1,0)) {
+            uy = (c0 * dat_arr(i,j  ,k,0)
+              + c1 * dat_arr(i,j+1,k,0)
+              + c2 * dat_arr(i,j+2,k,0)) * idy;
+          } else {
+            // Only one uncovered cell that way, drop to linear
+            uy = (dat_arr(i,j+1,k,0) - dat_arr(i,j  ,k,0)) * idy;
+          }
         } else {
           uy = 0.5 * (dat_arr(i,j+1,k,0) - dat_arr(i,j-1,k,0)) * idy;
         }
@@ -167,20 +193,35 @@ namespace derive_functions
         // -- if so, use one-sided difference computation (but still quadratic)
         if (!flag_fab(i,j,k).isConnected( 1,0,0)) {
           // Covered cell to the right, go fish left
-          vx = - (c0 * dat_arr(i  ,j,k,1)
-              + c1 * dat_arr(i-1,j,k,1)
-              + c2 * dat_arr(i-2,j,k,1)) * idx;
-          wx = - (c0 * dat_arr(i  ,j,k,2)
-              + c1 * dat_arr(i-1,j,k,2)
-              + c2 * dat_arr(i-2,j,k,2)) * idx;
+          if (flag_fab(i,j,k).isConnected(-1,0,0)) {
+            if (flag_fab(i-1,j,k).isConnected(-1,0,0)) {
+              vx = - (c0 * dat_arr(i  ,j,k,1)
+                  + c1 * dat_arr(i-1,j,k,1)
+                  + c2 * dat_arr(i-2,j,k,1)) * idx;
+              wx = - (c0 * dat_arr(i  ,j,k,2)
+                  + c1 * dat_arr(i-1,j,k,2)
+                  + c2 * dat_arr(i-2,j,k,2)) * idx;
+            } else {
+              // Only one uncovered cell that way, drop to linear
+              vx = (dat_arr(i  ,j,k,1) - dat_arr(i-1,j,k,1)) * idx;
+              wx = (dat_arr(i  ,j,k,2) - dat_arr(i-1,j,k,2)) * idx;
+            }
+          }
+          // Covered on both sides, leave the derivative at zero
         } else if (!flag_fab(i,j,k).isConnected(-1,0,0)) {
           // Covered cell to the left, go fish right
-          vx = (c0 * dat_arr(i  ,j,k,1)
-            + c1 * dat_arr(i+1,j,k,1)
-            + c2 * dat_arr(i+2,j,k,1)) * idx;
-          wx = (c0 * dat_arr(i  ,j,k,2)
-            + c1 * dat_arr(i+1,j,k,2)
-            + c2 * dat_arr(i+2,j,k,2)) * idx;
+          if (flag_fab(i+1,j,k).isConnected( 1,0,0)) {
+            vx = (c0 * dat_arr(i  ,j,k,1)
+              + c1 * dat_arr(i+1,j,k,1)
+              + c2 * dat_arr(i+2,j,k,1)) * idx;
+            wx = (c0 * dat_arr(i  ,j,k,2)
+              + c1 * dat_arr(i+1,j,k,2)
+              + c2 * dat_arr(i+2,j,k,2)) * idx;
+          } else {
+            // Only one uncovered cell that way, drop to linear
+            vx = (dat_arr(i+1,j,k,1) - dat_arr(i  ,j,k,1)) * idx;
+            wx = (dat_arr(i+1,j,k,2) - dat_arr(i  ,j,k,2)) * idx;
+          }
         } else {
           // No covered cells right or left, use standard stencil
           vx = 0.5 * (dat_arr(i+1,j,k,1) - dat_arr(i-1,j,k,1)) * idx;
@@ -188,38 +229,68 @@ namespace derive_functions
         }
         // Do the same in y-direction
         if (!flag_fab(i,j,k).isConnected(0, 1,0)) {
-          uy = - (c0 * dat_arr(i,j  ,k,0)
-              + c1 * dat_arr(i,j-1,k,0)
-              + c2 * dat_arr(i,j-2,k,0)) * idy;
-          wy = - (c0 * dat_arr(i,j  ,k,2)
-              + c1 * dat_arr(i,j-1,k,2)
-              + c2 * dat_arr(i,j-2,k,2)) * idy;
+          if (flag_fab(i,j,k).isConnected(0,-1,0)) {
+            if (flag_fab(i,j-1,k).isConnected(0,-1,0)) {
+              uy = - (c0 * dat_arr(i,j  ,k,0)
+                  + c1 * dat_arr(i,j-1,k,0)
+                  + c2 * dat_arr(i,j-2,k,0)) * idy;
+              wy = - (c0 * dat_arr(i,j  ,k,2)
+                  + c1 * dat_arr(i,j-1,k,2)
+                  + c2 * dat_arr(i,j-2,k,2)) * idy;
+            } else {
+              // Only one uncovered cell that way, drop to linear
+              uy = (dat_arr(i,j  ,k,0) - dat_arr(i,j-1,k,0)) * idy;
+              wy = (dat_arr(i,j  ,k,2) - dat_arr(i,j-1,k,2)) * idy;
+            }
+          }
+          // Covered on both sides, leave the derivative at zero
         } else if (!flag_fab(i,j,k).isConnected(0,-1,0)) {
-          uy = (c0 * dat_arr(i,j  ,k,0)
-            + c1 * dat_arr(i,j+1,k,0)
-            + c2 * dat_arr(i,j+2,k,0)) * idy;
-          wy = (c0 * dat_arr(i,j  ,k,2)
-            + c1 * dat_arr(i,j+1,k,2)
-            + c2 * dat_arr(i,j+2,k,2)) * idy;
+          if (flag_fab(i,j+1,k).isConnected(0, 1,0)) {
+            uy = (c0 * dat_arr(i,j  ,k,0)
+              + c1 * dat_arr(i,j+1,k,0)
+              + c2 * dat_arr(i,j+2,k,0)) * idy;
+            wy = (c0 * dat_arr(i,j  ,k,2)
+              + c1 * dat_arr(i,j+1,k,2)
+              + c2 * dat_arr(i,j+2,k,2)) * idy;
+          } else {
+            // Only one uncovered cell that way, drop to linear
+            uy = (dat_arr(i,j+1,k,0) - dat_arr(i,j  ,k,0)) * idy;
+            wy = (dat_arr(i,j+1,k,2) - dat_arr(i,j  ,k,2)) * idy;
+          }
         } else {
           uy = 0.5 * (dat_arr(i,j+1,k,0) - dat_arr(i,j-1,k,0)) * idy;
           wy = 0.5 * (dat_arr(i,j+1,k,2) - dat_arr(i,j-1,k,2)) * idy;
         }
         // Do the same in z-direction
         if (!flag_fab(i,j,k).isConnected(0,0, 1)) {
-          uz = - (c0 * dat_arr(i,j,k  ,0)
-              + c1 * dat_arr(i,j,k-1,0)
-              + c2 * dat_arr(i,j,k-2,0)) * idz;
-          vz = - (c0 * dat_arr(i,j,k  ,1)
-              + c1 * dat_arr(i,j,k-1,1)
-              + c2 * dat_arr(i,j,k-2,1)) * idz;
+          if (flag_fab(i,j,k).isConnected(0,0,-1)) {
+            if (flag_fab(i,j,k-1).isConnected(0,0,-1)) {
+              uz = - (c0 * dat_arr(i,j,k  ,0)
+                  + c1 * dat_arr(i,j,k-1,0)
+                  + c2 * dat_arr(i,j,k-2,0)) * idz;
+              vz = - (c0 * dat_arr(i,j,k  ,1)
+                  + c1 * dat_arr(i,j,k-1,1)
+                  + c2 * dat_arr(i,j,k-2,1)) * idz;
+            } else {
+              // Only one uncovered cell that way, drop to linear
+              uz = (dat_arr(i,j,k  ,0) - dat_arr(i,j,k-1,0)) * idz;
+              vz = (dat_arr(i,j,k  ,1) - dat_arr(i,j,k-1,1)) * idz;
+            }
+          }
+          // Covered on both sides, leave the derivative at zero
         } else if (!flag_fab(i,j,k).isConnected(0,0,-1)) {
-          uz = (c0 * dat_arr(i,j,k  ,0)
-            + c1 * dat_arr(i,j,k+1,0)
-            + c2 * dat_arr(i,j,k+2,0)) * idz;
-          vz = (c0 * dat_arr(i,j,k  ,1)
-            + c1 * dat_arr(i,j,k+1,1)
-            + c2 * dat_arr(i,j,k+2,1)) * idz;
+          if (flag_fab(i,j,k+1).isConnected(0,0, 1)) {
+            uz = (c0 * dat_arr(i,j,k  ,0)
+              + c1 * dat_arr(i,j,k+1,0)
+              + c2 * dat_arr(i,j,k+2,0)) * idz;
+            vz = (c0 * dat_arr(i,j,k  ,1)
+              + c1 * dat_arr(i,j,k+1,1)
+              + c2 * dat_arr(i,j,k+2,1)) * idz;
+          } else {
+            // Only one uncovered cell that way, drop to linear
+            uz = (dat_arr(i,j,k+1,0) - dat_arr(i,j,k  ,0)) * idz;
+            vz = (dat_arr(i,j,k+1,1) - dat_arr(i,j,k  ,1)) * idz;
+          }
         } else {
           uz = 0.5 * (dat_arr(i,j,k+1,0) - dat_arr(i,j,k-1,0)) * idz;
           vz = 0.5 * (dat_arr(i,j,k+1,1) - dat_arr(i,j,k-1,1)) * idz;

@@ -105,13 +105,18 @@ TurbulentForcing::init_turbulent_forcing (const amrex::GpuArray<amrex::Real,AMRE
     int nymodes = nmodes*(int)(0.5+Ly/Lmin);
     int nzmodes = nmodes*(int)(0.5+Lz/Lmin);
 
+    // Mode indices run 0:n?modes, so they must fit in the 0:array_size-1
+    // extent of the forcing arrays.
+    AMREX_ALWAYS_ASSERT_WITH_MESSAGE(std::max(nxmodes,std::max(nymodes,nzmodes)) < array_size,
+                                     "TurbulentForcing: too many modes; reduce turb.nmodes or increase array_size");
+
     if (verbose)
     {
         Print() << "Lmin = " << Lmin << '\n';
         Print() << "kappaMax = " << kappaMax << '\n';
         Print() << "nxmodes = " << nxmodes << '\n';
-        Print() << "nymodes = " << nxmodes << '\n';
-        Print() << "nzmodes = " << nxmodes << '\n';
+        Print() << "nymodes = " << nymodes << '\n';
+        Print() << "nzmodes = " << nzmodes << '\n';
     }
 
     Real freqMin = 1.0/forcing_time_scale_max;
@@ -355,7 +360,9 @@ TurbulentForcing::init_turbulent_forcing (const amrex::GpuArray<amrex::Real,AMRE
     if (Gpu::inLaunchRegion())
     {
         forcedata = static_cast<Real*>(The_Arena()->alloc(tmp_size*sizeof(Real)));
-        Gpu::htod_memcpy_async(forcedata, tmp, tmp_size*sizeof(Real));
+        // Synchronous copy: tmp is a stack array that dies when this
+        // function returns, so the copy must complete before then.
+        Gpu::htod_memcpy(forcedata, tmp, tmp_size*sizeof(Real));
     }
     else
 #endif
