@@ -787,6 +787,12 @@ public:
     static amrex::Vector<amrex::Real> time_avg;
     static amrex::Vector<amrex::Real> time_avg_fluct;
     static amrex::Vector<amrex::Real> dt_avg;
+    //
+    // Grow time_avg/time_avg_fluct/dt_avg so that every level up to
+    // a_finest_level has an entry. New entries are zero-filled; existing
+    // accumulations are preserved.
+    //
+    static void grow_avg_vectors (int a_finest_level);
     static int avg_interval;
     static int compute_fluctuations;
     //

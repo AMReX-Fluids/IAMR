@@ -65,8 +65,6 @@ Real avg_time_fluct;
 bool TimeAverageFile_exist = false;
 int flag_eb = 0;
 
-Vector<int> nsets_save(1);
-
 VisMF::How how = VisMF::OneFilePerCPU;
 
 // ---------------------------------------------------------------
@@ -234,8 +232,6 @@ static void ReadCheckpointFile(const std::string& fileName) {
       is >> fakeAmr_src.level_count[i];
     }
 
-    int ndesc_save;
-
     // READ LEVEL DATA
     for(int lev(0); lev <= fakeAmr_src.finest_level; ++lev) {
 
@@ -274,12 +270,6 @@ static void ReadCheckpointFile(const std::string& fileName) {
       is >> nstate;
       int ndesc = nstate;
 
-      // This should be the same at all levels
-      ndesc_save = ndesc;
-
-      // ndesc depends on which descriptor so we store a value for each
-      if (lev == 1) nsets_save.resize(ndesc_save);
-
       falRef.state.resize(ndesc);
       falRef.new_state.resize(ndesc);
 
@@ -295,8 +285,6 @@ static void ReadCheckpointFile(const std::string& fileName) {
 
         int nsets;
         is >> nsets;
-
-        nsets_save[ii] = nsets;
 
         falRef.state[ii].old_data = 0;
         falRef.state[ii].new_data = 0;
@@ -386,7 +374,7 @@ static void WriteCheckpointFile(const std::string& inFileName, const std::string
 
     HeaderFile.rdbuf()->pubsetbuf(io_buffer.dataPtr(), io_buffer.size());
 
-    int old_prec(0), i, ndesc_save;
+    int old_prec(0), i;
 
     if(ParallelDescriptor::IOProcessor()) {
         // Only the IOProcessor() writes to the header file.
@@ -430,7 +418,6 @@ static void WriteCheckpointFile(const std::string& inFileName, const std::string
       std::ostream &os = HeaderFile;
       FakeAmrLevel &falRef = fakeAmr_trgt.fakeAmrLevels[lev];
       int ndesc = falRef.state.size();
-      ndesc_save = ndesc;
 
       // Build directory to hold the MultiFabs in the StateData at this level.
       char buf[64];
@@ -479,10 +466,17 @@ static void WriteCheckpointFile(const std::string& inFileName, const std::string
           const std::string name(PathNameInHeader);
           const std::string fullpathname(FullPathName);
 
+          //
+          // Derive the number of data sets from the pointers themselves, the
+          // way StateData::checkPoint does. This covers levels (and state
+          // types) whose nsets differ, and single-level checkpoints.
+          //
           bool dump_old(true);
           if(dump_old == true && falRef.state[i].old_data == 0) {
             dump_old = false;
           }
+          const int nsets_loc = (falRef.state[i].new_data == 0) ? 0
+                                                                : (dump_old ? 2 : 1);
 
           if(ParallelDescriptor::IOProcessor()) {
             // The relative name gets written to the Header file.
@@ -501,7 +495,7 @@ static void WriteCheckpointFile(const std::string& inFileName, const std::string
                << falRef.state[i].new_time.start << '\n'
                << falRef.state[i].new_time.stop  << '\n';
 
-            if (nsets_save[i] > 0) {
+            if (nsets_loc > 0) {
                if(dump_old) {
                  os << 2 << '\n' << mf_name_new << '\n' << mf_name_old << '\n';
                } else {
@@ -513,14 +507,14 @@ static void WriteCheckpointFile(const std::string& inFileName, const std::string
 
           }
 
-          if (nsets_save[i] > 0) {
+          if (nsets_loc > 0) {
              BL_ASSERT(falRef.state[i].new_data);
              std::string mf_fullpath_new = fullpathname;
              mf_fullpath_new += NewSuffix;
              VisMF::Write(*(falRef.state[i].new_data),mf_fullpath_new,how);
           }
 
-          if (nsets_save[i] > 1) {
+          if (nsets_loc > 1) {
             BL_ASSERT(dump_old);
             BL_ASSERT(falRef.state[i].old_data);
             std::string mf_fullpath_old = fullpathname;
@@ -654,21 +648,22 @@ static void ConvertData() {
         if(n == 1) ngrow_loc = 1;
       }
 
-      // We don't have the same number of ghost-cells for each data type
-      // Warning, this should be adapted for EB
-      if (falRef_src.state.size() == 4 && n == falRef_src.state.size()-1){
-        ngrow_loc = 0; // For this case, we just have Average_Type and no Divu_Type and Dsdt_type
-      }
-      else if (falRef_src.state.size() == 5 && n == falRef_src.state.size()-1){
-        ngrow_loc = 0; // For this case, we have Divu_Type and Dsdt_type, no Average_Type
-      }
-      else if (falRef_src.state.size() == 6 && n >= falRef_src.state.size()-2){
-        ngrow_loc = 0; // Here we have both Average_Type and Divu and Dsdt types
-      }
-
+      //
+      // NOTE: every cell-centered state needs at least one ghost cell of
+      //       workspace here: CellConservativeLinear::CoarseBox grows
+      //       coarsen(fine_box) by one, and the slope kernels read i+/-1.
+      //       The copies below use src_nghost=0, so the source's own ghost
+      //       count does not matter.
+      //
 
       // Assuming that OldState and NewState have the same number of components
-      int ncomps = (falRef_src.state[n].old_data)->nComp();
+      int ncomps = (falRef_src.state[n].new_data)->nComp();
+
+      //
+      // old_data is null when the checkpoint stores only one data set
+      // (nsets == 1), e.g. a checkpoint written right after initialization.
+      //
+      bool has_old = (falRef_src.state[n].old_data != 0);
 
       BoxArray new_grids_state = falRef_trgt.state[n].grids;
       BoxArray save_grids_state = falRef_trgt.state[n].grids;
@@ -694,7 +689,9 @@ static void ConvertData() {
       OldData_src -> setVal(10.);
 
       NewData_src -> copy(*(falRef_src.state[n].new_data),0,0,ncomps,0,ngrow_loc);
-      OldData_src -> copy(*(falRef_src.state[n].old_data),0,0,ncomps,0,ngrow_loc);
+      if (has_old) {
+        OldData_src -> copy(*(falRef_src.state[n].old_data),0,0,ncomps,0,ngrow_loc);
+      }
 
       MultiFab * NewData_trgt = new MultiFab(new_grids_state,dm_trgt,ncomps,ngrow_loc);
       MultiFab * OldData_trgt = new MultiFab(new_grids_state,dm_trgt,ncomps,ngrow_loc);
@@ -711,6 +708,17 @@ static void ConvertData() {
 
         const Geometry& fgeom = falRef_trgt.geom;
         const Geometry& cgeom = falRef_src.geom;
+
+        //
+        // The copies above are non-periodic, so ghost cells at periodic
+        // domain boundaries still hold the setVal(10.) sentinel. Fill them
+        // from valid data before computing the interpolation slopes.
+        // NOTE: ghosts at non-periodic physical boundaries still hold the
+        //       sentinel -- the state descriptors (and hence the real BCs)
+        //       are never restored by this tool.
+        //
+        NewData_src->FillBoundary(cgeom.periodicity());
+        OldData_src->FillBoundary(cgeom.periodicity());
 
         for (MFIter mfi(*NewData_trgt); mfi.isValid(); ++mfi)
         {
@@ -749,7 +757,11 @@ static void ConvertData() {
       }
 
       falRef_trgt.state[n].new_data = NewData_trgt;
-      falRef_trgt.state[n].old_data = OldData_trgt;
+      //
+      // Leave old_data null when the source had none, so that the writer
+      // emits a single data set (nsets == 1) for this state.
+      //
+      falRef_trgt.state[n].old_data = has_old ? OldData_trgt : 0;
 
     }
   }
