@@ -696,7 +696,7 @@ pc.save(‘profile’)
 
    Density/velocity magnitude/kinetic energy phase plot
 
-.. figure:: ./Visualization/Profile2D_1_Density_magveel_kineng.png
+.. figure:: ./Visualization/Profile2D_1_Density_magvel_kineng.png
    :alt: Density/velocity magnitude/kinetic energy phase plot
    :width: 4.00000in
 

@@ -1791,20 +1791,12 @@ NavierStokes::reflux ()
       }
     }
 
-#ifdef AMREX_USE_EB
-    fr_adv.Reflux(Vsync,*volfrac,              0, 0,           AMREX_SPACEDIM);
-    fr_adv.Reflux(Ssync,*volfrac, AMREX_SPACEDIM, 0, NUM_STATE-AMREX_SPACEDIM);
-#else
-    fr_adv.Reflux(Vsync,              0, 0,          AMREX_SPACEDIM);
-    fr_adv.Reflux(Ssync, AMREX_SPACEDIM, 0,NUM_STATE-AMREX_SPACEDIM);
-#endif
-    const Real    scale   = 1.0/dt_crse;
-    Vsync.mult(scale);
-    Ssync.mult(scale);
-
     const BoxArray& fine_boxes = getLevel(level+1).boxArray();
     //
     // Zero out coarse grid cells which underlie fine grid cells.
+    // Done before the advective reflux: with EB it re-redistributes part
+    // of a cut cell's correction into covered cells, which SyncInterp
+    // must carry to the fine level.
     //
     BoxArray baf = fine_boxes;
 
@@ -1839,6 +1831,17 @@ NavierStokes::reflux ()
         }
       }
    }
+
+#ifdef AMREX_USE_EB
+    fr_adv.Reflux(Vsync,*volfrac,              0, 0,           AMREX_SPACEDIM);
+    fr_adv.Reflux(Ssync,*volfrac, AMREX_SPACEDIM, 0, NUM_STATE-AMREX_SPACEDIM);
+#else
+    fr_adv.Reflux(Vsync,              0, 0,          AMREX_SPACEDIM);
+    fr_adv.Reflux(Ssync, AMREX_SPACEDIM, 0,NUM_STATE-AMREX_SPACEDIM);
+#endif
+    const Real    scale   = 1.0/dt_crse;
+    Vsync.mult(scale);
+    Ssync.mult(scale);
 }
 
 //

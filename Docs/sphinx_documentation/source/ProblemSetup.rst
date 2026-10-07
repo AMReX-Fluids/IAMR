@@ -36,9 +36,85 @@ and problem parameters from the inputs file, and initializes the state data
 (velocity, density, etc.). The easiest way to get started is to create a new ``probtype``
 by copying the code for an existing problem and modifying it to apply the desired initial state.
 
+IAMR's make system puts the build directory ahead of ``IAMR/Source`` in its search path, so
+a problem directory may override any IAMR source file simply by placing its own copy of that
+file alongside its ``GNUmakefile``.  This is the mechanism to use for a problem that needs its
+own initial conditions (``prob_init.cpp``) or its own forcing function (``NS_getForce.cpp``).
+
+The problem is selected with ``prob.probtype``.  The values recognized by the default
+``Source/prob/prob_init.cpp`` are
+
++------------+------------------------------------------------------------------------+-----------------------------+
+| probtype   | Initial state                                                          | Example deck                |
++============+========================================================================+=============================+
+| 1          | Fluid at rest with constant density                                    | LidDrivenCavity             |
++------------+------------------------------------------------------------------------+-----------------------------+
+| 2          | Density blob (bubble or drop) in a constant background                 | Bubble                      |
++------------+------------------------------------------------------------------------+-----------------------------+
+| 3          | Smoothed density/tracer jump normal to x, plus a tracer blob           | --                          |
++------------+------------------------------------------------------------------------+-----------------------------+
+| 4          | Constant velocity and density with a tracer blob                       | TracerAdvection, Poiseuille,|
+|            |                                                                        | FlowPastCylinder            |
++------------+------------------------------------------------------------------------+-----------------------------+
+| 5          | Double shear layer                                                     | DoubleShearLayer, Particles |
++------------+------------------------------------------------------------------------+-----------------------------+
+| 6          | As probtype 2, but with temperature as a state variable                | HotSpot                     |
++------------+------------------------------------------------------------------------+-----------------------------+
+| 7          | Euler vortex tube in a triply periodic domain                          | Exec/run3d/regtest.3d.euler |
++------------+------------------------------------------------------------------------+-----------------------------+
+| 8          | Convected vortex                                                       | ConvectedVortex             |
++------------+------------------------------------------------------------------------+-----------------------------+
+| 10         | Rayleigh-Taylor instability                                            | RayleighTaylor              |
++------------+------------------------------------------------------------------------+-----------------------------+
+| 11         | Taylor-Green vortex                                                    | TaylorGreen                 |
++------------+------------------------------------------------------------------------+-----------------------------+
+
+Any other value aborts.  Note that 9 is not used, and that a problem directory that supplies
+its own ``prob_init.cpp``, as described above, defines its own set of values.
+
+The initial state is parameterized by the following, which must be preceded by "prob."
+Which of them a given ``probtype`` actually reads varies; see ``prob_init.cpp``.
+
++------------------------+--------------------------------------------------------------------+-------------+-----------+
+|                        | Description                                                        |   Type      | Default   |
++========================+====================================================================+=============+===========+
+| density_ic             | Background density                                                 |   Real      |  1.0      |
++------------------------+--------------------------------------------------------------------+-------------+-----------+
+| velocity_ic            | Background velocity, one value per coordinate direction            |   Reals     |  0        |
++------------------------+--------------------------------------------------------------------+-------------+-----------+
+| direction              | Coordinate direction used by direction-dependent setups            |   Int       |  0        |
++------------------------+--------------------------------------------------------------------+-------------+-----------+
+| interface_width        | Width over which density and tracer jumps are smoothed             |   Real      |  1.0      |
++------------------------+--------------------------------------------------------------------+-------------+-----------+
+| blob_center            | Centre of the density/tracer blob, one value per direction         |   Reals     |  0        |
++------------------------+--------------------------------------------------------------------+-------------+-----------+
+| blob_radius            | Radius of the density/tracer blob                                  |   Real      |  0.1      |
++------------------------+--------------------------------------------------------------------+-------------+-----------+
+| rho_1, rho_2           | Densities on either side of the interface (probtypes 3 and 10)     |   Real      | 1.0, 2.0  |
++------------------------+--------------------------------------------------------------------+-------------+-----------+
+| tra_1, tra_2           | Tracer values on either side of the interface (probtypes 3 and 10) |   Real      | 0.0, 1.0  |
++------------------------+--------------------------------------------------------------------+-------------+-----------+
+| perturbation_amplitude | Amplitude of the interface perturbation (probtype 10)              |   Real      |  1.0      |
++------------------------+--------------------------------------------------------------------+-------------+-----------+
+| velocity_factor        | Another name for the first component of velocity_ic; it is the     |   Real      |  0.0      |
+|                        | velocity scale V_0 of the Taylor-Green vortex (probtype 11)        |             |           |
++------------------------+--------------------------------------------------------------------+-------------+-----------+
+| a, b, c                | Problem-specific coefficients (probtype 11)                        |   Real      |  1.0      |
++------------------------+--------------------------------------------------------------------+-------------+-----------+
+| xvort, yvort, rvort    | Centre and radius of the convected vortex (probtype 8).  These     |   Real      | 0.5, 0.5, |
+|                        | override a, b and c, which probtype 8 resets before reading them.  |             | 0.07      |
++------------------------+--------------------------------------------------------------------+-------------+-----------+
+| forcevort              | Strength of the convected vortex (probtype 8)                      |   Real      |  6.0      |
++------------------------+--------------------------------------------------------------------+-------------+-----------+
+| meanFlowDir            | Direction of the mean flow the vortex is convected by (probtype 8) |   Int       |  0        |
++------------------------+--------------------------------------------------------------------+-------------+-----------+
+| meanFlowMag            | Magnitude of that mean flow (probtype 8)                           |   Real      |  0.0      |
++------------------------+--------------------------------------------------------------------+-------------+-----------+
+
 It is also possible to initialize the velocity using data from a previously generated plotfile.
-To do this you must set ``BL_USE_VELOCITY=TRUE`` in the makefile, and provide the plotfile in
-the inputs file via ``ns.velocity_plotfile = my_plotfile_name``.
+To do this you must set ``USE_VELOCITY=TRUE`` in the makefile (which in turn defines the
+``BL_USE_VELOCITY`` compiler macro), and provide the plotfile in the inputs file via
+``ns.velocity_plotfile = my_plotfile_name``.
 
 
 Resolution
@@ -223,7 +299,8 @@ preceded by “xlo”, “xhi”, “ylo”, “yhi”, “zlo”, and “zhi”
 +--------------------+---------------------------------------------------------------------------+-------------+-----------+
 | temp               | Sets temperature for mass inflows                                         |    Real     |  None     |
 +--------------------+---------------------------------------------------------------------------+-------------+-----------+
-| pressure           | Sets boundary pressure for pressure inflows, outflows and mass inflows    |    Real     |  None     |
+| pressure           | Read only for pressure outflows, where it must be 0 (a non-zero value     |    Real     |  None     |
+|                    | is not yet implemented).  Pressure inflows are not yet implemented.       |             |           |
 +--------------------+---------------------------------------------------------------------------+-------------+-----------+
 
 

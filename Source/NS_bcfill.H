@@ -319,36 +319,35 @@ void dummy_fill (Box const& bx, FArrayBox& data,
 }
 
 
-// struct NodalFillExtDir
-// {
-//   AMREX_GPU_DEVICE
-//   void operator()(
-//     const amrex::IntVect& iv,
-//     amrex::Array4<amrex::Real> const& dest,
-//     const int dcomp,
-//     const int numcomp,
-//     amrex::GeometryData const& geom,
-//     const amrex::Real time,
-//     const amrex::BCRec* bcr,
-//     const int bcomp,
-//     const int orig_comp) const
-//   {
-//     // do something for external Dirichlet (BCType::ext_dir)
-//   }
-// };
+//
+// Nodal pressure: press_bc never contains ext_dir and GpuBndryFuncFab already
+// extrapolates nodal ghost values, so there is nothing left to do here.
+//
+struct NodalFillExtDir
+{
+  AMREX_GPU_DEVICE
+  void operator()(
+    const amrex::IntVect& /*iv*/,
+    amrex::Array4<amrex::Real> const& /*dest*/,
+    const int /*dcomp*/,
+    const int /*numcomp*/,
+    amrex::GeometryData const& /*geom*/,
+    const amrex::Real /*time*/,
+    const amrex::BCRec* /*bcr*/,
+    const int /*bcomp*/,
+    const int /*orig_comp*/) const
+  {}
+};
 
 inline
-void press_fill (Box const& /*bx*/, FArrayBox& /*data*/,
-                 const int /*dcomp*/, const int /*numcomp*/,
-                 Geometry const& /*geom*/, const Real /*time*/,
-                 const Vector<BCRec>& /*bcr*/, const int /*bcomp*/,
-                 const int /*scomp*/)
+void press_fill (Box const& bx, FArrayBox& data,
+                 const int dcomp, const int numcomp,
+                 Geometry const& geom, const Real time,
+                 const Vector<BCRec>& bcr, const int bcomp,
+                 const int scomp)
 {
-    amrex::Abort("press_fill: Need to write fill for external Dirichlet (BCType::ext_dir)");
-
-    // GpuBndryFuncFab<NodalFillExtDir> gpu_bndry_func(NodalFillExtDir{});
-    // gpu_bndry_func(bx,data,dcomp,numcomp,geom,time,bcr,bcomp,scomp);
-
+    GpuBndryFuncFab<NodalFillExtDir> gpu_bndry_func(NodalFillExtDir{});
+    gpu_bndry_func(bx,data,dcomp,numcomp,geom,time,bcr,bcomp,scomp);
 }
 
 #endif

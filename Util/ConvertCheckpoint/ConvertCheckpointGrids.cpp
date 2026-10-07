@@ -9,6 +9,7 @@
 #include <iomanip>
 #include <iostream>
 #include <fstream>
+#include <sstream>
 #include <cmath>
 #include <cstdlib>
 #include <cstring>
@@ -60,8 +61,7 @@ int   max_grid_size(4096);
 const std::string CheckPointVersion = "CheckPointVersion_1.0";
 std::string interp_kind;
 
-Real avg_time;
-Real avg_time_fluct;
+std::string TimeAverageContents;
 bool TimeAverageFile_exist = false;
 int flag_eb = 0;
 
@@ -337,10 +337,12 @@ static void ReadCheckpointFile(const std::string& fileName) {
     if(  is_avg.good()) {
       TimeAverageFile_exist = true;
 
-      std::string first_line_avg;
-      std::getline(is_avg,first_line_avg);
-      is_avg >> avg_time;
-      is_avg >> avg_time_fluct;
+      // Copy the file verbatim. IAMR writes a title line and then one
+      // (time_avg, time_avg_fluct, dt_avg) triple per level; none of these
+      // change when the grids are refined or coarsened.
+      std::ostringstream oss;
+      oss << is_avg.rdbuf();
+      TimeAverageContents = oss.str();
     }
 
 }
@@ -571,9 +573,7 @@ static void WriteCheckpointFile(const std::string& inFileName, const std::string
           amrex::FileOpenFailed(HeaderFileName);
         }
 
-        HeaderFile << "Writing time_average to checkpoint" << '\n'
-                   << avg_time       << '\n'
-                   << avg_time_fluct           << '\n';
+        HeaderFile << TimeAverageContents;
       }
     }
 

@@ -25,9 +25,16 @@ past it.
 +----------------------+-----------------------------------------------------------------------+-------------+--------------+
 | stop_time            | Maximum time to reach                                                 |    Real     | -1.0         |
 +----------------------+-----------------------------------------------------------------------+-------------+--------------+
-| stop_when_steady     | Stop when steady state is reached                                     |    Bool     | false        |
+| num_steps            | If > 0, take at most this many level-0 steps beyond the step count    |    Int      |  -1          |
+|                      | the run starts from.  Combined with max_step by taking the smaller    |             |              |
+|                      | of the two.  Useful for advancing a restarted run by a fixed number   |             |              |
+|                      | of steps without having to look up its step count.                    |             |              |
 +----------------------+-----------------------------------------------------------------------+-------------+--------------+
-| steady_tol           | Specify tolerance to define steady state                              |    Real     | 1e-10        |
+| strt_time            | Simulation time at which to start (ignored when restarting).          |    Real     |  0.0         |
+|                      | Must be non-negative.                                                 |             |              |
++----------------------+-----------------------------------------------------------------------+-------------+--------------+
+| stop_interval        | If > 0, stop this much simulation time after the time the run starts  |    Real     |  0.0         |
+|                      | from, i.e. stop_time becomes the restart time plus stop_interval.     |             |              |
 +----------------------+-----------------------------------------------------------------------+-------------+--------------+
 
 The inputs below must be preceded by "ns."
@@ -37,13 +44,18 @@ The inputs below must be preceded by "ns."
 +======================+=======================================================================+=============+==============+
 | fixed_dt             | Value of fixed dt if > 0                                              |    Real     |   -1.        |
 +----------------------+-----------------------------------------------------------------------+-------------+--------------+
-| cfl                  | CFL constraint (dt < cfl * dx / u) if fixed_dt not > 0                |    Real     |   0.5        |
+| cfl                  | CFL constraint (dt < cfl * dx / u); must be set if fixed_dt not > 0   |    Real     |  none        |
 +----------------------+-----------------------------------------------------------------------+-------------+--------------+
 | init_shrink          | Factor by which to shrink the initial time step                       |    Real     |   1.0        |
 +----------------------+-----------------------------------------------------------------------+-------------+--------------+
-| max_change           | Factor by which time step can grow in subsequent steps                |    Real     |   1.1        |
+| change_max           | Factor by which time step can grow in subsequent steps                |    Real     |   1.1        |
 +----------------------+-----------------------------------------------------------------------+-------------+--------------+
-| dt_cutoff            | Time step below which the simulation will abort                       |    Real     |   0.0        |
+| dt_cutoff            | Time step at or below which the simulation stops (writing its final   |    Real     |   0.0        |
+|                      | checkpoint and plotfile)                                              |             |              |
++----------------------+-----------------------------------------------------------------------+-------------+--------------+
+| stop_when_steady     | Stop when steady state is reached                                     |    Bool     | false        |
++----------------------+-----------------------------------------------------------------------+-------------+--------------+
+| steady_tol           | Specify tolerance to define steady state                              |    Real     | 1e-10        |
 +----------------------+-----------------------------------------------------------------------+-------------+--------------+
 
   * If you want to fix the dt, simply set :cpp:`ns.fixed_dt = XXX` to set the fluid time
@@ -54,10 +66,10 @@ The inputs below must be preceded by "ns."
     condition, then set :cpp:`ns.cfl = 0.7` for example, and the fluid time step will
     be computed to be dt = 0.7 * dx / max(vel).
 
-  * Note that the cfl defaults to 0.5 so it does not have to be set in the inputs file. If neither
-    :cpp:`ns.cfl` nor :cpp:`fixed_dt` is set, then default value of cfl will be used.
-    If :cpp:`ns.fixed_dt` is set, then it will override the cfl option whether
-    :cpp:`ns.cfl` is set or not.
+  * Note that :cpp:`ns.cfl` has no default and must always be set in the inputs file, even
+    when :cpp:`ns.fixed_dt` is used. If :cpp:`ns.fixed_dt` is set, then it overrides the cfl
+    option: the time step is :cpp:`fixed_dt` (reduced by :cpp:`init_shrink` and then ramped
+    back up by :cpp:`change_max`) and the advective CFL estimate is not used to limit it.
 
 As an example, consider:
 
@@ -169,6 +181,68 @@ and 61 level-0 steps is the first point when simulation time :math:`>=0.2`, etc.
 
 
 
+.. _sec:InputsDerived:
+
+Derived Quantities
+~~~~~~~~~~~~~~~~~~
+
+The names below may be listed in ``amr.derive_plot_vars`` and used as the ``field_name``
+of a refinement indicator (see :ref:`sec:tagging`).  They are registered in ``derive_lst``
+in ``Source/NS_setup.cpp``; state variables themselves (``x_velocity``, ``density``,
+``tracer``, ...) are selected with ``amr.plot_vars`` instead.
+
++----------------------+-----------------------------------------------------------------------+------------------------------+
+| Name                 | Description                                                           | Available when               |
++======================+=======================================================================+==============================+
+| mag_vort             | Magnitude of the vorticity                                            | always                       |
++----------------------+-----------------------------------------------------------------------+------------------------------+
+| energy               | Kinetic energy per unit volume, 0.5 rho U.U                           | always                       |
++----------------------+-----------------------------------------------------------------------+------------------------------+
+| avg_pressure         | Nodal pressure averaged onto cell centres                             | always                       |
++----------------------+-----------------------------------------------------------------------+------------------------------+
+| velocity_average     | Running time average and RMS fluctuation of each velocity component,  | ns.avg_interval > 0          |
+|                      | i.e. x_vel_average, ..., x_vel_rms, ...  See                          |                              |
+|                      | :ref:`sec:InputsTimeAverage`.                                         |                              |
++----------------------+-----------------------------------------------------------------------+------------------------------+
+| particle_count       | Number of particles in each cell of this level                        | USE_PARTICLES=TRUE           |
++----------------------+-----------------------------------------------------------------------+------------------------------+
+| total_particle_count | Number of particles in each cell of this level and all finer levels   | USE_PARTICLES=TRUE           |
++----------------------+-----------------------------------------------------------------------+------------------------------+
+
+
+.. _sec:InputsTimeAverage:
+
+Time-Averaged Velocity
+~~~~~~~~~~~~~~~~~~~~~~
+
+IAMR can accumulate a running time average of the velocity field as the simulation
+proceeds, and write it into each plotfile via the ``velocity_average`` derived quantity.
+The following must be preceded by "ns."
+
++----------------------+-----------------------------------------------------------------------+-------------+--------------+
+|                      | Description                                                           |   Type      | Default      |
++======================+=======================================================================+=============+==============+
+| avg_interval         | Accumulate the average every this many level-0 steps.  If <= 0, the   |    Int      |   0          |
+|                      | feature is off and the velocity_average derive is not registered.     |             |              |
++----------------------+-----------------------------------------------------------------------+-------------+--------------+
+| compute_fluctuations | Also accumulate the RMS velocity fluctuation about the running mean.  |    Int      |   0          |
+|                      | Best enabled only once the mean itself has converged.                 |             |              |
++----------------------+-----------------------------------------------------------------------+-------------+--------------+
+
+For example
+
+::
+
+    ns.avg_interval        = 10
+    ns.compute_fluctuations = 1
+    amr.derive_plot_vars   = velocity_average
+
+Note that the averages are carried in their own state type, so a checkpoint written
+before this feature was enabled does not contain them; see ``ns.avg_in_checkpoint``
+in :ref:`sec:InputsCheckpoint`.
+
+
+
 .. _sec:InputsCheckpoint:
 
 Checkpointing and Restarting
@@ -198,6 +272,24 @@ The following inputs must be preceded by "amr." and control checkpoint/restart.
 |                         | processors exceeds this number, else the two are equal.               |             |           |
 |                         | If -1, number of files is always set equal to number of processors.   |             |           |
 +-------------------------+-----------------------------------------------------------------------+-------------+-----------+
+
+The following must be preceded by "ns." and are needed only when restarting from a
+checkpoint that was written by a build with a different set of state types.
+
++----------------------+-----------------------------------------------------------------------+-------------+--------------+
+|                      | Description                                                           |   Type      | Default      |
++======================+=======================================================================+=============+==============+
+| gradp_in_checkpoint  | Is the pressure gradient state present in the checkpoint being        |    Int      |  -1          |
+|                      | restarted from?  1 = yes, 0 = no.                                     |             |              |
++----------------------+-----------------------------------------------------------------------+-------------+--------------+
+| avg_in_checkpoint    | Is the time-average state present in the checkpoint being restarted   |    Int      |  -1          |
+|                      | from?  1 = yes, 0 = no.                                               |             |              |
++----------------------+-----------------------------------------------------------------------+-------------+--------------+
+
+If the checkpoint turns out to be missing a state type, IAMR aborts and asks for both
+keys to be set.  When in doubt, set both to 0.  In particular, when turning on time
+averaging (:ref:`sec:InputsTimeAverage`) for a run restarted from a checkpoint written
+without it, set ``ns.avg_in_checkpoint = 0`` and ``ns.gradp_in_checkpoint = 1``.
 
 Note:
  * ``amr.check_per`` will write a checkpoint at the first
@@ -247,7 +339,7 @@ The “derived quantity” ``particle_count`` represents the number of particles
 To visualize the particle locations as represented on the grid, add ``particle_count`` to the list
 of derived quanties in ``amr.derive_plot_vars =`` in the inputs file.
 
-If ``particles.write_in_plotfile = 1`` in the inputs file,
+If ``particles.particles_in_plotfile = 1`` in the inputs file,
 then the particle positions and velocities will be written in a binary file in each plotfile directory.
 This allows the use of the AMReX tools such as the particle comparison tool found in ``amrex/Tools/Postprocessing/C_Src/``,
 and/or ``amrex/Tools/Py_util/amrex_particles_to_vtp`` to generate a vtp file you can open with ParaView.
@@ -397,6 +489,25 @@ Note also that amr.ref_ratio, amr.n_error_buf, amr.max_grid_size and
 amr.blocking_factor can be read in as a single value which is
 assigned to every level, or as multiple values, one for each level.
 
+IAMR adjusts the tags near outflow faces after the user's tagging criteria have been
+applied.  The following must be preceded by "ns."
+
++----------------------+-----------------------------------------------------------------------+-------------+--------------+
+|                      | Description                                                           |   Type      | Default      |
++======================+=======================================================================+=============+==============+
+| do_refine_outflow    | If 1, and anything in the row of cells adjacent to an outflow face is |    Int      |   0          |
+|                      | already tagged, refine that entire face.  Avoids a coarse/fine        |             |              |
+|                      | boundary running along the outflow.                                   |             |              |
++----------------------+-----------------------------------------------------------------------+-------------+--------------+
+| do_derefine_outflow  | If 1, clear the tags within Nbuf_outflow cells of an outflow face, so |    Int      |   1          |
+|                      | that fine grids never touch it.  May not be set together with         |             |              |
+|                      | do_refine_outflow.                                                    |             |              |
++----------------------+-----------------------------------------------------------------------+-------------+--------------+
+| Nbuf_outflow         | Number of level-0 cells to leave uncovered at an outflow face when    |    Int      |   1          |
+|                      | do_derefine_outflow = 1; rounded up to a multiple of the blocking     |             |              |
+|                      | factor.  Must be > 0 in that case.                                    |             |              |
++----------------------+-----------------------------------------------------------------------+-------------+--------------+
+
 As an example, consider:
 
 ::
@@ -440,12 +551,12 @@ Tiling
 
 For details on IAMR's approach to tiling see :ref:`Chap:Parallel`.
 
-The following inputs determine how we create the logical tiles and must be preceded by "fabarray_mfiter." :
+The following inputs determine how we create the logical tiles and must be preceded by "fabarray." :
 
 +----------------------+-----------------------------------------------------------------------+----------+---------------+
 |                      | Description                                                           | Type     | Default       |
 +======================+=======================================================================+==========+===============+
-| tile_size            | Maximum number of cells in each direction for (logical) tiles.        | IntVect  | 1024000       |
+| mfiter_tile_size     | Maximum number of cells in each direction for (logical) tiles.        | IntVect  | 1024000       |
 |                      | (Default for 3D CPU-only)                                             |          | (1024000,8,8) |
 +----------------------+-----------------------------------------------------------------------+----------+---------------+
 
@@ -464,7 +575,7 @@ Here is some of the more frequently used options:
 +======================+=======================================================================+=============+==============+
 | ns.v                 |  Verbosity in IAMR routines                                           |    Int      |   0          |
 +----------------------+-----------------------------------------------------------------------+-------------+--------------+
-| ns.amr               |  Verbosity in AMR routines                                            |    Int      |   0          |
+| amr.v                |  Verbosity in AMR routines                                            |    Int      |   0          |
 +----------------------+-----------------------------------------------------------------------+-------------+--------------+
 | particles.verbose    |  Verbosity in particle routines                                       |    Int      |   0          |
 +----------------------+-----------------------------------------------------------------------+-------------+--------------+
@@ -549,7 +660,7 @@ These control the MAC projection and must be preceded by "mac_proj.":
 Viscous and Diffusive Solve
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-These control the diffusion solver and must be preceded by "diffusion.":
+These control the diffusion solver and must be preceded by "diffuse.":
 
 +-------------------------+-----------------------------------------------------------------------+-------------+--------------+
 |                         | Description                                                           |   Type      | Default      |
@@ -574,9 +685,9 @@ The following inputs must be preceded by "ns."
 +======================+=======================================================================+=============+==============+
 | do_init_proj         | Do the initial projections? False is primarily for debugging.         |    Bool     |  True        |
 +----------------------+-----------------------------------------------------------------------+-------------+--------------+
-| init_iter            | How many pressure iterations before starting the first timestep.      |  Int        |    3         |
+| init_iter            | How many pressure iterations before starting the first timestep.      |  Int        |    2         |
 +----------------------+-----------------------------------------------------------------------+-------------+--------------+
-| init_vel_iters       | How many projection iterations to ensure the velocity satisfies the   |  Int        |    3         |
+| init_vel_iter        | How many projection iterations to ensure the velocity satisfies the   |  Int        |    1         |
 |                      | constraint. Set = 0 to skip this part of the initialization.          |             |              |
 +----------------------+-----------------------------------------------------------------------+-------------+--------------+
 

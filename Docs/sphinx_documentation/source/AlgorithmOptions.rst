@@ -27,23 +27,27 @@ Note that Temperature is only non-conservative. For more details, see :ref:`sec:
 Advection
 ---------
 
-IAMR has the option to use a Method of Lines (MOL) or Godunov scheme to compute the advective terms.
+IAMR computes the advective terms with an unsplit Godunov scheme (piecewise linear or piecewise
+parabolic reconstruction) or with the Bell-Dawson-Shubin (BDS) scheme. The following must be
+preceded by "ns."
 
 +-------------------------+-------------------------------------------------------------------------+-------------+--------------+
 |                         | Description                                                             |   Type      | Default      |
 +=========================+=========================================================================+=============+==============+
-| ns.use_godunov          | If true, use Godunov, else use MOL.                                     |    bool     |   true       |
+| advection_scheme        | Godunov_PLM, Godunov_PPM or BDS.  Godunov_PPM and BDS are not           |   String    | Godunov_PLM  |
+|                         | available with embedded boundaries.                                     |             |              |
 +-------------------------+-------------------------------------------------------------------------+-------------+--------------+
 
+Note that the old ``ns.use_godunov`` key and the MOL scheme have been removed; setting either
+aborts the run.
 
-For problems without embedded boundaries, there are additional options when using the Godunov method. The following must
+
+For problems without embedded boundaries, there is an additional option for the Godunov method. The following must
 be preceded by "godunov."
 
 +-------------------------+-------------------------------------------------------------------------+-------------+--------------+
 |                         | Description                                                             |   Type      | Default      |
 +=========================+=========================================================================+=============+==============+
-| use_ppm                 | Use the Piecewise Parabolic Method to construct edge states             |    bool     |   false      |
-+-------------------------+-------------------------------------------------------------------------+-------------+--------------+
 | use_forces_in_trans     | Use external forcing terms in constructing transverse derivatives       |    bool     |   false      |
 +-------------------------+-------------------------------------------------------------------------+-------------+--------------+
 
@@ -60,3 +64,56 @@ The following must be preceded by "ns."
 +-------------------------+-----------------------------------------------------------------------+-------------+--------------+
 
 Note the default value of ``ns.be_cn_theta = 0.5`` corresponds to the Crank-Nicolson method.
+
+
+.. _sec:LES:
+
+Large Eddy Simulation
+---------------------
+
+IAMR can add a subgrid-scale eddy viscosity to the viscous terms.  The following must be
+preceded by "ns."
+
++-------------------------+-----------------------------------------------------------------------+-------------+--------------+
+|                         | Description                                                           |   Type      | Default      |
++=========================+=======================================================================+=============+==============+
+| do_LES                  | Add a subgrid-scale eddy viscosity to the molecular viscosity         |    Int      |   0          |
++-------------------------+-----------------------------------------------------------------------+-------------+--------------+
+| LES_model               | Which model to use: Smagorinsky or Sigma.  Any other value aborts.    |  String     | Smagorinsky  |
+|                         | Sigma is 3D only.                                                     |             |              |
++-------------------------+-----------------------------------------------------------------------+-------------+--------------+
+| smago_Cs_cst            | Model constant, used only when LES_model = Smagorinsky                |   Real      |   0.18       |
++-------------------------+-----------------------------------------------------------------------+-------------+--------------+
+| sigma_Cs_cst            | Model constant, used only when LES_model = Sigma                      |   Real      |   1.5        |
++-------------------------+-----------------------------------------------------------------------+-------------+--------------+
+| getLESVerbose           | Print the model and constant in use from the LES routine              |    Int      |   0          |
++-------------------------+-----------------------------------------------------------------------+-------------+--------------+
+
+Note that each model reads its own constant, so changing ``ns.smago_Cs_cst`` has no effect
+when ``ns.LES_model = Sigma``, and vice versa.  The Sigma model is described in
+Nicoud et al., *Using singular values to build a subgrid-scale model for large eddy
+simulations*, Phys. Fluids 23, 085106 (2011).
+
+
+.. _sec:EBOptions:
+
+Embedded Boundaries
+-------------------
+
+These apply to builds with ``USE_EB=TRUE``; see :ref:`sec:EB-basics` for how the geometry
+itself is constructed.  The following must be preceded by "ns."
+
++-------------------------+-----------------------------------------------------------------------+-------------+--------------+
+|                         | Description                                                           |   Type      | Default      |
++=========================+=======================================================================+=============+==============+
+| redistribution_type     | How the advective update of a small cut cell is redistributed to its  |  String     | StateRedist  |
+|                         | neighbours: StateRedist, FluxRedist or NoRedist.  Any other value     |             |              |
+|                         | aborts.                                                               |             |              |
++-------------------------+-----------------------------------------------------------------------+-------------+--------------+
+| refine_cutcells         | Tag every cut cell for refinement, so that the embedded boundary      |    Int      |   1          |
+|                         | never crosses a coarse/fine boundary.  Setting 0 allows a partially   |             |              |
+|                         | refined EB, which is still under development and issues a warning.    |             |              |
++-------------------------+-----------------------------------------------------------------------+-------------+--------------+
+
+Note that ``ns.advection_scheme = Godunov_PPM`` and ``BDS`` are not available with embedded
+boundaries.

@@ -153,5 +153,3 @@ nodal_proj.verbose = 2
 nodal_proj.verbose = 1
 nodal_proj.proj_tol = 1.e-12
 nodal_proj.proj_abs_tol = 1.e-15
-
-mg.v = 0

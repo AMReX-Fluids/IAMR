@@ -571,7 +571,7 @@ more than one grid per MPI rank, and different strategies for distributing the g
 IAMR relies on AMReX for the implementation. For more information, please see AMReX's documentation,
 found here: :ref:`amrex:Chap:ManagingGridHierarchy`.
 
-See :ref:`sec:gridCreation` and :ref:`Chap:InputsLoadBalancing` for how grids are created,
+See :ref:`sec:gridCreation` and :ref:`sec:InputsLoadBalancing` for how grids are created,
 i.e. how the :cpp:`BoxArray` on which
 :cpp:`MultiFabs` will be built is defined at each level.
 

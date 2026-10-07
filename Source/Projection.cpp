@@ -1287,9 +1287,14 @@ Projection::scaleVar (MultiFab*       sig,
             }
           });
 
+          //
+          // Scale vel on its own ghost cells (the nodal divu stencil reads
+          // them), not only on sig's, which may have none.
+          //
+          const Box& vbx = mfi.growntilebox(1);
           auto const& velarr = vel->array(mfi);
 
-          amrex::ParallelFor(bx, AMREX_SPACEDIM, [=]
+          amrex::ParallelFor(vbx, AMREX_SPACEDIM, [=]
           AMREX_GPU_DEVICE (int i, int j, int k, int n) noexcept
           {
             // NOTE: cells outside the domain in the axial (j) direction are
@@ -1410,9 +1415,14 @@ Projection::rescaleVar (MultiFab*       sig,
             }
           });
 
+          //
+          // Scale vel on its own ghost cells (the nodal divu stencil reads
+          // them), not only on sig's, which may have none.
+          //
+          const Box& vbx = mfi.growntilebox(1);
           auto const& velarr = vel->array(mfi);
 
-          amrex::ParallelFor(bx, AMREX_SPACEDIM, [=]
+          amrex::ParallelFor(vbx, AMREX_SPACEDIM, [=]
           AMREX_GPU_DEVICE (int i, int j, int k, int n) noexcept
           {
             // Mirrors scaleVar: the axial out-of-domain ghosts were scaled

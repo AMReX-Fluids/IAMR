@@ -16,7 +16,7 @@ Key software and algorithmic features of IAMR include:
 
 * Fluid velocity, density and tracers are defined at cell centroids; pressure is defined at nodes.
 
-* Possible advection algorithms: a Method-Of-Lines (MOL) approach and a Godunov-method algorithm. Both use an intermediate MAC projection for face-centered advection velocities.
+* Possible advection algorithms: an unsplit Godunov method (piecewise linear or piecewise parabolic reconstruction) and the Bell-Dawson-Shubin (BDS) scheme. All use an intermediate MAC projection for face-centered advection velocities.
 
 * Incompressibility of the fluid is imposed through the use of an approximate projection at the end of the time step.
 

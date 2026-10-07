@@ -1523,12 +1523,12 @@ Diffusion::computeExtensiveFluxes(MLMG& a_mg, MultiFab& Soln,
       if ( flags.getType(amrex::grow(bx,0)) == FabType::covered )
       {
          //
-         // For now, set to very large num so we know if you accidentally use it
-         // MLMG will set covered fluxes to zero
+         // Covered fluxes must be zero: they are passed to the viscous
+         // FluxRegister, which does not know about EB.
          //
-         AMREX_D_TERM(AMREX_PARALLEL_FOR_4D(ubx, ncomp, i, j, k, n, {fx(i,j,k,n) = COVERED_VAL;});,
-                AMREX_PARALLEL_FOR_4D(vbx, ncomp, i, j, k, n, {fy(i,j,k,n) = COVERED_VAL;});,
-                AMREX_PARALLEL_FOR_4D(wbx, ncomp, i, j, k, n, {fz(i,j,k,n) = COVERED_VAL;}););
+         AMREX_D_TERM(AMREX_PARALLEL_FOR_4D(ubx, ncomp, i, j, k, n, {fx(i,j,k,n) = 0.0;});,
+                AMREX_PARALLEL_FOR_4D(vbx, ncomp, i, j, k, n, {fy(i,j,k,n) = 0.0;});,
+                AMREX_PARALLEL_FOR_4D(wbx, ncomp, i, j, k, n, {fz(i,j,k,n) = 0.0;}););
       }
       else if ( flags.getType(amrex::grow(bx,0)) != FabType::regular )
       {

@@ -23,10 +23,6 @@
 #include <AMReX_EBMultiFabUtil_C.H>
 #endif
 
-#ifdef AMREX_USE_TURBULENT_FORCING
-#include <TurbulentForcing_params.H>
-#endif
-
 
 using namespace amrex;
 
@@ -995,7 +991,14 @@ NavierStokesBase::computeNewDt (int                   finest_level,
     for (i = 0; i <= finest_level; i++)
     {
         NavierStokesBase& adv_level = getLevel(i);
-        dt_min[i] = std::min(dt_min[i],adv_level.estTimeStep());
+        //
+        // dt_min[i] arrives holding the CFL-based estimate returned by
+        // advance(). With fixed_dt that estimate must not undercut fixed_dt;
+        // only ramp by change_max from an init_shrink-reduced start.
+        //
+        dt_min[i] = (fixed_dt > 0.0)
+            ? std::min(change_max*dt_level[i],adv_level.estTimeStep())
+            : std::min(dt_min[i],adv_level.estTimeStep());
     }
 
     if (fixed_dt <= 0.0)
@@ -1252,7 +1255,7 @@ NavierStokesBase::create_umac_grown (int nGrow,
                         for(int jj(-1); jj<=1; jj++) {
                             for(int ii(-1); ii<=1; ii++) {
                                 if ( Math::abs(ii)+Math::abs(jj)+Math::abs(kk) == 1 &&
-                                     (maskarr(i+ii,j+jj,k+kk) == interior || maskarr(i+ii,j+jj,k+kk) == level_mask_covered) )
+                                     (maskarr(i+ii,j+jj,k+kk) == level_mask_interior || maskarr(i+ii,j+jj,k+kk) == level_mask_covered) )
                                 {
                                     count++;
                                 }
@@ -2587,14 +2590,6 @@ NavierStokesBase::post_restart ()
     }
   }
 
-#ifdef AMREX_USE_TURBULENT_FORCING
-  //
-  // Initialize data structures used for homogeneous isentropic forced turbulence.
-  // Only need to do it once.
-  if (level == 0)
-      TurbulentForcing::init_turbulent_forcing(geom.ProbLoArray(),geom.ProbHiArray());
-#endif
-
 #ifdef AMREX_PARTICLES
     post_restart_particle ();
 #endif
@@ -2671,7 +2666,11 @@ NavierStokesBase::post_timestep (int crse_iteration)
         BoxArray ba(bx);
         DistributionMapping dm{ba};
 
-        MultiFab mf(ba, dm, AMREX_SPACEDIM, 0, MFInfo(), Factory());
+        //
+        // ba is not this level's BoxArray, so this level's (EB) factory
+        // must not be used to build the slab.
+        //
+        MultiFab mf(ba, dm, AMREX_SPACEDIM, 0);
 
         mf.ParallelCopy(get_new_data(State_Type), Xvel, 0, AMREX_SPACEDIM);
 
@@ -4063,7 +4062,16 @@ NavierStokesBase::ParticleDerive (const std::string& name,
         }
 
         MultiFab* ret = new MultiFab(grids, dmap, ncomp, ngrow, MFInfo(), Factory());
+        //
+        // The MultiFab overload only writes the valid region. Callers such as
+        // errorEst read the ghost cells (AmrLevel::derive fills them), so
+        // zero them and fill from neighbouring grids.
+        //
+        ret->setVal(0.);
         ParticleDerive(name,time,*ret,0);
+        if (ngrow > 0) {
+            ret->FillBoundary(geom.periodicity());
+        }
         return std::unique_ptr<MultiFab>{ret};
     }
     else {
@@ -5100,8 +5108,14 @@ NavierStokesBase::ComputeAofs ( MultiFab& advc, int a_comp, // Advection term "A
                 int as_crse = (fr_as_crse != nullptr);
                 int as_fine = (fr_as_fine != nullptr);
 
-                FArrayBox* p_drho_as_crse = (fr_as_crse) ?
-                        fr_as_crse->getCrseData(mfi) : &fab_drho_as_crse;
+                //
+                // The register's coarse data holds all NUM_STATE components,
+                // but the redistribution writes components 0..ncomp-1 of the
+                // array it is handed, so offset to this call's state range.
+                //
+                Array4<Real> const drho_as_crse_arr = (fr_as_crse) ?
+                        fr_as_crse->getCrseData(mfi)->array(state_indx)
+                      : fab_drho_as_crse.array();
                 const IArrayBox* p_rrflag_as_crse = (fr_as_crse) ?
                        fr_as_crse->getCrseFlag(mfi) : &fab_rrflag_as_crse;
 
@@ -5117,7 +5131,7 @@ NavierStokesBase::ComputeAofs ( MultiFab& advc, int a_comp, // Advection term "A
                                            AMREX_D_DECL(apx,apy,apz), vfrac_arr,
                                            AMREX_D_DECL(fcx,fcy,fcz), ccent_arr, bcrec_d,
                                            geom, dt, redistribution_type,
-                                           as_crse, p_drho_as_crse->array(), p_rrflag_as_crse->array(),
+                                           as_crse, drho_as_crse_arr, p_rrflag_as_crse->array(),
                                            as_fine, dm_as_fine.array(), coarse_fine_mask->const_array(mfi),
                                            level_mask_notcovered,
                                            /*fac_for_deltaR*/ sync_factor,

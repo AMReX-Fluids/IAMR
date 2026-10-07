@@ -25,11 +25,10 @@ amr.plot_int            =   20          # Steps between plot files
 amr.plot_per            =   0.1         # Steps between plot files
 amr.check_int           =   100        # Steps between checkpoint files
 #amr.restart             =   chk13100          # Checkpoint to restart from
-amr.probin_file         = probin.3d.square_grid
 #¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨#
 #               PHYSICS                 #
 #.......................................#
-ns.gravity          =   0.  0.  0.  # Gravitational force (3D)
+ns.gravity          =   0.            # Gravitational force
 ns.vel_visc_coef         = 1.157407407407407e-05
 ns.scal_diff_coefs       = 1.0
 #¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨#
@@ -73,7 +72,7 @@ square_grid.dim_L0 = 0.1
 square_grid.ratio_t0_L0_cross = 1.886792452830189e-01
 square_grid.ratio_t0_stream_thickness = 0.25
 
-amr.derive_plot_vars    = mag_vort avg_pressure velocity_average
+amr.derive_plot_vars    = mag_vort avg_pressure
 amr.plot_vars = x_velocity y_velocity z_velocity
 #*******************************************************************************
 

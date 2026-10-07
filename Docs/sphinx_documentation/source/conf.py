@@ -22,7 +22,6 @@
 
 import re
 import sphinx_rtd_theme
-import breathe
 from datetime import datetime
 
 def get_IAMR_version():
@@ -43,8 +42,7 @@ extensions = ['sphinx.ext.mathjax',
               'sphinx.ext.githubpages',
               'sphinx.ext.viewcode',
               'sphinx.ext.intersphinx',
-              'sphinx.ext.autosectionlabel',
-              'breathe']
+              'sphinx.ext.autosectionlabel']
 
 # bibtex
 bibtex_bibfiles = ["refs.bib"]
@@ -61,7 +59,7 @@ intersphinx_mapping = {
 }
 
 # Add any paths that contain templates here, relative to this directory.
-templates_path = ['ytemplates']
+templates_path = []
 
 # The suffix(es) of source filenames.
 # You can specify multiple suffix as a list of string:
@@ -105,22 +103,6 @@ pygments_style = 'sphinx'
 todo_include_todos = False
 
 numfig = True
-
-# -- breathe options ------------------------------------------------------
-
-breathe_projects = {
-    "IAMR": "../../../out/docs_xml/doxygen/",
-    }
-
-breathe_default_project = "IAMR"
-
-breathe_default_members = ('members', 'undoc-members', 'protected-members',
-                           'private-members', 'content-only')
-
-breathe_doxygen_config_options = {'EXTRACT_ALL': 'YES',
-                                  'SHOW_USED_FILES': 'YES',
-                                  'RECURSIVE': 'YES'}
-
 
 # -- Options for HTML output ----------------------------------------------
 
