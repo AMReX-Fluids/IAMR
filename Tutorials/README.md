@@ -78,8 +78,6 @@ Hotspot
 A hot bubble rising in closed box. Uses a low Mach number constraint
 in place of incompressible.
 
-Average? LES?
-
 
 **************************
 Rayleigh-Taylor
@@ -123,14 +121,6 @@ We use p0 = mu = L = 1.
 
 
 **************************
-Euler
-
-The test case is a "vortex tube" in a constant density fluid
-in a triply periodic geometry.  The refinement criteria are the
-presence of a tracer and the magnitude of vorticity.
-
-
-**************************
 Taylor-Green vortex
 
 This case is an unsteady viscous benchmark for which the
@@ -138,7 +128,7 @@ exact solution in 2D is
     u(x,y,t) =   V_0 Sin(2Pi x) Cos(2Pi y) Cos(2Pi z) Exp(-2 (2Pi)^2 Nu t)
     v(x,y,t) = - V_0 Cos(2Pi x) Sin(2Pi y) Cos(2Pi z) Exp(-2 (2Pi)^2 Nu t)
     p(x,y,t) = - rho_0 V_0^2 {Cos(4 Pi x) + Cos(4 Pi y)} Exp(-4 (2Pi)^2 Nu t) / 4
-In TaylorGreen/benchmarks, there is a tool, ViscBench2d.cpp, that reads a
+In TaylorGreen/benchmarks, there is a tool, ViscBench.cpp, that reads a
 plot file and compares the solution against this exact solution.
 This benchmark was originally derived by G.I. Taylor (Phil. Mag.,
 Vol. 46, No. 274, pp. 671-674, 1923) and Ethier and Steinman
@@ -150,12 +140,6 @@ In 3D, the problem is initialized with
     v(x,y,z) = - V_0 Cos(2Pi x) Sin(2Pi y) Cos(2Pi z)
     w(x,y,z) =   0.0
     p(x,y,t) = - rho_0 V_0^2 {2 + Cos(4 Pi z)}{Cos(4 Pi x) + Cos(4 Pi y)} Exp(-4 (2Pi)^2 Nu t) / 16
-
-
-**************************
-HIT
-
-Homogeneous isentropic forced turbulence with constant density.
 
 
 **************************

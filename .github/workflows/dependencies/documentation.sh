@@ -9,13 +9,8 @@ set -eu -o pipefail
 
 sudo apt-get update
 
+# The docs job only builds HTML with Sphinx; doxygen and LaTeX are not used.
 sudo apt-get install -y --no-install-recommends\
     build-essential \
-    pandoc \
-    doxygen \
-    texlive \
-    texlive-latex-extra \
-    texlive-lang-cjk \
-    tex-gyre \
-    latexmk
+    pandoc
 

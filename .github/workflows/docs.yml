@@ -6,7 +6,7 @@ on:
   pull_request:
 
 concurrency:
-  group: ${{ github.head_ref }}-docs
+  group: ${{ github.ref }}-${{ github.head_ref }}-docs
   cancel-in-progress: true
 
 jobs:
@@ -21,7 +21,7 @@ jobs:
           .github/workflows/dependencies/documentation.sh
           echo "Installing python packages for docs..."
           python3 -m pip install --upgrade pip
-          python3 -m pip install sphinx sphinx_rtd_theme breathe sphinxcontrib.bibtex docutils
+          python3 -m pip install sphinx sphinx_rtd_theme sphinxcontrib.bibtex docutils
 
       - name: Install and Build
         run: |

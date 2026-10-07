@@ -65,7 +65,7 @@ Make your own fork
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 First, setup your local git repo. To make your own fork of the main
-(`upstream`) repository, press the fork button on the `IAMR Github page <https://github.com/IAMR-Codes/IAMR>`_.
+(`upstream`) repository, press the fork button on the `IAMR Github page <https://github.com/AMReX-Fluids/IAMR>`_.
 
 Then, clone your fork on your local computer. If you plan on doing a lot of IAMR development,
 we recommend configuring your clone to use ssh access so you won't have to enter your Github
@@ -77,7 +77,7 @@ password every time, which you can do using these commands:
 
   # Then, navigate into your repo, add a new remote for the main IAMR repo, and fetch it:
   cd IAMR
-  git remote add upstream https://github.com/IAMR-Codes/IAMR
+  git remote add upstream https://github.com/AMReX-Fluids/IAMR
   git remote set-url --push upstream git@github.com:<myGithubUsername>/IAMR.git
   git fetch upstream
 
@@ -95,7 +95,7 @@ If you instead prefer to use HTTPS authentication, configure your local clone as
 
   # Navigate into your repo, add a new remote for the main IAMR repo, and fetch it
   cd IAMR
-  git remote add upstream https://github.com/IAMR-Codes/IAMR
+  git remote add upstream https://github.com/AMReX-Fluids/IAMR
   git remote set-url --push upstream https://github.com/<myGithubUsername>/IAMR.git
   git fetch upstream
 

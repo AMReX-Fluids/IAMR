@@ -109,11 +109,6 @@ Non-EB:
   We use :math:`p_0 = \mu = L = 1`.
 
 
-* **Euler**: The test case is a "vortex tube" in a constant density fluid
-  in a triply periodic geometry.  The refinement criteria are the
-  presence of a tracer and the magnitude of vorticity.
-
-
 * **TaylorGreen**: This case is an unsteady viscous benchmark for which the
   exact solution in 2D is
 
@@ -122,7 +117,7 @@ Non-EB:
     v(x,y,t) &= -&& V_0 Cos(2\pi x) Sin(2\pi y) Cos(2\pi z) \exp(-2 (2\pi)^2 \nu t) \\
     p(x,y,t) &= -&& \rho_0 V_0^2 \{Cos(4 \pi x) + Cos(4 \pi y)\} \exp(-4 (2\pi)^2 \nu t) / 4
 
-  In ``TaylorGreen/benchmarks``, there is a tool, ViscBench2d.cpp, that reads a plot file and compares the solution against this exact solution. This benchmark was originally derived by G.I. Taylor (Phil. Mag., Vol. 46, No. 274, pp. 671-674, 1923) and Ethier & Steinman (Intl. J. Num. Meth. Fluids, Vol. 19, pp. 369-375, 1994) give the pressure field.
+  In ``TaylorGreen/benchmarks``, there is a tool, ViscBench.cpp, that reads a plot file and compares the solution against this exact solution. This benchmark was originally derived by G.I. Taylor (Phil. Mag., Vol. 46, No. 274, pp. 671-674, 1923) and Ethier & Steinman (Intl. J. Num. Meth. Fluids, Vol. 19, pp. 369-375, 1994) give the pressure field.
 
   In 3D, the problem is initialized with
 
@@ -131,13 +126,6 @@ Non-EB:
     v(x,y,z) &= -&& V_0 Cos(2\pi x) Sin(2\pi y) Cos(2\pi z) \\
     w(x,y,z) &= &&  0.0 \\
     p(x,y,t) &= -&& \rho_0 V_0^2 \{2 + Cos(4 \pi z)\}\{Cos(4 \pi x) + Cos(4 \pi y)\} \exp(-4 (2\pi)^2 \nu t) / 16
-
-
-* **HIT**: Homogeneous isentropic forced turbulence with constant density.
-  This demonstrates defining a new forcing function by using a local edited
-  version of ``NS_getForce.cpp``. IAMR's make system is automatically configured
-  to select any local versions of files and ignore the corresponding versions in
-  ``IAMR/Source``. This problem is 3D only.
 
 
 * **Particles**: Particles in a double shear layer. Uses 2 levels of refinement
