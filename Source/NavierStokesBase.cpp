@@ -5,6 +5,7 @@
 #include <AMReX_PhysBCFunct.H>
 #include <AMReX_MLNodeLaplacian.H>
 #include <AMReX_FillPatchUtil.H>
+#include <AMReX_Extrapolater.H>
 #include <NavierStokesBase.H>
 #include <NSB_K.H>
 #include <NS_util.H>
@@ -994,11 +995,16 @@ NavierStokesBase::computeNewDt (int                   finest_level,
         //
         // dt_min[i] arrives holding the CFL-based estimate returned by
         // advance(). With fixed_dt that estimate must not undercut fixed_dt;
-        // only ramp by change_max from an init_shrink-reduced start.
+        // only ramp by change_max from an init_shrink-reduced start. Ramp from
+        // no less than init_shrink*fixed_dt, so a restart after a step cut
+        // short by stop_time does not crawl back up.
         //
-        dt_min[i] = (fixed_dt > 0.0)
-            ? std::min(change_max*dt_level[i],adv_level.estTimeStep())
-            : std::min(dt_min[i],adv_level.estTimeStep());
+        if (fixed_dt > 0.0) {
+            const Real est = adv_level.estTimeStep();
+            dt_min[i] = std::min(change_max*std::max(dt_level[i],init_shrink*est),est);
+        } else {
+            dt_min[i] = std::min(dt_min[i],adv_level.estTimeStep());
+        }
     }
 
     if (fixed_dt <= 0.0)
@@ -4065,12 +4071,14 @@ NavierStokesBase::ParticleDerive (const std::string& name,
         //
         // The MultiFab overload only writes the valid region. Callers such as
         // errorEst read the ghost cells (AmrLevel::derive fills them), so
-        // zero them and fill from neighbouring grids.
+        // fill them from neighbouring grids and extrapolate at physical and
+        // coarse/fine boundaries.
         //
         ret->setVal(0.);
         ParticleDerive(name,time,*ret,0);
         if (ngrow > 0) {
             ret->FillBoundary(geom.periodicity());
+            Extrapolater::FirstOrderExtrap(*ret, geom, 0, ncomp, ngrow);
         }
         return std::unique_ptr<MultiFab>{ret};
     }
