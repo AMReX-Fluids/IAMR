@@ -96,8 +96,17 @@ NavierStokes::Initialize_bcs ()
     //
     // Check for integer BC type specification in inputs file (older style)
     //
-    if ( pp.contains("lo_bc") )
+    if ( pp.contains("lo_bc") || pp.contains("hi_bc") )
     {
+      //
+      // The two are a pair: reading hi_bc only when lo_bc is present would
+      // silently drop a deck that gives just one of them.
+      //
+      if ( !pp.contains("lo_bc") || !pp.contains("hi_bc") )
+      {
+        amrex::Abort("NavierStokes::Initialize_bcs: ns.lo_bc and ns.hi_bc must be given together.");
+      }
+
       Vector<int> lo_bc(AMREX_SPACEDIM), hi_bc(AMREX_SPACEDIM);
       pp.getarr("lo_bc",lo_bc,0,AMREX_SPACEDIM);
       pp.getarr("hi_bc",hi_bc,0,AMREX_SPACEDIM);
@@ -134,7 +143,7 @@ NavierStokes::Initialize_bcs ()
       std::string bc_type = amrex::toLower(bc_type_in);
 
       if (bc_type == "no_slip_wall" or bc_type == "nsw"
-          or phys_bc.data()[ori] == PhysBCType::noslipwall)
+          or (bc_type == "null" and phys_bc.data()[ori] == PhysBCType::noslipwall))
       {
           amrex::Print() << bcid <<" set to no-slip wall.\n";
 
@@ -165,7 +174,7 @@ NavierStokes::Initialize_bcs ()
           // m_bc_velocity[ori] = {0.0, 0.0, 0.0};
       }
       else if (bc_type == "mass_inflow" or bc_type == "mi"
-           or phys_bc.data()[ori] == PhysBCType::inflow)
+           or (bc_type == "null" and phys_bc.data()[ori] == PhysBCType::inflow))
       {
           amrex::Print() << bcid << " set to mass inflow.\n";
 
@@ -199,7 +208,7 @@ NavierStokes::Initialize_bcs ()
           // pbc.get("pressure", m_bc_pressure[ori]);
       }
       else if (bc_type == "pressure_outflow" or bc_type == "po"
-           or phys_bc.data()[ori] == PhysBCType::outflow)
+           or (bc_type == "null" and phys_bc.data()[ori] == PhysBCType::outflow))
           {
           amrex::Print() << bcid << " set to pressure outflow.\n";
 
@@ -869,8 +878,8 @@ NavierStokes::scalar_update (Real dt,
     {
        if (S_new.contains_nan(sigma,1,0))
        {
-         Print() << "New scalar " << sigma << " contains Nans" << '\n';
-         exit(0);
+         amrex::Abort("NavierStokes::scalar_update(): new scalar component "
+                      + std::to_string(sigma) + " contains NaNs");
        }
     }
 }

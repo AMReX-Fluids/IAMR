@@ -3572,8 +3572,8 @@ NavierStokesBase::velocity_update (Real dt)
     {
        if (S_new.contains_nan(sigma,1,0))
        {
-          amrex::Print() << "New velocity " << sigma << " contains Nans" << '\n';
-          exit(0);
+          amrex::Abort("NavierStokesBase::velocity_update(): new velocity component "
+                       + std::to_string(sigma) + " contains NaNs");
        }
     }
 }
@@ -4721,8 +4721,6 @@ NavierStokesBase::ComputeAofs ( MultiFab& advc, int a_comp, // Advection term "A
 {
     BL_PROFILE("NSB::ComputeAofs_kernel");
 
-    amrex::ignore_unused(do_fine_add);
-
     // Need U_corr to be defined for sync.
     AMREX_ASSERT( (is_sync && !U_corr.empty()) || !is_sync );
 
@@ -5270,17 +5268,17 @@ NavierStokesBase::ComputeAofs ( MultiFab& advc, int a_comp, // Advection term "A
         Real sync_factor = do_crse_add ? 1.0 : -1.0;
 
         // Update the flux registers when no EB
-        if ( do_reflux && (level < parent->finestLevel()) ) {
+        if ( do_reflux && do_crse_add && (level < parent->finestLevel()) ) {
                getAdvFluxReg(level+1).CrseAdd(mfi,
                               {AMREX_D_DECL(&fx_fab,&fy_fab,&fz_fab)},
                               dxDp, sync_factor*dt, flux_comp, state_indx, ncomp, amrex::RunOn::Device);
-        } // do_reflux && level < finest_level
+        } // do_reflux && do_crse_add && level < finest_level
 
-        if ( do_reflux && (level > 0) ) {
+        if ( do_reflux && do_fine_add && (level > 0) ) {
               advflux_reg->FineAdd(mfi,
                               {AMREX_D_DECL(&fx_fab,&fy_fab,&fz_fab)},
                                dxDp, sync_factor*dt, flux_comp, state_indx, ncomp, amrex::RunOn::Device);
-        } // do_reflux && (level > 0)
+        } // do_reflux && do_fine_add && (level > 0)
 #endif
     } // mfi
 }
