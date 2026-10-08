@@ -11,6 +11,8 @@
 
 #include <hydro_NodalProjector.H>
 
+#include <string>
+
 
 using namespace amrex;
 
@@ -1820,8 +1822,19 @@ Projection::set_outflow_bcs (int        which_call,
         const Box&      valid_state_strip    = temp_state_strip & domain;
         const BoxArray  uncovered_outflow_ba = amrex::complementIn(valid_state_strip,Lgrids);
 
-        AMREX_ASSERT(uncovered_outflow_ba.empty() ||
-                     ! Lgrids.intersects(valid_state_strip));
+        //
+        // A level that touches an outflow face without covering it is not
+        // supported: it would get no hydrostatic strip of its own, and in
+        // initialPressureProject its outflow nodes would keep phi = 0 while
+        // the coarse level gets rho*g*(H-z). Fail loudly rather than only
+        // in a debug build.
+        //
+        if ( !uncovered_outflow_ba.empty() && Lgrids.intersects(valid_state_strip) )
+        {
+            amrex::Abort("Projection::set_outflow_bcs: level "
+                         + std::to_string(lev)
+                         + " only partially covers an outflow face");
+        }
 
         if ( uncovered_outflow_ba.empty() && fine_level[iface] == -1) {
             int ii = icount[lev];

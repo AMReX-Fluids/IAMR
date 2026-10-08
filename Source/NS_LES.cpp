@@ -94,6 +94,16 @@ NavierStokesBase::calc_mut_LES(MultiFab* mu_LES[AMREX_SPACEDIM], const Real time
   MultiFab** tensorflux = fb.get();
   std::array<MultiFab*,AMREX_SPACEDIM> grad_Uvel{AMREX_D_DECL(tensorflux[0], tensorflux[1], tensorflux[2])};
 
+  //
+  // FluxBoxes does not initialize the face MultiFabs, and compVelGrad skips
+  // covered FABs (covered tiles when tiling). The loop below evaluates the
+  // LES formula everywhere, so zero the gradients first to get mu_t = 0 on
+  // covered faces rather than whatever the arena held.
+  //
+  for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {
+    grad_Uvel[idim]->setVal(0.0);
+  }
+
   tensorop.compVelGrad(0,{grad_Uvel},{Uvel},MLLinOp::Location::FaceCenter);
 
   //

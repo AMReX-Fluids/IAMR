@@ -136,8 +136,14 @@ main (int   argc,
     const int nComp          = AMREX_SPACEDIM+1; //amrDataI.NComp();
     const Real time = amrDataI.Time();
     const int finestLevel = amrDataI.FinestLevel();
-    const Vector<std::string>& derives = amrDataI.PlotVarNames();
 
+    //
+    // Components the exact solution provides, in the order FORT_VISCBENCH
+    // fills them. Plotfile data are looked up by these names, not by
+    // position, so a plotfile written with a different amr.plot_vars
+    // ordering still gives the right error norms.
+    //
+    Vector<std::string> varNames{ AMREX_D_DECL("x_velocity", "y_velocity", "z_velocity"), "density"};
 
     //
     // Compute the error
@@ -169,7 +175,7 @@ main (int   argc,
         //
         for (int iComp=0; iComp<nComp; ++iComp)
         {
-            amrDataI.FillVar(dataI, iLevel, derives[iComp], iComp);
+            amrDataI.FillVar(dataI, iLevel, varNames[iComp], iComp);
         }
 
         for (MFIter mfi(*dataE[iLevel]); mfi.isValid(); ++mfi)
@@ -239,7 +245,6 @@ main (int   argc,
 
     //
     // Write Plot Files
-    Vector<std::string> varNames{ AMREX_D_DECL("x_velocity", "y_velocity", "z_velocity"), "density"};
     //
     if (!errFile.empty())
         WritePlotFile(error, amrDataI, errFile, verbose, varNames);

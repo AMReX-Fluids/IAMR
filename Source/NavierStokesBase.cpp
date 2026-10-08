@@ -55,37 +55,6 @@ struct HomExtDirFill
     }
 };
 
-//
-// A dummy function because FillPatch requires something to exist for filling dirichlet boundary conditions,
-// even if we know we cannot have an ext_dir BC.
-// u_mac BCs are only either periodic (BCType::int_dir) or first order extrapolation (FOEXTRAP).
-//
-struct umacFill
-{
-    AMREX_GPU_DEVICE
-    void operator()(
-       const amrex::IntVect& /*iv*/,
-       amrex::Array4<amrex::Real> const& /*dummy*/,
-       const int /*dcomp*/,
-       const int numcomp,
-       amrex::GeometryData const& /*geom*/,
-       const amrex::Real /*time*/,
-       const amrex::BCRec* bcr,
-       const int bcomp,
-       const int /*orig_comp*/) const
-    {
-        // Abort if this function is expected to fill an ext_dir BC.
-        for (int n = bcomp; n < bcomp+numcomp; ++n) {
-            const amrex::BCRec& bc = bcr[n];
-            if ( AMREX_D_TERM(   bc.lo(0) == amrex::BCType::ext_dir || bc.hi(0) == amrex::BCType::ext_dir,
-                              || bc.lo(1) == amrex::BCType::ext_dir || bc.hi(1) == amrex::BCType::ext_dir,
-                              || bc.lo(2) == amrex::BCType::ext_dir || bc.hi(2) == amrex::BCType::ext_dir ) ) {
-               amrex::Abort("NavierStokesBase::umacFill: umac should not have BCType::ext_dir");
-            }
-        }
-    }
-};
-
 
 BCRec       NavierStokesBase::phys_bc;
 Projection* NavierStokesBase::projector     = nullptr;
@@ -2146,7 +2115,7 @@ NavierStokesBase::mac_project (Real      time,
 
     Vector<BCRec> density_math_bc = fetchBCArray(State_Type,Density,1);
 
-    mac_projector->mac_project(level,u_mac,S_old,dt,time,*divu,have_divu,
+    mac_projector->mac_project(level,u_mac,S_old,dt,time,*divu,
                                density_math_bc[0], increment_vel_register);
 
     create_umac_grown(ngrow, divu);
@@ -2758,7 +2727,7 @@ NavierStokesBase::set_state_in_checkpoint (Vector<int>& state_in_checkpoint)
   // Abort if any of the NSB::*_in_checkpoint variables haven't been set by user.
   //
   if ( gradp_in_checkpoint<0 || average_in_checkpoint<0 )
-    Abort("\n\n   Checkpoint file is missing one or more state types. Set both\n ns.gradp_in_checkpoint and ns.avg_in_checkpoint to identify missing\n data. Set to 1 if present in checkpoint, 0 if not present. If unsure,\n try setting both to 0.\n\n If you just activated Time Averaging, you should add \n  ns.avg_in_checkpoint=0 ns.gradp_in_checkpoint=1 \n\n");
+    Abort("\n\n   Checkpoint file is missing one or more state types. Set both\n ns.gradp_in_checkpoint and ns.avg_in_checkpoint to identify missing\n data. Set to 1 if present in checkpoint, 0 if not present. These must\n flag exactly the missing types: the checkpoint is read as a sequential\n stream, so marking a type that is actually present shifts every later\n read and silently restarts from mis-assigned data.\n\n If you just activated Time Averaging, you should add \n  ns.avg_in_checkpoint=0 ns.gradp_in_checkpoint=1 \n\n");
 
   //
   // Tell AmrLevel which types are in the checkpoint, so it knows what to copy.
@@ -3986,6 +3955,21 @@ NavierStokesBase::post_timestep_particle (int crse_iteration)
 
                 n = timestamp_indices.size();
                 nextras = timestamp_num_extras();
+
+                //
+                // These index the FillPatched state below. NUM_STATE is not
+                // yet known when read_particle_params() reads the list, so
+                // validate here: BaseFab::copy only range-checks the
+                // component with an AMREX_ASSERT, so a bad entry would read
+                // outside the FAB in a release build.
+                //
+                for (int i = 0; i < n; ++i)
+                {
+                    if (timestamp_indices[i] < 0 || timestamp_indices[i] >= NUM_STATE)
+                    {
+                        amrex::Abort("NavierStokesBase::post_timestep_particle: particles.timestamp_indices entries must be in [0,NUM_STATE)");
+                    }
+                }
 
                 int sz = n + nextras;
                 tindices.reserve(sz);

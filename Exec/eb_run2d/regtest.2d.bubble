@@ -133,4 +133,4 @@ prob.blob_radius = 0.2
 prob.density_ic = 2.0
 
 #mag_vort is stepping out of bounds
-#amr.derive_plot_vars    = mag_vort   diveru   avg_pressure
+#amr.derive_plot_vars    = mag_vort   avg_pressure

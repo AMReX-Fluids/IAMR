@@ -3,7 +3,6 @@
 #include <AMReX_ParmParse.H>
 #include <MacProj.H>
 #include <NavierStokesBase.H>
-#include <OutFlowBC.H>
 #include <hydro_MacProjector.H>
 
 #ifdef AMREX_USE_EB
@@ -25,7 +24,6 @@ int  MacProj::verbose;
 Real MacProj::mac_tol;
 Real MacProj::mac_abs_tol;
 Real MacProj::mac_sync_tol;
-int  MacProj::do_outflow_bcs;
 int  MacProj::check_umac_periodicity;
 int  MacProj::max_order = 4;
 int  MacProj::agglomeration = 1;
@@ -49,7 +47,6 @@ MacProj::Initialize ()
     MacProj::mac_tol                = 1.0e-12;
     MacProj::mac_abs_tol            = 1.0e-16;
     MacProj::mac_sync_tol           = 1.0e-10;
-    MacProj::do_outflow_bcs         = 1;
     //
     // Only check umac periodicity when debugging.  Can be overridden on input.
     //
@@ -65,7 +62,6 @@ MacProj::Initialize ()
     pp.query("mac_tol",                mac_tol);
     pp.query("mac_abs_tol",            mac_abs_tol);
     pp.query("mac_sync_tol",           mac_sync_tol);
-    pp.query("do_outflow_bcs",         do_outflow_bcs);
     pp.query("check_umac_periodicity", check_umac_periodicity);
     pp.query("umac_periodic_test_Tol", umac_periodic_test_Tol);
 
@@ -184,38 +180,6 @@ MacProj::cleanup (int level)
 //
 // Projection functions follow ...
 //
-static
-bool
-grids_on_side_of_domain (const BoxArray&    grids,
-                         const Box&         domain,
-                         const Orientation& outFace)
-{
-    const int idir = outFace.coordDir();
-
-    if (outFace.isLow())
-    {
-        for (int igrid = 0; igrid < grids.size(); igrid++)
-        {
-            if (grids[igrid].smallEnd(idir) == domain.smallEnd(idir))
-            {
-                return true;
-            }
-        }
-    }
-
-    if (outFace.isHigh())
-    {
-        for (int igrid = 0; igrid < grids.size(); igrid++)
-        {
-            if (grids[igrid].bigEnd(idir) == domain.bigEnd(idir))
-            {
-                return true;
-            }
-        }
-    }
-
-    return false;
-}
 
 //
 // Compute the level advance mac projection.
@@ -228,7 +192,6 @@ MacProj::mac_project (int             level,
                       Real            dt,
                       Real            time,
                       const MultiFab& divu,
-                      int             have_divu,
                       const BCRec&    density_math_bc,
                       bool            increment_vel_register )
 {
@@ -261,10 +224,6 @@ MacProj::mac_project (int             level,
     //
     const MultiFab& rhotime = ns.get_rho(time);
     MultiFab::Copy(S, rhotime, 0, Density, 1, 1);
-
-    if (OutFlowBC::HasOutFlowBC(phys_bc) && have_divu && do_outflow_bcs) {
-        set_outflow_bcs(level, mac_phi, u_mac, S, divu);
-    }
 
     //
     //  Set up the mac projection
@@ -861,100 +820,6 @@ MacProj::check_div_cond (int      level,
     }
 }
 
-void
-MacProj::set_outflow_bcs (int             level,
-                          MultiFab*       mac_phi,
-                          const MultiFab* /*u_mac*/,
-                          const MultiFab& /*S*/,
-                          const MultiFab& /*divu*/)
-{
-    //
-    // This code is very similar to the outflow BC stuff in the Projection
-    // class except that here the the phi to be solved for lives on the
-    // out-directed faces.  The projection equation to satisfy is
-    //
-    //   (1/r)(d/dr)[r/rho dphi/dr] = dv/dr - S
-    //
-    bool hasOutFlow;
-    Orientation outFaces[2*AMREX_SPACEDIM];
-    int numOutFlowFaces;
-
-    OutFlowBC::GetOutFlowFaces(hasOutFlow,outFaces,phys_bc,numOutFlowFaces);
-
-    const BoxArray&   grids  = LevelData[level]->boxArray();
-    const Geometry&   geom   = parent->Geom(level);
-    const Box&        domain = parent->Geom(level).Domain();
-    //
-    // Create 1-wide cc box just outside boundary to hold phi.
-    //
-    BoxList ccBoxList, phiBoxList;
-    // numOutFlowFaces gives the number of outflow faces on the entire
-    //   problem domain
-    // nOutFlowTouched gives the number of outflow faces a level touches, so
-    //   nOutFlowTouched = numOutFlowFaces for level 0, but
-    //   nOutFlowTouched <= numOutFlowFaces for levels > 0, since
-    //   finer levels may not span the entire problem domain
-    int nOutFlowTouched = 0;
-    for (int iface = 0; iface < numOutFlowFaces; iface++)
-    {
-        if (grids_on_side_of_domain(grids,geom.Domain(),outFaces[iface]))
-        {
-            nOutFlowTouched++;
-            const int outDir    = outFaces[iface].coordDir();
-
-            Box ccBndBox;
-            if (outFaces[iface].faceDir() == Orientation::high)
-            {
-                ccBndBox = amrex::adjCellHi(domain,outDir,2);
-                ccBndBox.shift(outDir,-2);
-            }
-            else
-            {
-                ccBndBox = amrex::adjCellLo(domain,outDir,2);
-                ccBndBox.shift(outDir,2);
-            }
-            ccBoxList.push_back(ccBndBox);
-
-            Box phiBox  = amrex::adjCell(domain,outFaces[iface],1);
-            phiBoxList.push_back(phiBox);
-
-            const Box&     valid_ccBndBox       = ccBndBox & domain;
-            const BoxArray uncovered_outflow_ba = amrex::complementIn(valid_ccBndBox,grids);
-
-            if ((!uncovered_outflow_ba.empty()) &&
-                grids.intersects(valid_ccBndBox))
-            {
-                amrex::Error("MacProj: Cannot yet handle partially refined outflow");
-            }
-        }
-    }
-
-    if ( !ccBoxList.isEmpty() )
-    {
-        BoxArray phiBoxArray(phiBoxList);
-        phiBoxList.clear();
-
-        //
-        // Must do this kind of copy instead of mac_phi->copy(phidat);
-        // because we're copying onto the ghost cells of the FABs,
-        // not the valid regions.
-        //
-#ifdef _OPENMP
-#pragma omp parallel if (Gpu::notInLaunchRegion())
-#endif
-        for ( int iface = 0; iface < nOutFlowTouched; ++iface )
-        {
-            for (MFIter mfi(*mac_phi); mfi.isValid(); ++mfi)
-            {
-                Box ovlp = (*mac_phi)[mfi].box() & phiBoxArray[iface];
-                if (ovlp.ok()) {
-                      (*mac_phi)[mfi].setVal<RunOn::Gpu>(0,ovlp,0,1);
-                }
-            }
-        }
-    }
-}
-
 //
 // Structure used by test_umac_periodic().
 //
@@ -1188,7 +1053,14 @@ MacProj::mlmg_mac_solve (Amr* a_parent, const MultiFab* cphi, const BCRec& a_phy
     set_mac_solve_bc(mlmg_lobc, mlmg_hibc, a_phys_bc, geom);
 
     macproj.setDomainBC(mlmg_lobc, mlmg_hibc);
-    if (level > 0 && cphi)
+    //
+    // cphi is null for the sync solve, which wants a homogeneous Dirichlet
+    // coarse/fine BC. MLMG still needs to be told the true refinement
+    // ratio, however, or it assumes 2 and mis-positions the coarse ghost
+    // value. So register the ratio on every level above 0, with or without
+    // coarse data.
+    //
+    if (level > 0)
     {
         macproj.setCoarseFineBC(cphi, a_parent->refRatio(level-1)[0]);
     }

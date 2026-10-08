@@ -39,7 +39,6 @@ public:
                       amrex::Real            dt,
                       amrex::Real            prev_time,
                       const amrex::MultiFab& divu,
-                      int             have_divu,
                       const amrex::BCRec&   density_math_bc,
                       bool            increment_vel_register = true );
 
@@ -104,14 +103,6 @@ public:
     void check_div_cond (int      level,
                          amrex::MultiFab U_edge[]) const;
     //
-    // Boundary conditions.
-    //
-    void set_outflow_bcs (int level,
-                          amrex::MultiFab* mac_phi,
-                          const amrex::MultiFab* u_mac,
-                          const amrex::MultiFab& S,
-                          const  amrex::MultiFab& divu);
-    //
     // Pointers to amr,amrlevel.
     //
     amrex::Amr*             parent;
@@ -132,7 +123,6 @@ public:
     int        finest_level_allocated;
 
     static int  verbose;
-    static int  do_outflow_bcs;
     static amrex::Real mac_tol;
     static amrex::Real mac_abs_tol;
     static amrex::Real mac_sync_tol;

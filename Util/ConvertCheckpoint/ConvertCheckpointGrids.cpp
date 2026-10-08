@@ -635,8 +635,6 @@ static void ConvertData() {
 
     falRef_trgt.geom.setPeriodicity({{AMREX_D_DECL(is_periodic_array[0],is_periodic_array[1],is_periodic_array[2])}});
 
-    DistributionMapping dm_trgt{new_grids};
-
     int ngrow_loc;
 
     for (int n = 0; n < falRef_src.state.size(); n++){
@@ -693,8 +691,16 @@ static void ConvertData() {
         OldData_src -> copy(*(falRef_src.state[n].old_data),0,0,ncomps,0,ngrow_loc);
       }
 
-      MultiFab * NewData_trgt = new MultiFab(new_grids_state,dm_trgt,ncomps,ngrow_loc);
-      MultiFab * OldData_trgt = new MultiFab(new_grids_state,dm_trgt,ncomps,ngrow_loc);
+      //
+      // Box i of new_grids_state is the refinement/coarsening of box i of
+      // save_grids_state, so the target MultiFabs are built on the source
+      // DistributionMapping: the loops below index source and target
+      // through a single MFIter, which is only valid if the two share a
+      // mapping (an independently built one may order the boxes
+      // differently under MPI).
+      //
+      MultiFab * NewData_trgt = new MultiFab(new_grids_state,dm,ncomps,ngrow_loc);
+      MultiFab * OldData_trgt = new MultiFab(new_grids_state,dm,ncomps,ngrow_loc);
       NewData_trgt->setVal(10.);
       OldData_trgt->setVal(10.);
 
@@ -713,12 +719,27 @@ static void ConvertData() {
         // The copies above are non-periodic, so ghost cells at periodic
         // domain boundaries still hold the setVal(10.) sentinel. Fill them
         // from valid data before computing the interpolation slopes.
-        // NOTE: ghosts at non-periodic physical boundaries still hold the
-        //       sentinel -- the state descriptors (and hence the real BCs)
-        //       are never restored by this tool.
         //
         NewData_src->FillBoundary(cgeom.periodicity());
         OldData_src->FillBoundary(cgeom.periodicity());
+
+        //
+        // Ghost cells not covered by this level's grids -- coarse-fine
+        // boundaries on levels > 0 and non-periodic physical boundaries --
+        // still hold the sentinel. The state descriptors (and hence the
+        // real BCs) are never restored by this tool, so fill them by
+        // first-order extrapolation from the adjacent valid data; otherwise
+        // the limited slopes next to those faces are computed from 10.
+        // Nodal data (pressure) only reads nodes the box owns, so it needs
+        // no fill.
+        //
+        if (NewData_src->is_cell_centered())
+        {
+          Extrapolater::FirstOrderExtrap(*NewData_src, cgeom, 0, ncomps);
+          if (has_old) {
+            Extrapolater::FirstOrderExtrap(*OldData_src, cgeom, 0, ncomps);
+          }
+        }
 
         for (MFIter mfi(*NewData_trgt); mfi.isValid(); ++mfi)
         {

@@ -142,7 +142,7 @@ prob.density_ic = 2.0
 #*******************************************************************************
 
 # Add vorticity to the variables in the plot files.
-amr.derive_plot_vars    = mag_vort   diveru   avg_pressure velocity_average
+amr.derive_plot_vars    = mag_vort   avg_pressure velocity_average
 amr.plot_vars = x_velocity y_velocity density tracer temp
 #*******************************************************************************
 
