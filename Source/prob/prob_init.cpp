@@ -55,7 +55,19 @@ void NavierStokes::prob_initData ()
     pp.query("perturbation_amplitude",IC.pertamp);
 
     // for Taylor-Green
-    pp.query("velocity_factor",IC.v_x);
+    if (probtype == 11)
+    {
+        //
+        // The Taylor-Green amplitude shares IC.v_x with velocity_ic, so it
+        // is only read for this probtype -- otherwise a stray
+        // prob.velocity_factor would silently replace the x-component of
+        // prob.velocity_ic. Reset v_x first so that, conversely, a stray
+        // prob.velocity_ic cannot stand in for the mandatory
+        // prob.velocity_factor (checked in init_TaylorGreen).
+        //
+        IC.v_x = 0.0;
+        pp.query("velocity_factor",IC.v_x);
+    }
     pp.query("a", IC.a);
     pp.query("b", IC.b);
     pp.query("c", IC.c);

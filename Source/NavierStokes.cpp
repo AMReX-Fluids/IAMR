@@ -38,6 +38,14 @@ NavierStokes::Initialize ()
 
     NavierStokesBase::Initialize();
 
+    {
+        //
+        // Documented in RunningProblems.rst; only used with EB.
+        //
+        ParmParse pp("ns");
+        pp.query("set_plot_coveredCell_val", set_plot_coveredCell_val);
+    }
+
     //
     // Set number of state variables.
     //
@@ -95,6 +103,18 @@ NavierStokes::Initialize_bcs ()
       pp.getarr("hi_bc",hi_bc,0,AMREX_SPACEDIM);
       for (int i = 0; i < AMREX_SPACEDIM; i++)
       {
+      //
+      // phys_bc indexes the six-entry tables in NS_BC.H, so anything
+      // outside [interior,noslipwall] would read past them. In particular
+      // PhysBCType also defines inflowoutflow=6, which IAMR does not
+      // support, and the integer input path is otherwise unchecked.
+      //
+      if ( lo_bc[i] < PhysBCType::interior || lo_bc[i] > PhysBCType::noslipwall ||
+           hi_bc[i] < PhysBCType::interior || hi_bc[i] > PhysBCType::noslipwall )
+      {
+        amrex::Abort("NavierStokes::Initialize_bcs: ns.lo_bc/ns.hi_bc must be in [0,5]; see the list of physical BC types in the documentation.");
+      }
+
       phys_bc.setLo(i,lo_bc[i]);
       phys_bc.setHi(i,hi_bc[i]);
       }
