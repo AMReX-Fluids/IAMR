@@ -646,12 +646,20 @@ void NavierStokes::init_ConvectedVortex (Box const& vbx,
   // amrex::Abort() cannot be called from within the device lambda below, so
   // validate the mean flow direction here.
   //
-  if ( IC.meanFlowDir < -3 || IC.meanFlowDir > 3 ) {
-    amrex::Abort("\n   init_ConvectedVortex: prob.meanFlowDir must be 0 (no mean flow) or +/-1, +/-2, +/-3\n   in the inputs file.");
+  if ( IC.meanFlowDir < -4 || IC.meanFlowDir > 4 ) {
+    amrex::Abort("\n   init_ConvectedVortex: prob.meanFlowDir must be 0 (no mean flow),"
+                 "\n   +/-1, +/-2, +/-3 (mean flow along x, y, z) or +/-4 (diagonal in the x-y plane)"
+                 "\n   in the inputs file.");
   }
 #if (AMREX_SPACEDIM == 2)
+  //
+  // +/-4 is the non-axis-aligned option and works in 2D; +/-3 does not,
+  // since AMREX_D_TERM drops the z component and the mean flow would
+  // silently vanish.
+  //
   if ( IC.meanFlowDir == 3 || IC.meanFlowDir == -3 ) {
-    amrex::Abort("\n   init_ConvectedVortex: prob.meanFlowDir = +/-3 requires 3D\n   in the inputs file.");
+    amrex::Abort("\n   init_ConvectedVortex: prob.meanFlowDir = +/-3 puts the mean flow along z"
+                 "\n   and requires 3D.  Use +/-4 for a diagonal mean flow in the x-y plane.");
   }
 #endif
 
@@ -704,6 +712,16 @@ void NavierStokes::init_ConvectedVortex (Box const& vbx,
          AMREX_D_TERM(vel(i,j,k,0) = u_vort;,
                       vel(i,j,k,1) = v_vort;,
                       vel(i,j,k,2) = -IC.meanFlowMag + w_vort);
+         break;
+      case 4 :  // diagonal in the x-y plane; |U| = meanFlowMag*sqrt(2)
+         AMREX_D_TERM(vel(i,j,k,0) = IC.meanFlowMag + u_vort;,
+                      vel(i,j,k,1) = IC.meanFlowMag + v_vort;,
+                      vel(i,j,k,2) = w_vort);
+         break;
+      case -4 :
+         AMREX_D_TERM(vel(i,j,k,0) = -IC.meanFlowMag + u_vort;,
+                      vel(i,j,k,1) = -IC.meanFlowMag + v_vort;,
+                      vel(i,j,k,2) = w_vort);
          break;
       case 0 :  // no mean flow, i.e. the vortex alone
       default :

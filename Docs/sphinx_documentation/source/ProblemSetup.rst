@@ -106,7 +106,9 @@ Which of them a given ``probtype`` actually reads varies; see ``prob_init.cpp``.
 +------------------------+--------------------------------------------------------------------+-------------+-----------+
 | forcevort              | Strength of the convected vortex (probtype 8)                      |   Real      |  6.0      |
 +------------------------+--------------------------------------------------------------------+-------------+-----------+
-| meanFlowDir            | Direction of the mean flow the vortex is convected by (probtype 8) |   Int       |  0        |
+| meanFlowDir            | Direction of the mean flow the vortex is convected by (probtype 8).|   Int       |  0        |
+|                        | 0 = no mean flow; +/-1, +/-2, +/-3 = mean flow along x, y, z;      |             |           |
+|                        | +/-4 = diagonal mean flow in the x-y plane.  +/-3 requires 3D.     |             |           |
 +------------------------+--------------------------------------------------------------------+-------------+-----------+
 | meanFlowMag            | Magnitude of that mean flow (probtype 8)                           |   Real      |  0.0      |
 +------------------------+--------------------------------------------------------------------+-------------+-----------+
