@@ -1615,6 +1615,12 @@ Diffusion::getViscTerms (MultiFab&              visc_terms,
             crsedata.define(crse_ns.boxArray(), crse_ns.DistributionMap(), 1, ng,MFInfo(),crse_ns.Factory());
             AmrLevel::FillPatch(crse_ns,crsedata,ng,time,State_Type,comp,1);
             if (rho_flag == 2) {
+              // get_rho() only handles the coarse old/half/new times, which
+              // matches a fine-level time only for ref ratio 2 (issue #217).
+              if (crse_ratio.max() > 2) {
+                amrex::Abort("Diffusion::getViscTerms(): Laplacian_SoverRho scalars (e.g. ns.do_cons_trac=1) "
+                             "with diffusion on level > 0 are not supported for amr.ref_ratio > 2");
+              }
               // We want to evaluate (div beta grad) S, not rho*S.
               const MultiFab& rhotime = crse_ns.get_rho(time);
               MultiFab::Divide(crsedata,rhotime,0,0,1,ng);
