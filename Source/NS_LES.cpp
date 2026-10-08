@@ -112,6 +112,14 @@ NavierStokesBase::calc_mut_LES(MultiFab* mu_LES[AMREX_SPACEDIM], const Real time
 
   const auto dx = geom.CellSizeArray();
 
+  //
+  // Both models give the kinematic eddy viscosity nu_t, but IAMR's viscosity
+  // is dynamic, so the eddy viscosity added to it is rho*nu_t. One ghost cell
+  // covers every face of the nodal tile box.
+  //
+  MultiFab Rho(grids,dmap,1,1,MFInfo(),Factory());
+  AmrLevel::FillPatch(*this,Rho,1,time,State_Type,Density,1);
+
   for (MFIter mfi(Uvel,true); mfi.isValid(); ++mfi)
   {
 
@@ -120,6 +128,8 @@ NavierStokesBase::calc_mut_LES(MultiFab* mu_LES[AMREX_SPACEDIM], const Real time
       const Box& nbx = mfi.nodaltilebox(idim);
       Array4<Real      > dst = mu_LES[idim]->array(mfi);
       Array4<Real      > src = grad_Uvel[idim]->array(mfi);
+      Array4<Real const> rho = Rho.const_array(mfi);
+      const Dim3 sh = IntVect::TheDimensionVector(idim).dim3();
 
       Real Cs_cst = LES_model == "Smagorinsky" ? smago_Cs_cst : sigma_Cs_cst;
 
@@ -139,7 +149,7 @@ NavierStokesBase::calc_mut_LES(MultiFab* mu_LES[AMREX_SPACEDIM], const Real time
               // so the transpose of flat index c is
               // (c%AMREX_SPACEDIM)*AMREX_SPACEDIM + c/AMREX_SPACEDIM. Pairing
               // each component with its transpose gives symij = 2*S_mn, so
-              // smag below is 2*S:S and mu_t = (Cs*dx)^2*sqrt(2 S_ij S_ij).
+              // smag below is 2*S:S and nu_t = (Cs*dx)^2*sqrt(2 S_ij S_ij).
               int i_symji = (i_symij%AMREX_SPACEDIM)*AMREX_SPACEDIM + i_symij/AMREX_SPACEDIM;
               Real symij = src(i,j,k,i_symij) + src(i,j,k,i_symji);
               smag += symij * symij;
@@ -147,7 +157,8 @@ NavierStokesBase::calc_mut_LES(MultiFab* mu_LES[AMREX_SPACEDIM], const Real time
 
             smag = 0.5 * smag;
 
-            dst(i,j,k,n) = pow(Cs_cst * dx[idim],2) * sqrt(smag);
+            Real rhof = 0.5 * (rho(i,j,k) + rho(i-sh.x,j-sh.y,k-sh.z));
+            dst(i,j,k,n) = rhof * pow(Cs_cst * dx[idim],2) * sqrt(smag);
 
     });
       } else if (LES_model == "Sigma") {
@@ -222,7 +233,8 @@ NavierStokesBase::calc_mut_LES(MultiFab* mu_LES[AMREX_SPACEDIM], const Real time
 
 
           //       Compute the sigma operator
-              dst(i,j,k,n) = pow(Cs_cst * dx[idim],2) * ((sigma3 * (sigma1-sigma2) * (sigma2-sigma3)) / pow(sigma1,2));
+              Real rhof = 0.5 * (rho(i,j,k) + rho(i-sh.x,j-sh.y,k-sh.z));
+              dst(i,j,k,n) = rhof * pow(Cs_cst * dx[idim],2) * ((sigma3 * (sigma1-sigma2) * (sigma2-sigma3)) / pow(sigma1,2));
 
            }
     });

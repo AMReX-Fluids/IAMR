@@ -90,7 +90,9 @@ preceded by "ns."
 +-------------------------+-----------------------------------------------------------------------+-------------+--------------+
 
 Note that each model reads its own constant, so changing ``ns.smago_Cs_cst`` has no effect
-when ``ns.LES_model = Sigma``, and vice versa.  The Sigma model is described in
+when ``ns.LES_model = Sigma``, and vice versa.  Both models compute a kinematic eddy
+viscosity :math:`\nu_t`; since IAMR's viscosity is dynamic, :math:`\mu_t = \rho \nu_t`
+(with :math:`\rho` averaged to faces) is what is added to it.  The Sigma model is described in
 Nicoud et al., *Using singular values to build a subgrid-scale model for large eddy
 simulations*, Phys. Fluids 23, 085106 (2011).
 
