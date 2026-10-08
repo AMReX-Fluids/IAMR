@@ -6,7 +6,6 @@
 #include <AMReX_buildInfo.H>
 #include <AMReX_BLProfiler.H>
 #include <NavierStokes.H>
-#include <NS_util.H>
 #include <iamr_constants.H>
 
 #ifdef BL_USE_VELOCITY
