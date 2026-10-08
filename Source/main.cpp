@@ -59,9 +59,9 @@ main (int   argc,
         amrex::Abort("MUST SPECIFY a non-negative strt_time");
     }
 
-    if (max_step < 0 && stop_time < 0)
+    if (max_step < 0 && stop_time < 0 && stop_interval <= 0.)
     {
-        amrex::Abort("Exiting because neither max_step nor stop_time is non-negative.");
+        amrex::Abort("Exiting because none of max_step, stop_time or stop_interval is set.");
     }
 
     Amr* amrptr = new Amr(getLevelBld());
