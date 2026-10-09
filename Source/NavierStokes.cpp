@@ -1812,9 +1812,15 @@ NavierStokes::reflux ()
       }
     }
 
+    //
+    // The viscous register holds the flux of the equation that was solved:
+    // only RhoInverse_Laplacian_S (rho dS/dt = div beta grad S, e.g. Temp)
+    // needs the increment divided by rho. Laplacian_S tracers carry no rho.
+    //
     for (int istate = AMREX_SPACEDIM; istate < NUM_STATE; istate++)
     {
-      if (advectionType[istate] == NonConservative)
+      if (advectionType[istate] == NonConservative &&
+          diffusionType[istate] == RhoInverse_Laplacian_S)
       {
           MultiFab::Divide(Ssync,Rh,0,istate-AMREX_SPACEDIM,1,0);
       }
