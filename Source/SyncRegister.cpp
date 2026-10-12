@@ -3,7 +3,6 @@
 #include <AMReX_FluxRegister.H>
 #include <SyncRegister.H>
 #include <AMReX_BLProfiler.H>
-#include <NSB_K.H>
 
 #ifdef _OPENMP
 #include <omp.h>
