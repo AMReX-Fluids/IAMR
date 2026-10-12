@@ -145,24 +145,6 @@ Diffusion::Diffusion (Amr*               Parent,
     }
 }
 
-FluxRegister*
-Diffusion::viscFluxReg ()
-{
-    return viscflux_reg;
-}
-
-int
-Diffusion::maxOrder()
-{
-    return max_order;
-}
-
-int
-Diffusion::tensorMaxOrder()
-{
-    return tensor_max_order;
-}
-
 void
 Diffusion::echo_settings () const
 {
@@ -476,10 +458,13 @@ Diffusion::diffuse_scalar (const Vector<MultiFab*>&  S_old,
         {
             // Add body sources
             if ( has_delta_rhs ) {
-                rhs(i,j,k,n) += deltarhs(i,j,k,n) * dt;
+                // Scale only the source by rho_half, not the old-time diffusion
+                // term that mgn.apply already put into rhs.
+                Real src = deltarhs(i,j,k,n) * dt;
                 if ( rho_flag == 1 ) {
-                    rhs(i,j,k,n) *= rhoHalf(i,j,k);
+                    src *= rhoHalf(i,j,k);
                 }
+                rhs(i,j,k,n) += src;
             }
             // Always do : copy S_new into Soln
             //             add Soln to Rhs
@@ -913,7 +898,7 @@ Diffusion::diffuse_tensor_velocity (Real                   dt,
       }
       //
       // computeAlpha scaled the operator scalars by rhsscale; the RHS must be
-      // scaled to match (cf. diffuse_scalar and diffuse_Ssync).
+      // scaled to match (cf. diffuse_scalar).
       //
       Rhs.mult(rhsscale,0,AMREX_SPACEDIM);
       const Real tol_abs = get_scaled_abs_tol(Rhs, visc_tol);
@@ -1192,180 +1177,6 @@ Diffusion::diffuse_tensor_Vsync (MultiFab&              Vsync,
 }
 
 void
-Diffusion::diffuse_Ssync (MultiFab&              Ssync,
-                          int                    sigma,
-                          int                    nComp,
-                          Real                   dt,
-                          Real                   be_cn_theta,
-                          const MultiFab&        rho_half,
-                          int                    rho_flag,
-                          MultiFab* const*       flux,
-                          int                    fluxComp,
-                          const MultiFab* const* beta,
-                          int                    betaComp,
-                          const MultiFab*        alpha,
-                          int                    alphaComp)
-{
-    const int state_ind    = sigma + AMREX_SPACEDIM;
-    if (verbose)
-    {
-       for (int comp = 0; comp < nComp; ++comp) {
-          amrex::Print() << "Diffusion::diffuse_Ssync lev: " << level << " "
-                         << NavierStokesBase::get_desc_lst()[State_Type].name(state_ind+comp) << '\n';
-       }
-    }
-
-    const Real strt_time = ParallelDescriptor::second();
-
-    int allthere;
-    checkBeta(beta, allthere);
-
-    MultiFab  Rhs(grids,dmap,nComp,0,MFInfo(),navier_stokes->Factory());
-
-    MultiFab::Copy(Rhs,Ssync,sigma,0,nComp,0);
-
-    if (verbose > 1)
-    {
-        MultiFab junk(grids,dmap,nComp,0,MFInfo(),navier_stokes->Factory());
-        MultiFab::Copy(junk,Rhs,0,0,nComp,0);
-        MultiFab& S_new = navier_stokes->get_new_data(State_Type);
-        for (int comp = 0; comp < nComp; ++comp) {
-            if (rho_flag == 2)
-            {
-                MultiFab::Divide(junk, S_new, Density, comp, 1, 0);
-            }
-            Real r_norm = junk.norm0(comp);
-            amrex::Print() << "Original max of Ssync of comp " << comp << ": " << r_norm << '\n';
-        }
-    }
-    //
-    // SET UP COEFFICIENTS FOR VISCOUS SOLVER.
-    //
-    const Real  a = 1.0;
-    Real        b = be_cn_theta*dt;
-    Real rhsscale = 1.0;
-
-    const Real S_tol     = visc_tol;
-    const Real S_tol_abs = -1;
-
-    MultiFab Soln(grids,dmap,nComp,1,MFInfo(),navier_stokes->Factory());
-    Soln.setVal(0.0);
-
-    LPInfo info;
-    info.setAgglomeration(agglomeration);
-    info.setConsolidation(consolidation);
-
-#ifdef AMREX_USE_EB
-    const auto& ebf = &dynamic_cast<EBFArrayBoxFactory const&>(navier_stokes->Factory());
-    MLEBABecLap mlabec({navier_stokes->Geom()}, {grids}, {dmap}, info, {ebf}, nComp);
-#else
-    MLABecLaplacian mlabec({navier_stokes->Geom()}, {grids}, {dmap}, info, {}, nComp);
-#endif
-    mlabec.setMaxOrder(max_order);
-
-    std::array<LinOpBCType,AMREX_SPACEDIM> mlmg_lobc;
-    std::array<LinOpBCType,AMREX_SPACEDIM> mlmg_hibc;
-    setDomainBC(mlmg_lobc, mlmg_hibc, state_ind);
-
-    mlabec.setDomainBC(mlmg_lobc, mlmg_hibc);
-    if (level > 0) {
-      mlabec.setCoarseFineBC(nullptr, crse_ratio[0]);
-    }
-    mlabec.setLevelBC(0, nullptr);
-
-    {
-      MultiFab acoef;
-      std::pair<Real,Real> scalars;
-      const Real cur_time = navier_stokes->get_state_data(State_Type).curTime();
-      MultiFab& S = navier_stokes->get_data(State_Type,cur_time);
-      const MultiFab& rho = (rho_flag == 1) ? rho_half : S;
-      const int Rho_comp = (rho_flag ==1) ? 0 : Density;
-
-      computeAlpha(acoef, scalars, a, b,
-                   &rhsscale, alpha, alphaComp,
-                   rho_flag, &rho, Rho_comp);
-      mlabec.setScalars(scalars.first, scalars.second);
-      mlabec.setACoeffs(0, acoef);
-    }
-
-    setBeta(mlabec, beta, betaComp, nComp);
-
-    MLMG mlmg(mlabec);
-    if (use_hypre) {
-      mlmg.setBottomSolver(MLMG::BottomSolver::hypre);
-      mlmg.setBottomVerbose(hypre_verbose);
-    }
-    mlmg.setMaxFmgIter(max_fmg_iter);
-    mlmg.setVerbose(verbose);
-
-#ifdef AMREX_USE_OMP
-#pragma omp parallel if (Gpu::notInLaunchRegion())
-#endif
-    for (MFIter mfi(Rhs, TilingIfNotGPU()); mfi.isValid(); ++mfi)
-    {
-        const Box& bx = mfi.tilebox();
-        auto const& rhs_arr  = Rhs.array(mfi);
-        auto const& rhoh_arr = rho_half.const_array(mfi);
-        amrex::ParallelFor(bx, nComp, [=]
-        AMREX_GPU_DEVICE(int i, int j, int k, int n) noexcept
-        {
-            rhs_arr(i,j,k,n) *= rhsscale;
-            if (rho_flag == 1) {
-               rhs_arr(i,j,k,n) *= rhoh_arr(i,j,k);
-            }
-        });
-    }
-
-    mlmg.solve({&Soln}, {&Rhs}, S_tol, S_tol_abs);
-
-    int flux_allthere, flux_allnull;
-    checkBeta(flux, flux_allthere, flux_allnull);
-    if (flux_allthere)
-    {
-        computeExtensiveFluxes(mlmg, Soln, flux, fluxComp, nComp,
-                   navier_stokes->area, b/dt);
-    }
-
-    MultiFab::Copy(Ssync,Soln,0,sigma,nComp,0);
-
-    if (verbose > 1)
-    {
-        for (int comp = 0; comp < nComp; ++comp) {
-           Real s_norm = Soln.norm0(comp,Soln.nGrow());
-           amrex::Print() << "Final max of Ssync for comp " << comp << ": " << s_norm << '\n';
-        }
-    }
-
-    if (rho_flag == 2)
-    {
-        MultiFab& S_new = navier_stokes->get_new_data(State_Type);
-#ifdef AMREX_USE_OMP
-#pragma omp parallel if (Gpu::notInLaunchRegion())
-#endif
-       for (MFIter mfi(S_new, TilingIfNotGPU()); mfi.isValid(); ++mfi)
-       {
-           const Box& bx = mfi.tilebox();
-           auto const& ssync_arr = Ssync.array(mfi,sigma);
-           auto const& rho_arr   = S_new.const_array(mfi,Density);
-           amrex::ParallelFor(bx, nComp, [ssync_arr, rho_arr]
-           AMREX_GPU_DEVICE(int i, int j, int k, int n) noexcept
-           {
-               ssync_arr(i,j,k,n) *= rho_arr(i,j,k);
-           });
-       }
-    }
-
-    if (verbose)
-    {
-        const int IOProc   = ParallelDescriptor::IOProcessorNumber();
-        Real      run_time = ParallelDescriptor::second() - strt_time;
-        ParallelDescriptor::ReduceRealMax(run_time,IOProc);
-        amrex::Print() << "Diffusion::diffuse_Ssync(): lev: " << level
-                       << ", time: " << run_time << '\n';
-    }
-}
-
-void
 Diffusion::computeAlpha (MultiFab&             alpha,
                          std::pair<Real,Real>& scalars,
                          Real                  a,
@@ -1385,7 +1196,7 @@ Diffusion::computeAlpha (MultiFab&             alpha,
 
     if (alpha_in != nullptr)
     {
-        AMREX_ASSERT(alpha_in_comp >= 0 && alpha_in_comp < alpha.nComp());
+        AMREX_ASSERT(alpha_in_comp >= 0 && alpha_in_comp < alpha_in->nComp());
         MultiFab::Copy(alpha,*alpha_in,alpha_in_comp,0,1,0);
     }
     else
@@ -1794,41 +1605,6 @@ Diffusion::getTensorViscTerms (MultiFab&              visc_terms,
         int ngrow = visc_terms.nGrow();
         visc_terms.setVal(0.0,src_comp,AMREX_SPACEDIM,ngrow);
     }
-}
-
-void
-Diffusion::FillBoundary (BndryRegister& bdry,
-                         int            state_ind,
-                         int            dest_comp,
-                         int            num_comp,
-                         Real           time,
-                         int            rho_flag)
-{
-    //
-    // Need one grow cell filled for linear solvers.
-    // We assume filPatch gets this right, where possible.
-    //
-    const int     nGrow = 1;
-
-    const MultiFab& rhotime = navier_stokes->get_rho(time);
-
-    MultiFab S(navier_stokes->boxArray(),
-               navier_stokes->DistributionMap(),
-               num_comp,nGrow,MFInfo(),navier_stokes->Factory());
-
-    AmrLevel::FillPatch(*navier_stokes,S,nGrow,time,State_Type,state_ind,num_comp);
-
-    if (rho_flag == 2) {
-        for (int n = 0; n < num_comp; ++n) {
-        MultiFab::Divide(S,rhotime,0,n,1,nGrow);
-    }
-    }
-
-    //
-    // Copy into boundary register.
-    //
-    bdry.copyFrom(S,nGrow,0,dest_comp,num_comp);
-
 }
 
 void

@@ -45,8 +45,6 @@ public:
 
     void echo_settings () const;
 
-    amrex::FluxRegister* viscFluxReg ();
-
     static amrex::Real get_scaled_abs_tol (const amrex::MultiFab& rhs,
                                            amrex::Real            reduction);
 
@@ -133,21 +131,6 @@ public:
                                bool                          update_fluxreg);
 
 
-    void diffuse_Ssync (amrex::MultiFab&              Ssync,
-                        int                           sigma,
-                        int                           nComp,
-                        amrex::Real                   dt,
-                        amrex::Real                   be_cn_theta,
-                        const amrex::MultiFab&        rho_half,
-                        int                           rho_flag,
-                        amrex::MultiFab* const*       flux,
-                        int                           fluxComp,
-                        const amrex::MultiFab* const* beta,
-                        int                           betaComp,
-                        const amrex::MultiFab*        alpha,
-                        int                           alphaComp);
-
-
     void getViscTerms (amrex::MultiFab&              visc_terms,
                        int                    src_comp,
                        int                    comp,
@@ -163,22 +146,12 @@ public:
                              const amrex::MultiFab*        betaCC,
                              int                           betaComp);
 
-    void FillBoundary (amrex::BndryRegister& bdry,
-                       int                   state_ind,
-                       int                   dest_comp,
-                       int                   num_comp,
-                       amrex::Real           time,
-                       int                   rho_flag);
-
     static void checkBeta (const amrex::MultiFab* const* beta,
                            int&                          allthere,
                            int&                          allnull);
 
     static void checkBeta (const amrex::MultiFab* const* beta,
                            int&                          allthere);
-
-    [[nodiscard]] static int maxOrder ();
-    [[nodiscard]] static int tensorMaxOrder ();
 
     static int set_rho_flag (DiffusionForm compDiffusionType);
 
