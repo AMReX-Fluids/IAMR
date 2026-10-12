@@ -68,16 +68,6 @@ public:
                            int                          do_mom_diff,
                            bool                         update_fluxreg = true);
 
-    void mac_sync_compute (int                          level,
-                           amrex::Array<amrex::MultiFab*,AMREX_SPACEDIM>& Ucorr,
-                           amrex::MultiFab&             Sync,
-                           int                          comp,
-                           int                          Sync_indx,
-                           amrex::MultiFab* const*      edgestate,
-                           int                          edge_comp,
-                           amrex::Real                  dt,
-                           bool                         update_fluxreg = true);
-
     static void mlmg_mac_solve (amrex::Amr* parent, const amrex::MultiFab* cphi,
                          const amrex::BCRec& phys_bc,
                          const amrex::BCRec& density_math_bc,

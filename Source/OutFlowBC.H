@@ -8,20 +8,12 @@
 #include <AMReX_BCRec.H>
 
 //
-// The baseclass for MacOutFlowBC and ProjOutFlowBC.
+// Queries on the outflow faces of the domain.
 //
 
 class OutFlowBC
 {
 public:
-    static amrex::Box SemiGrow (const amrex::Box& baseBox,
-                                int               nGrow,
-                                int               direction);
-
-    static amrex::Box SemiCoarsen (const amrex::Box& baseBox,
-                                   int               ref_factor,
-                                   int               direction);
-
     static void GetOutFlowFaces (bool&               haveOutFlow,
                                  amrex::Orientation* outFaces,
                                  amrex::BCRec*       _phys_bc,
