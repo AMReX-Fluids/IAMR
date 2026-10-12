@@ -8,26 +8,6 @@
 
 using namespace amrex;
 
-Box
-OutFlowBC::SemiGrow (const Box& baseBox,
-                         int        nGrow,
-                         int        direction)
-{
-    IntVect grow_factor(AMREX_D_DECL(nGrow,nGrow,nGrow));
-    grow_factor[direction] = 0;
-    return amrex::grow(baseBox,grow_factor);
-}
-
-Box
-OutFlowBC::SemiCoarsen (const Box& baseBox,
-                        int        ref_factor,
-                        int        direction)
-{
-    IntVect ref_ratio(AMREX_D_DECL(ref_factor,ref_factor,ref_factor));
-    ref_ratio[direction] = 1;
-    return amrex::coarsen(baseBox,ref_ratio);
-}
-
 void
 OutFlowBC::GetOutFlowFaces (bool&        haveOutFlow,
                             Orientation* outFaces,
