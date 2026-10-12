@@ -21,7 +21,6 @@ int  Projection::verbose             = 0;
 Real Projection::proj_tol            = 1.0e-12;
 Real Projection::sync_tol            = 1.e-10;
 Real Projection::proj_abs_tol        = 1.e-16;
-int  Projection::add_vort_proj       = 0;
 int  Projection::do_outflow_bcs      = 1;
 int  Projection::rho_wgt_vel_proj    = 0;
 
@@ -55,7 +54,6 @@ Projection::Initialize ()
     pp.query("sync_tol",            sync_tol);
     pp.query("proj_abs_tol",        proj_abs_tol);
     pp.query("benchmarking",        benchmarking);
-    pp.query("add_vort_proj",       add_vort_proj);
     pp.query("do_outflow_bcs",      do_outflow_bcs);
     pp.query("rho_wgt_vel_proj",    rho_wgt_vel_proj);
 
@@ -226,9 +224,8 @@ Projection::level_project (int             level,
     AMREX_ASSERT(ns != nullptr);
 
     //
-    //  NOTE: IT IS IMPORTANT TO DO THE BOUNDARY CONDITIONS BEFORE
-    //    MAKING UNEW HOLD U_t OR U/dt, BECAUSE UNEW IS USED IN
-    //    CONSTRUCTING THE OUTFLOW BC'S.
+    // Set the physical boundary values of U_old and U_new before
+    // U_new is made to hold U_t or U/dt below.
     //
     // Set boundary values for P_new, to increment, if applicable
     // // Note: we don't need to worry here about using FillCoarsePatch because
@@ -303,27 +300,19 @@ Projection::level_project (int             level,
     }
 
     //
-    // Outflow uses appropriately constructed "U_new" and "divusource" to
-    //   compute BC for phi, so make sure this call comes after those are set,
-    //   but before fields are scaled by r or rho is set to 1/rho.
+    // Outflow sets phi to the hydrostatic rho*g, so make sure this call comes
+    //   before rho_half is scaled by r or set to 1/rho.
     //
     Real gravity = NavierStokesBase::getGravity();
-    if (OutFlowBC::HasOutFlowBC(phys_bc) && (have_divu || std::fabs(gravity) > 0.0)
-                                         && do_outflow_bcs)
+    if (OutFlowBC::HasOutFlowBC(phys_bc) && std::fabs(gravity) > 0.0 && do_outflow_bcs)
     {
         Vector<MultiFab*> phi(maxlev, nullptr);
         phi[level] = &(LevelData[level]->get_new_data(Press_Type));
 
-        Vector<MultiFab*> Vel_ML(maxlev, nullptr);
-        Vel_ML[level] = &U_new;
-
-        Vector<MultiFab*> Divu_ML(maxlev, nullptr);
-        Divu_ML[level] = divusource.get();
-
         Vector<MultiFab*> Rho_ML(maxlev, nullptr);
         Rho_ML[level] = &rho_half;
 
-        set_outflow_bcs(LEVEL_PROJ,phi,Vel_ML,Divu_ML,Rho_ML,level,level,have_divu);
+        set_outflow_bcs(LEVEL_PROJ,phi,Rho_ML,level,level);
     }
 
     //
@@ -667,13 +656,10 @@ Projection::initialVelocityProject (int  c_lev,
             LevelData[lev]->get_old_data(Press_Type).setVal(0.0);
         }
 
-        // MLNodeLaplacian does not take any ghost cells from rhcc or sig.
-        // copies only valid cells and fills ghosts internally.
+        // MLNodeLaplacian does not take any ghost cells from rhcc or sig;
+        // it copies only valid cells and fills ghosts internally.
         // However, vel and phi are assumed to have 1 ghost cell in MLMG.
-        // set outflow bcs fills vel and phi using 1 ghost cell from sig (holding rho)
-        // and rhcc (holding divu)
-        const int nghost =
-          (OutFlowBC::HasOutFlowBC(phys_bc) && do_outflow_bcs && have_divu) ? 1 : 0;
+        const int nghost = 0;
 
         for (lev = c_lev; lev <= f_lev; lev++)
         {
@@ -686,22 +672,6 @@ Projection::initialVelocityProject (int  c_lev,
 
             if (rho_wgt_vel_proj)
             {
-              if ( nghost > 0 ){
-                LevelData[lev]->get_new_data(State_Type).setBndry(BogusValue,Density,1);
-
-                AmrLevel& amr_level = parent->getLevel(lev);
-
-                MultiFab& S_new = amr_level.get_new_data(State_Type);
-
-                Real curr_time = amr_level.get_state_data(State_Type).curTime();
-
-                for (MFIter mfi(S_new); mfi.isValid(); ++mfi)
-                {
-                    amr_level.setPhysBoundaryValues(S_new[mfi],State_Type,curr_time,
-                                                    Density,Density,1);
-                }
-              }
-
               MultiFab::Copy(*sig[lev],
                              LevelData[lev]->get_new_data(State_Type),
                              Density, 0, 1, nghost);
@@ -743,14 +713,6 @@ Projection::initialVelocityProject (int  c_lev,
 
                 rhcc[lev].reset(ns->getDivCond(nghost,cur_divu_time));
             }
-        }
-
-        if (OutFlowBC::HasOutFlowBC(phys_bc) && do_outflow_bcs && have_divu)
-        {
-            set_outflow_bcs(INITIAL_VEL,phi,vel,
-                            amrex::GetVecOfPtrs(rhcc),
-                            amrex::GetVecOfPtrs(sig),
-                            c_lev,f_lev,have_divu);
         }
 
         //
@@ -895,13 +857,11 @@ Projection::initialPressureProject (int  c_lev)
     //
     Real gravity = NavierStokesBase::getGravity();
 
-    if (OutFlowBC::HasOutFlowBC(phys_bc) && do_outflow_bcs)
+    if (OutFlowBC::HasOutFlowBC(phys_bc) && std::fabs(gravity) > 0. && do_outflow_bcs)
     {
-        int have_divu_dummy = 0;
-        set_outflow_bcs(INITIAL_PRESS,phi,vel,
-                        Vector<MultiFab*>(maxlev, nullptr),
+        set_outflow_bcs(INITIAL_PRESS,phi,
                         amrex::GetVecOfPtrs(sig),
-                        c_lev,f_lev,have_divu_dummy);
+                        c_lev,f_lev);
     }
 
     Vector<std::unique_ptr<MultiFab> > raii;
@@ -1038,8 +998,8 @@ Projection::initialSyncProject (int       c_lev,
                 amr_level.setPhysBoundaryValues(divu_new[mfi],Divu_Type,curr_time,0,0,1);
             }
 
-            // Needed for set_outflow_bcs(). MLMG ignores rh ghost cells.
-            const int nghost = 1;
+            // MLMG ignores rhcc ghost cells.
+            const int nghost = 0;
             rhcc[lev] = std::make_unique<MultiFab>
                 (amr_level.boxArray(), amr_level.DistributionMap(),
                  1,nghost,MFInfo(),amr_level.Factory());
@@ -1101,12 +1061,6 @@ Projection::initialSyncProject (int       c_lev,
 
         MultiFab& u_o = LevelData[lev]->get_old_data(State_Type);
         ConvertUnew(*vel[lev], u_o, dt, LevelData[lev]->boxArray());
-    }
-
-    if (OutFlowBC::HasOutFlowBC(phys_bc) && have_divu && do_outflow_bcs) {
-        set_outflow_bcs(INITIAL_SYNC,phi,vel,
-                        amrex::GetVecOfPtrs(rhcc),
-                        sig,c_lev,f_lev,have_divu);
     }
 
     //
@@ -1606,7 +1560,7 @@ Projection::initialVorticityProject (int c_lev)
     //
     // Project.
     //
-    bool proj2 = !add_vort_proj;
+    bool proj2 = true;
     doMLMGNodalProjection(c_lev, f_lev-c_lev+1,
                           amrex::GetVecOfPtrs(u_real),
                           amrex::GetVecOfPtrs(p_real),
@@ -1639,14 +1593,7 @@ Projection::initialVorticityProject (int c_lev)
             for (MFIter mfi(*vel[lev],true); mfi.isValid(); ++mfi)
             {
                 const Box& box = mfi.tilebox();
-                if (add_vort_proj)
-                {
-                  (*vel[lev])[mfi].plus<RunOn::Gpu>((*u_real[lev])[mfi],box,Xvel+n,Xvel+idx[n], 1);
-                }
-                else
-                {
-                  (*vel[lev])[mfi].copy<RunOn::Gpu>((*u_real[lev])[mfi],box,Xvel+n,box,Xvel+idx[n], 1);
-                }
+                (*vel[lev])[mfi].copy<RunOn::Gpu>((*u_real[lev])[mfi],box,Xvel+n,box,Xvel+idx[n], 1);
             }
         }
     }
@@ -1742,16 +1689,11 @@ Projection::getStreamFunction (Vector<std::unique_ptr<MultiFab> >& /*phi*/) // N
 void
 Projection::set_outflow_bcs (int        which_call,
                              const Vector<MultiFab*>& phi,
-                             const Vector<MultiFab*>& Vel_in,
-                             const Vector<MultiFab*>& Divu_in,
                              const Vector<MultiFab*>& Sig_in,
                              int        c_lev,
-                             int        f_lev,
-                             int        have_divu)
+                             int        f_lev)
 {
-    AMREX_ASSERT((which_call == INITIAL_VEL  ) ||
-                 (which_call == INITIAL_PRESS) ||
-                 (which_call == INITIAL_SYNC ) ||
+    AMREX_ASSERT((which_call == INITIAL_PRESS) ||
                  (which_call == LEVEL_PROJ   ) );
 
     if (which_call != LEVEL_PROJ)
@@ -1760,7 +1702,7 @@ Projection::set_outflow_bcs (int        which_call,
     if (verbose)
       amrex::Print() << "...setting outflow bcs for the nodal projection ... " << '\n';
 
-    bool        hasOutFlow;
+    bool        hasOutFlow;   // out-param of GetOutFlowFaces; the callers already checked it
     Orientation outFaces[2*AMREX_SPACEDIM];
     Orientation outFacesAtThisLevel[maxlev][2*AMREX_SPACEDIM];
 
@@ -1769,18 +1711,13 @@ Projection::set_outflow_bcs (int        which_call,
     int numOutFlowFacesAtAllLevels;
     int numOutFlowFaces[maxlev];
     OutFlowBC::GetOutFlowFaces(hasOutFlow,outFaces,phys_bc,numOutFlowFacesAtAllLevels);
+    amrex::ignore_unused(hasOutFlow);
 
     //
     // Get 2-wide cc box, state_strip, along interior of top.
     // Get 1-wide nc box, phi_strip  , along top.
     //
     const int ccStripWidth = 2;
-
-//    const int nCompPhi    = 1;
-//    const int srcCompVel  = Xvel;
-//    const int srcCompDivu = 0;
-//    const int   nCompVel  = AMREX_SPACEDIM;
-//    const int   nCompDivu = 1;
 
     //
     // Determine the finest level such that the entire outflow face is covered
@@ -1850,35 +1787,22 @@ Projection::set_outflow_bcs (int        which_call,
       numOutFlowFaces[lev] = icount[lev];
     }
 
-    int Divu_Type, Divu;
-    Real gravity = 0;
-
-    if (which_call == INITIAL_SYNC || which_call == INITIAL_VEL)
-    {
-      if (!AmrLevel::isStateVariable("divu", Divu_Type, Divu))
-        amrex::Error("Projection::set_outflow_bcs: No divu.");
-    }
-
-    if (which_call == INITIAL_PRESS || which_call == LEVEL_PROJ)
-    {
-      gravity = NavierStokesBase::getGravity();
-      if (!AmrLevel::isStateVariable("divu", Divu_Type, Divu) && (gravity == 0) ) {
-          amrex::Error("Projection::set_outflow_bcs: No divu or gravity.");
-      }
-    }
+    //
+    // The only outflow condition left is the hydrostatic rho*g computed in
+    // computeRhoG, so both callers gate on gravity being non-zero.
+    //
+    const Real gravity = NavierStokesBase::getGravity();
+    AMREX_ALWAYS_ASSERT(std::fabs(gravity) > 0.);
 
     for (int lev = c_lev; lev <= f_lev; lev++)
     {
       if (numOutFlowFaces[lev] > 0)
-        set_outflow_bcs_at_level (which_call,lev,c_lev,
+        set_outflow_bcs_at_level (lev,c_lev,
                                   state_strip[lev],
                                   outFacesAtThisLevel[lev],
                                   numOutFlowFaces[lev],
                                   phi,
-                                  Vel_in[lev],
-                                  Divu_in[lev],
                                   Sig_in[lev],
-                                  have_divu,
                                   gravity);
 
     }
@@ -1886,17 +1810,13 @@ Projection::set_outflow_bcs (int        which_call,
 }
 
 void
-Projection::set_outflow_bcs_at_level (int          /*which_call*/,
-                                      int          lev,
+Projection::set_outflow_bcs_at_level (int          lev,
                                       int          c_lev,
                                       Box*         state_strip,
                                       Orientation* outFacesAtThisLevel,
                                       int          numOutFlowFaces,
                                       const Vector<MultiFab*>&  phi,
-                                      MultiFab*    /*Vel_in*/,
-                                      MultiFab*    /*Divu_in*/,
                                       MultiFab*    Sig_in,
-                                      int          /*have_divu*/,
                                       Real         gravity)
 {
     AMREX_ASSERT(dynamic_cast<NavierStokesBase*>(LevelData[lev]) != nullptr);
