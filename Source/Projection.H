@@ -20,11 +20,7 @@ class Projection
 protected:
   static const int maxlev = 10;
   static const int  LEVEL_PROJ    = 1001;
-  static const int  INITIAL_VEL   = 1002;
   static const int  INITIAL_PRESS = 1003;
-  static const int  INITIAL_SYNC  = 1004;
-  static const int  SYNC_PROJ     = 1005;
-  static const int  FILTER_P      = 1006;
 
 public:
 
@@ -66,18 +62,6 @@ public:
                         int             iteration,
                         int             have_divu);
 
-    // solve DG(correction to P_new) = -D G^perp p^(n-half)
-    //  or   DG(correction to P_new) = -D G^perp p^(n-half) - D(U^n /dt)
-    void filterP(int level,
-                 const amrex::Geometry& geom,
-                 amrex::MultiFab &P_old,
-                 amrex::MultiFab &P_new,
-                 amrex::MultiFab &U_old,
-                 amrex::MultiFab &rho_half,
-                 int     ** bc,
-                 amrex::Real            time,
-                 amrex::Real            dt,
-                 int    have_divu);
     //
     // A sync project involving the coarse and fine level of a 2 level system.
     //
@@ -176,26 +160,22 @@ public:
                      amrex::MultiFab* vel,
                      int              level) const;
 
+    //
+    // Impose the hydrostatic pressure rho*g on outflow faces.
+    //
     void set_outflow_bcs (int        which_call,
                           const amrex::Vector<amrex::MultiFab*>& phi,
-                          const amrex::Vector<amrex::MultiFab*>& Vel_in,
-                          const amrex::Vector<amrex::MultiFab*>& Divu_in,
                           const amrex::Vector<amrex::MultiFab*>& Sig_in,
                           int        c_lev,
-                          int        f_lev,
-                          int        have_divu);
+                          int        f_lev);
 
-    void set_outflow_bcs_at_level (int          which_call,
-                                   int          lev,
+    void set_outflow_bcs_at_level (int          lev,
                                    int          c_lev,
                                    amrex::Box*         state_strip,
                                    amrex::Orientation* outFacesAtThisLevel,
                                    int          numOutFlowFaces,
                                    const amrex::Vector<amrex::MultiFab*>& phi,
-                                   amrex::MultiFab*    Vel_in,
-                                   amrex::MultiFab*    Divu_in,
                                    amrex::MultiFab*    Sig_in,
-                                   int          have_divu,
                                    amrex::Real         gravity);
 
     void computeRhoG (amrex::FArrayBox*         rhoFab,
@@ -239,7 +219,6 @@ public:
     static int  proj_2;
     static int  rho_wgt_vel_proj;
     static int  do_outflow_bcs;
-    static int  add_vort_proj;
 
     void doMLMGNodalProjection (int c_lev, int nlevel,
                                 const amrex::Vector<amrex::MultiFab*>& vel,
