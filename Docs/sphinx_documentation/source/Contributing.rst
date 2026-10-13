@@ -85,7 +85,7 @@ password every time, which you can do using these commands:
   git branch -u upstream/development
 
 
-For instructions on setting up SSH access to your Github account on a new machine, see `here <https://docs.github.com/en/github/authenticating-to-github/connecting-to-github-with-ssh>`_.
+For instructions on setting up SSH access to your Github account on a new machine, see `here <https://docs.github.com/en/authentication/connecting-to-github-with-ssh>`_.
 
 If you instead prefer to use HTTPS authentication, configure your local clone as follows:
 
@@ -112,7 +112,7 @@ Instead, in the future, to update the ``development`` branch on your fork
   git pull
 
 Now you are free to play with your fork (for additional information, you can visit the
-`Github fork help page <https://help.github.com/en/articles/fork-a-repo>`_.
+`Github fork help page <https://docs.github.com/en/pull-requests/how-tos/work-with-forks/fork-a-repo>`_.
 
 
 

@@ -37,9 +37,24 @@ preceded by "ns."
 | advection_scheme        | Godunov_PLM, Godunov_PPM or BDS.  Godunov_PPM and BDS are not           |   String    | Godunov_PLM  |
 |                         | available with embedded boundaries.                                     |             |              |
 +-------------------------+-------------------------------------------------------------------------+-------------+--------------+
+| do_scalminmax           | After the advective update, clamp each scalar other than density to     |    Int      |   0          |
+|                         | the min/max of its old-time values in the surrounding 3x3 (3x3x3 in     |             |              |
+|                         | 3D) cells.                                                              |             |              |
++-------------------------+-------------------------------------------------------------------------+-------------+--------------+
+| do_denminmax            | After the advective update, clamp density to the min/max of its         |    Int      |   0          |
+|                         | old-time values in the surrounding 3x3 (3x3x3 in 3D) cells.             |             |              |
++-------------------------+-------------------------------------------------------------------------+-------------+--------------+
 
 Note that the old ``ns.use_godunov`` key and the MOL scheme have been removed; setting either
 aborts the run.
+
+Note that ``ns.do_scalminmax = 1`` (``ns.do_denminmax = 1`` for density) keeps the advective
+update from creating new extrema, which the unsplit Godunov schemes can otherwise produce in a
+strongly deforming flow (a tracer initialized in [0,1] can leave that range by a few percent).
+Conservatively advected scalars are clamped as :math:`s = (\rho s)/\rho`.  With embedded
+boundaries, covered cells are neither clamped nor included in the min/max.  The clamps are not
+conservative, and they act on the advective update only: the diffusive update and, on
+multilevel runs, the sync correction are applied afterwards and are not clamped.
 
 
 For problems without embedded boundaries, there is an additional option for the Godunov method. The following must
