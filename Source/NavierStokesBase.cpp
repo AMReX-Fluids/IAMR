@@ -2134,6 +2134,107 @@ NavierStokesBase::mac_project (Real      time,
     BL_PROFILE_REGION_STOP("R::NavierStokesBase::mac_project()");
 }
 
+#ifdef AMREX_USE_EB
+namespace {
+//
+// Mark every cell of the (blocking-factor coarsened) tag index space that
+// holds a cut or covered cell.  Returns false, leaving the mask undefined, if
+// the tags do not live on the coarsening of this level's grids, in which case
+// the caller just does what it always did.
+//
+bool
+make_coarse_eb_mask (iMultiFab& mask, const TagBoxArray& tags,
+                     const FabArray<EBCellFlagFab>& flags, const IntVect& bf,
+                     const Periodicity& period)
+{
+    if (tags.boxArray()        != amrex::coarsen(flags.boxArray(), bf) ||
+        tags.DistributionMap() != flags.DistributionMap())
+    {
+        return false;
+    }
+
+    // One ghost cell at least: eb_body_crosses() looks at the neighbor of a
+    // cell that may sit on the edge of a box.
+    IntVect ng = tags.nGrowVect();
+    ng.max(IntVect(1));
+
+    mask.define(tags.boxArray(), tags.DistributionMap(), 1, ng);
+    mask.setVal(0);
+
+    const int bfx = bf[0];
+    const int bfy = bf[1];
+#if (AMREX_SPACEDIM == 3)
+    const int bfz = bf[2];
+#else
+    const int bfz = 1;
+#endif
+
+    for (MFIter mfi(mask); mfi.isValid(); ++mfi)
+    {
+        const Box& bx = mfi.validbox();
+        Array4<EBCellFlag const> const& flag = flags.const_array(mfi);
+        Array4<int> const& m = mask.array(mfi);
+        amrex::ParallelFor(bx, [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
+        {
+            int found = 0;
+            for (int kk = k*bfz; kk < (k+1)*bfz; ++kk) {
+            for (int jj = j*bfy; jj < (j+1)*bfy; ++jj) {
+            for (int ii = i*bfx; ii < (i+1)*bfx; ++ii) {
+                if ( ! flag(ii,jj,kk).isRegular() ) { found = 1; }
+            }}}
+            m(i,j,k) = found;
+        });
+    }
+
+    // Ghost cells outside a non-periodic domain stay 0; there is no body out
+    // there to keep tags for.
+    mask.FillBoundary(period);
+
+    return true;
+}
+
+//
+// Does a body cut cells on both sides of the inward edge of the region whose
+// tags are about to be cleared?  If it does, clearing them all would leave the
+// body refined on one side of that edge and not on the other.
+//
+bool
+eb_body_crosses (const iMultiFab& mask, const Box& cleared, int oDir, bool face_is_low)
+{
+    if ( ! cleared.ok() ) { return false; }
+
+    const Box outer = face_is_low ? amrex::adjCellHi(cleared,oDir,1)
+                                  : amrex::adjCellLo(cleared,oDir,1);
+    const Box inner = face_is_low ? amrex::adjCellLo(outer,oDir,1)
+                                  : amrex::adjCellHi(outer,oDir,1);
+
+    const int off  = face_is_low ? 1 : -1;
+    const int ioff = (oDir == 0) ? off : 0;
+    const int joff = (oDir == 1) ? off : 0;
+#if (AMREX_SPACEDIM == 3)
+    const int koff = (oDir == 2) ? off : 0;
+#else
+    const int koff = 0;
+#endif
+
+    int crosses = amrex::ReduceSum(mask, 0,
+    [=] AMREX_GPU_HOST_DEVICE (Box const& bx, Array4<int const> const& m) -> int
+    {
+        int r = 0;
+        const Box isect = bx & inner;
+        amrex::Loop(isect, [&] (int i, int j, int k)
+        {
+            if (m(i,j,k) != 0 && m(i+ioff,j+joff,k+koff) != 0) { r = 1; }
+        });
+        return r;
+    });
+    ParallelDescriptor::ReduceIntMax(crosses);
+
+    return crosses > 0;
+}
+}
+#endif
+
 void
 NavierStokesBase::manual_tags_placement (TagBoxArray&    tags,
                                          const Vector<IntVect>& bf_lev)
@@ -2147,6 +2248,13 @@ NavierStokesBase::manual_tags_placement (TagBoxArray&    tags,
             const Orientation& outFace = outFaces[i];
             const int oDir = outFace.coordDir();
             const Box& crse_domain = amrex::coarsen(geom.Domain(),bf_lev[level]);
+#ifdef AMREX_USE_EB
+            IntVect crse_period(0);
+            for (int d = 0; d < AMREX_SPACEDIM; ++d) {
+                if (geom.isPeriodic(d)) { crse_period[d] = crse_domain.length(d); }
+            }
+            const Periodicity crse_periodicity(crse_period);
+#endif
             const int mult = (outFace.isLow() ? +1 : -1);
             if (do_refine_outflow)
             {
@@ -2227,7 +2335,47 @@ NavierStokesBase::manual_tags_placement (TagBoxArray&    tags,
                     else
                         outflowBox.growLo(oDir, N_coarse_cells);
 
-                    tags.setVal(BoxArray(&outflowBox,1),TagBox::CLEAR);
+#ifdef AMREX_USE_EB
+                    //
+                    // Clearing the tags through the middle of a body leaves it
+                    // straddling the coarse/fine boundary, and the nodal solve
+                    // diverges when that happens (issue #259). So where a body
+                    // carries on past the inward edge of the region we are
+                    // about to clear, keep the tags on the cells it cuts and
+                    // let it be refined up to the outflow face. Bodies that lie
+                    // wholly inside that region are not refined today and are
+                    // not refined now either.
+                    //
+                    iMultiFab eb_mask;
+                    bool keep_eb_tags = false;
+                    const auto* ebf = dynamic_cast<EBFArrayBoxFactory const*>(&Factory());
+                    if (ebf != nullptr &&
+                        make_coarse_eb_mask(eb_mask, tags, ebf->getMultiEBCellFlagFab(),
+                                            bf_lev[level], crse_periodicity))
+                    {
+                        keep_eb_tags = eb_body_crosses(eb_mask, outflowBox & crse_domain,
+                                                       oDir, outFace.isLow());
+                    }
+
+                    if (keep_eb_tags)
+                    {
+                        for (MFIter mfi(tags); mfi.isValid(); ++mfi)
+                        {
+                            const Box bx = mfi.fabbox() & outflowBox;
+                            if ( ! bx.ok() ) { continue; }
+                            Array4<char>      const& t = tags.array(mfi);
+                            Array4<int const> const& m = eb_mask.const_array(mfi);
+                            amrex::ParallelFor(bx, [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
+                            {
+                                if (m(i,j,k) == 0) { t(i,j,k) = static_cast<char>(TagBox::CLEAR); }
+                            });
+                        }
+                    }
+                    else
+#endif
+                    {
+                        tags.setVal(BoxArray(&outflowBox,1),TagBox::CLEAR);
+                    }
                 }
             }
         }

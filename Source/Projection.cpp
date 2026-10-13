@@ -2384,6 +2384,27 @@ void Projection::doMLMGNodalProjection (int c_lev, int nlevel,
 
     set_boundary_velocity(c_lev, nlevel, vel, true);
 
+#ifdef AMREX_USE_EB
+    //
+    // Zero the velocity in covered cells.
+    //
+    // The nodal solver's rhs is EB-aware level by level, but the contribution
+    // of a fine level to the rhs of the level below it is not: for cells on
+    // the boundary of a fine grid, MLNodeLaplacian::compRHS recomputes the
+    // divergence from the raw fine velocity (mlndlap_divu_fine_contrib ->
+    // mlndlap_sum_Df) with no volume-fraction weighting. Whatever the state
+    // holds in covered cells therefore lands in the coarse rhs whenever a fine
+    // grid boundary cuts through a body, and IAMR holds COVERED_VAL (1e40)
+    // there, which makes the solve diverge instead of merely being inaccurate.
+    //
+    for (int lev = c_lev; lev < c_lev+nlevel; ++lev)
+    {
+        // One ghost cell is all compRHS reads, and all the EB flags are
+        // guaranteed to cover (cf. the EB_set_covered call in level_project).
+        EB_set_covered(*vel[lev], Xvel, AMREX_SPACEDIM, 1, 0.0);
+    }
+#endif
+
     std::array<LinOpBCType,AMREX_SPACEDIM> mlmg_lobc;
     std::array<LinOpBCType,AMREX_SPACEDIM> mlmg_hibc;
     for (int idim = 0; idim < AMREX_SPACEDIM; ++idim)
