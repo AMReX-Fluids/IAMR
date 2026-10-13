@@ -2238,9 +2238,9 @@ NavierStokesBase::manual_tags_placement (TagBoxArray&    tags,
     getOutFlowFaces(outFaces);
     if (! outFaces.empty())
     {
-        for (int i=0; i<outFaces.size(); ++i)
+        for (int iface=0; iface<outFaces.size(); ++iface)
         {
-            const Orientation& outFace = outFaces[i];
+            const Orientation& outFace = outFaces[iface];
             const int oDir = outFace.coordDir();
             const Box& crse_domain = amrex::coarsen(geom.Domain(),bf_lev[level]);
 #ifdef AMREX_USE_EB
