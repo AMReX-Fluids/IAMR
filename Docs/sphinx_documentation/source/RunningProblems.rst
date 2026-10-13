@@ -342,7 +342,7 @@ of derived quanties in ``amr.derive_plot_vars =`` in the inputs file.
 If ``particles.particles_in_plotfile = 1`` in the inputs file,
 then the particle positions and velocities will be written in a binary file in each plotfile directory.
 This allows the use of the AMReX tools such as the particle comparison tool found in ``amrex/Tools/Postprocessing/C_Src/``,
-and/or ``amrex/Tools/Py_util/amrex_particles_to_vtp`` to generate a vtp file you can open with ParaView.
+and ParaView can read the particle files directly.
 
 
 ASCII Particle Files
@@ -355,8 +355,8 @@ For example, if chk00350 exists, then one can set:
 ::
 
    amr.restart = chk00350
-   max\_step = 350
-   particles.particle\_output\_file = *particle\_output*
+   max_step = 350
+   particles.particle_output_file = particle_output
 
 This tells the code to restart from chk00350, not to take any further time steps, and to write an ASCII-format
 file called *particle\_output*.

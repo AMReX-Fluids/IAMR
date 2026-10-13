@@ -65,7 +65,7 @@ will include information about data centering, required grow cells, and
 instructions for transferring data between AMR levels during various synchronization
 operations.
 
-In IAMR/Source/NavieStokesBase.H, the enum StateType defines the
+In IAMR/Source/NavierStokesBase.H, the enum StateType defines the
 different state descriptors for IAMR. These are setup during the
 run by code in NS_setup.cpp, and include (but are not limited to):
 

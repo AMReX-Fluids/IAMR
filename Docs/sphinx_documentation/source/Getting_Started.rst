@@ -170,7 +170,7 @@ for visualization, please see the :ref:`Visualization` Section.
 
    ::
 
-       git clone https://ccse.lbl.gov/pub/Downloads/Amrvis.git
+       git clone https://github.com/AMReX-Codes/Amrvis.git
 
    Then cd into Amrvis/, edit the GNUmakefile there
    to set DIM = 2, and again set COMP to the compiler
