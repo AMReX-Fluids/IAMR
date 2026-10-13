@@ -698,69 +698,6 @@ MacProj::mac_sync_compute (int                   level,
 }
 
 //
-// This routine does a sync advect step for a single
-// scalar component. Unlike the preceding routine, the
-// half-time edge states are passed in from the calling routine.
-// This routine is useful when the edge states are computed
-// in a physics-class-specific manner. (For example, as they are
-// in the calculation of div rho U h = div U sum_l (rho Y)_l h_l(T)).
-//
-void
-MacProj::mac_sync_compute (int                    level,
-                           Array<MultiFab*,AMREX_SPACEDIM>& Ucorr,
-                           MultiFab&              Sync,
-                           int                    state_comp, // index in AmrLevel.state
-                           int                    Sync_indx,
-                           MultiFab* const*       edgestate,
-                           int                    edge_comp,
-                           Real                   dt,
-                           bool                   update_fluxreg)
-{
-    const DistributionMapping& dmap     = LevelData[level]->DistributionMap();
-    NavierStokesBase& ns_level   = *(NavierStokesBase*) &(parent->getLevel(level));
-
-    int ncomp = 1;
-
-    // Put edgestate in desired container
-    Array<MultiFab,AMREX_SPACEDIM> edges{
-        AMREX_D_DECL(MultiFab(*edgestate[0], amrex::make_alias, edge_comp, ncomp),
-                     MultiFab(*edgestate[1], amrex::make_alias, edge_comp, ncomp),
-                     MultiFab(*edgestate[2], amrex::make_alias, edge_comp, ncomp) ) };
-
-    Array<MultiFab, AMREX_SPACEDIM> fluxes;
-    for (int i = 0; i < AMREX_SPACEDIM; i++)
-    {
-        const BoxArray& ba = LevelData[level]->getEdgeBoxArray(i);
-        fluxes[i].define(ba, dmap, ncomp, edgestate[0]->nGrow(), MFInfo(),ns_level.Factory());
-    }
-
-    bool do_crse_add = false;
-    bool do_fine_add = update_fluxreg;
-
-    //
-    // ComputeAofs always builds an Array4 from the state MultiFab, even though
-    // it does not use the values when the edge states are known. So it must be
-    // handed a defined MultiFab; an alias of Sync has the right BoxArray and
-    // DistributionMap.
-    //
-    MultiFab Smf(Sync, amrex::make_alias, Sync_indx, ncomp);
-
-    //
-    // Compute the mac sync correction.
-    //
-    ns_level.ComputeAofs(Sync, /*Ssync_comp*/ Sync_indx, state_comp,
-                         ncomp,
-                         /*State*/ Smf, /*S_comp*/ 0,           //not used when known_edgestates
-                         /*forcing*/ nullptr, /*f_comp*/ int(), //not used when known_edgestates
-                         /*constraint divU*/ nullptr,           //not used when known_edgestates
-                         fluxes, /*flux_comp*/ 0,
-                         edges, 0, /*known_edgestate*/ true,
-                         /*is_velocity*/ false, dt,
-                         /*is_sync*/ true, Ucorr,
-                         do_crse_add, do_fine_add);
-}
-
-//
 // Check the mac divergence.
 //
 void

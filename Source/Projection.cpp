@@ -4,7 +4,6 @@
 #include <AMReX_BLProfiler.H>
 #include <Projection.H>
 #include <OutFlowBC.H>
-#include <NSB_K.H>
 
 #include <AMReX_MLMG.H>
 #include <AMReX_MLNodeLaplacian.H>

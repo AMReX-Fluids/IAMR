@@ -7,7 +7,6 @@
 #include <AMReX_FillPatchUtil.H>
 #include <AMReX_Extrapolater.H>
 #include <NavierStokesBase.H>
-#include <NSB_K.H>
 #include <NS_util.H>
 #include <iamr_constants.H>
 
@@ -138,10 +137,6 @@ bool NavierStokesBase::godunov_use_forces_in_trans = false;
 
 #ifdef AMREX_USE_EB
 int          NavierStokesBase::refine_cutcells     = 1;
-bool         NavierStokesBase::eb_initialized      = false;
-bool         NavierStokesBase::no_eb_in_domain     = true;
-bool         NavierStokesBase::body_state_set      = false;
-std::vector<Real> NavierStokesBase::body_state;
 std::string  NavierStokesBase::redistribution_type = "StateRedist";
 #endif
 

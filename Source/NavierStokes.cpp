@@ -470,10 +470,10 @@ NavierStokes::initData ()
         //
         // In some cases, it may be necessary for the covered cells to
         // contain a value typical (or around the same order of magnitude)
-        // to the uncovered cells (e.g. if code to compute variable
-        // viscosity fails for COVERED_VAL).
+        // of the uncovered cells (e.g. if code to compute variable
+        // viscosity fails for COVERED_VAL). There is no such facility
+        // here; fill them by hand if a problem needs it.
         //
-        // set_body_state(S_new);
     }
 #endif
 
@@ -870,9 +870,6 @@ NavierStokes::scalar_update (Real dt,
       scalar_diffusion_update(dt, first_scalar, last_scalar);
 
     MultiFab&  S_new     = get_new_data(State_Type);
-//#ifdef AMREX_USE_EB
-//  set_body_state(S_new);
-//#endif
     for (int sigma = first_scalar; sigma <= last_scalar; sigma++)
     {
        if (S_new.contains_nan(sigma,1,0))
@@ -1243,7 +1240,7 @@ NavierStokes::writePlotFilePost (const std::string& dir,
             auto& sdata = state[i].newData();
         // only cell-centered state data goes into plotfile
             if ( sdata.ixType().cellCentered() ){
-                // put COVERED_VAL back or set_body_state
+                // put COVERED_VAL back
                 EB_set_covered(sdata, COVERED_VAL);
             }
         }
