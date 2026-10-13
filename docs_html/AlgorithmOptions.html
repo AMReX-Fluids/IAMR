@@ -1,0 +1,331 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="./">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Algorithm Options &mdash; IAMR 26.11-dev documentation</title>
+      <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=03e43079" />
+      <link rel="stylesheet" type="text/css" href="_static/css/theme.css?v=9edc463e" />
+      <link rel="stylesheet" type="text/css" href="_static/theme_overrides.css?v=681a4282" />
+
+  
+      <script src="_static/jquery.js?v=5d32c60e"></script>
+      <script src="_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="_static/documentation_options.js?v=3d8aadd5"></script>
+      <script src="_static/doctools.js?v=9bcbadda"></script>
+      <script src="_static/sphinx_highlight.js?v=dc90522c"></script>
+      <script>window.MathJax = {"tex": {"macros": {"Ab": "{{\\bf A}}", "eb": "{{\\bf e}}", "Fb": "{{\\bf F}}", "gb": "{{\\bf g}}", "Hb": "{{\\bf H}}", "ib": "{{\\bf i}}", "Ib": "{{\\bf I}}", "Kb": "{{\\bf K}}", "lb": "{{\\bf l}}", "Lb": "{{\\bf L}}", "nb": "{{\\bf n}}", "Pb": "{{\\bf P}}", "Qb": "{{\\bf Q}}", "rb": "{{\\bf r}}", "Rb": "{{\\bf R}}", "Sb": "{{\\bf S}}", "ub": "{{\\bf u}}", "Ub": "{{\\bf U}}", "xb": "{{\\bf x}}", "dt": "{\\Delta t}", "omegadot": "{\\dot\\omega}", "inp": "{{\\rm in}}", "outp": "{{\\rm out}}", "sync": "{{\\rm sync}}", "half": "{\\frac{1}{2}}", "myhalf": "{\\half}", "nph": "{{n+\\myhalf}}", "vb": "{\\boldsymbol{v}}", "vbt": "{\\widetilde{\\vb}}", "rbt": "{\\widetilde{\\rb}}", "ob": "{\\boldsymbol{\\omega}}", "nablab": "{\\boldsymbol{\\nabla}}", "avg": ["{{\\left \\langle #1 \\right \\rangle}}", 1]}}}</script>
+      <script defer="defer" src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+    <script src="_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+    <link rel="next" title="Visualization" href="Visualization_Chapter.html" />
+    <link rel="prev" title="Runtime Options" href="RunningProblems.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="index.html" class="icon icon-home">
+            IAMR
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="Introduction_Chapter.html">Introduction</a></li>
+<li class="toctree-l1"><a class="reference internal" href="Getting_Started.html">Getting Started</a></li>
+<li class="toctree-l1"><a class="reference internal" href="Tutorials.html">Tutorials</a></li>
+<li class="toctree-l1 current"><a class="reference internal" href="SetupAndRunning.html">Creating and Running Your Own Problem</a><ul class="current">
+<li class="toctree-l2"><a class="reference internal" href="ProblemSetup.html">Problem Setup</a></li>
+<li class="toctree-l2"><a class="reference internal" href="RunningProblems.html">Runtime Options</a></li>
+<li class="toctree-l2 current"><a class="current reference internal" href="#">Algorithm Options</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#conservative-vs-non-conservative">Conservative vs. Non-conservative</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#advection">Advection</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#diffusion">Diffusion</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#large-eddy-simulation">Large Eddy Simulation</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#embedded-boundaries">Embedded Boundaries</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="Visualization_Chapter.html">Visualization</a></li>
+<li class="toctree-l1"><a class="reference internal" href="AlgorithmAndSoftware.html">Algorithm and Software Details</a></li>
+<li class="toctree-l1"><a class="reference internal" href="Debugging.html">Debugging</a></li>
+<li class="toctree-l1"><a class="reference internal" href="Contributing.html">Contributing</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">References</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="references.html">References</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="index.html">IAMR</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="SetupAndRunning.html">Creating and Running Your Own Problem</a></li>
+      <li class="breadcrumb-item active">Algorithm Options</li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="_sources/AlgorithmOptions.rst.txt" rel="nofollow"> View page source</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section id="algorithm-options">
+<span id="chap-algorithmoptions"></span><h1>Algorithm Options<a class="headerlink" href="#algorithm-options" title="Link to this heading"></a></h1>
+<section id="conservative-vs-non-conservative">
+<span id="sec-conserv"></span><h2>Conservative vs. Non-conservative<a class="headerlink" href="#conservative-vs-non-conservative" title="Link to this heading"></a></h2>
+<p>The following must be preceded by “ns.”</p>
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"></th>
+<th class="head"><p>Description</p></th>
+<th class="head"><p>Type</p></th>
+<th class="head"><p>Default</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p>do_mom_diff</p></td>
+<td><p>If 0, solve velocity equation in convective form, else use conservation form</p></td>
+<td><p>Int</p></td>
+<td><p>0</p></td>
+</tr>
+<tr class="row-odd"><td><p>do_cons_trac</p></td>
+<td><p>If 0, solve for a passively advected tracer, else advect conservatively</p></td>
+<td><p>Int</p></td>
+<td><p>0</p></td>
+</tr>
+<tr class="row-even"><td><p>do_cons_trac2</p></td>
+<td><p>If 0, solve for a passively advected 2nd tracer, else advect conservatively</p></td>
+<td><p>Int</p></td>
+<td><p>0</p></td>
+</tr>
+</tbody>
+</table>
+<p>Note that Temperature is only non-conservative. For more details, see <a class="reference internal" href="FluidEquations.html#sec-fluidequations"><span class="std std-ref">Fluid Equations</span></a>.</p>
+</section>
+<section id="advection">
+<h2>Advection<a class="headerlink" href="#advection" title="Link to this heading"></a></h2>
+<p>IAMR computes the advective terms with an unsplit Godunov scheme (piecewise linear or piecewise
+parabolic reconstruction) or with the Bell-Dawson-Shubin (BDS) scheme. The following must be
+preceded by “ns.”</p>
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"></th>
+<th class="head"><p>Description</p></th>
+<th class="head"><p>Type</p></th>
+<th class="head"><p>Default</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p>advection_scheme</p></td>
+<td><p>Godunov_PLM, Godunov_PPM or BDS.  Godunov_PPM and BDS are not
+available with embedded boundaries.</p></td>
+<td><p>String</p></td>
+<td><p>Godunov_PLM</p></td>
+</tr>
+<tr class="row-odd"><td><p>do_scalminmax</p></td>
+<td><p>After the advective update, clamp each scalar other than density to
+the min/max of its old-time values in the surrounding 3x3 (3x3x3 in
+3D) cells.</p></td>
+<td><p>Int</p></td>
+<td><p>0</p></td>
+</tr>
+<tr class="row-even"><td><p>do_denminmax</p></td>
+<td><p>After the advective update, clamp density to the min/max of its
+old-time values in the surrounding 3x3 (3x3x3 in 3D) cells.</p></td>
+<td><p>Int</p></td>
+<td><p>0</p></td>
+</tr>
+</tbody>
+</table>
+<p>Note that the old <code class="docutils literal notranslate"><span class="pre">ns.use_godunov</span></code> key and the MOL scheme have been removed; setting either
+aborts the run.</p>
+<p>Note that <code class="docutils literal notranslate"><span class="pre">ns.do_scalminmax</span> <span class="pre">=</span> <span class="pre">1</span></code> (<code class="docutils literal notranslate"><span class="pre">ns.do_denminmax</span> <span class="pre">=</span> <span class="pre">1</span></code> for density) keeps the advective
+update from creating new extrema, which the unsplit Godunov schemes can otherwise produce in a
+strongly deforming flow (a tracer initialized in [0,1] can leave that range by a few percent).
+Conservatively advected scalars are clamped as <span class="math notranslate nohighlight">\(s = (\rho s)/\rho\)</span>.  With embedded
+boundaries, covered cells are neither clamped nor included in the min/max.  The clamps are not
+conservative, and they act on the advective update only: the diffusive update and, on
+multilevel runs, the sync correction are applied afterwards and are not clamped.</p>
+<p>For problems without embedded boundaries, there is an additional option for the Godunov method. The following must
+be preceded by “godunov.”</p>
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"></th>
+<th class="head"><p>Description</p></th>
+<th class="head"><p>Type</p></th>
+<th class="head"><p>Default</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p>use_forces_in_trans</p></td>
+<td><p>Use external forcing terms in constructing transverse derivatives</p></td>
+<td><p>bool</p></td>
+<td><p>false</p></td>
+</tr>
+</tbody>
+</table>
+</section>
+<section id="diffusion">
+<h2>Diffusion<a class="headerlink" href="#diffusion" title="Link to this heading"></a></h2>
+<p>The following must be preceded by “ns.”</p>
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"></th>
+<th class="head"><p>Description</p></th>
+<th class="head"><p>Type</p></th>
+<th class="head"><p>Default</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p>be_cn_theta</p></td>
+<td><p>Diffusion solve fully implicit (1.0) or semi-implicit (&lt;1 &amp;&amp; &gt;0.5)</p></td>
+<td><p>Real</p></td>
+<td><p>0.5</p></td>
+</tr>
+</tbody>
+</table>
+<p>Note the default value of <code class="docutils literal notranslate"><span class="pre">ns.be_cn_theta</span> <span class="pre">=</span> <span class="pre">0.5</span></code> corresponds to the Crank-Nicolson method.</p>
+</section>
+<section id="large-eddy-simulation">
+<span id="sec-les"></span><h2>Large Eddy Simulation<a class="headerlink" href="#large-eddy-simulation" title="Link to this heading"></a></h2>
+<p>IAMR can add a subgrid-scale eddy viscosity to the viscous terms.  The following must be
+preceded by “ns.”</p>
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"></th>
+<th class="head"><p>Description</p></th>
+<th class="head"><p>Type</p></th>
+<th class="head"><p>Default</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p>do_LES</p></td>
+<td><p>Add a subgrid-scale eddy viscosity to the molecular viscosity</p></td>
+<td><p>Int</p></td>
+<td><p>0</p></td>
+</tr>
+<tr class="row-odd"><td><p>LES_model</p></td>
+<td><p>Which model to use: Smagorinsky or Sigma.  Any other value aborts.
+Sigma is 3D only.</p></td>
+<td><p>String</p></td>
+<td><p>Smagorinsky</p></td>
+</tr>
+<tr class="row-even"><td><p>smago_Cs_cst</p></td>
+<td><p>Model constant, used only when LES_model = Smagorinsky</p></td>
+<td><p>Real</p></td>
+<td><p>0.18</p></td>
+</tr>
+<tr class="row-odd"><td><p>sigma_Cs_cst</p></td>
+<td><p>Model constant, used only when LES_model = Sigma</p></td>
+<td><p>Real</p></td>
+<td><p>1.5</p></td>
+</tr>
+<tr class="row-even"><td><p>getLESVerbose</p></td>
+<td><p>Print the model and constant in use from the LES routine</p></td>
+<td><p>Int</p></td>
+<td><p>0</p></td>
+</tr>
+</tbody>
+</table>
+<p>Note that each model reads its own constant, so changing <code class="docutils literal notranslate"><span class="pre">ns.smago_Cs_cst</span></code> has no effect
+when <code class="docutils literal notranslate"><span class="pre">ns.LES_model</span> <span class="pre">=</span> <span class="pre">Sigma</span></code>, and vice versa.  Both models compute a kinematic eddy
+viscosity <span class="math notranslate nohighlight">\(\nu_t\)</span>; since IAMR’s viscosity is dynamic, <span class="math notranslate nohighlight">\(\mu_t = \rho \nu_t\)</span>
+(with <span class="math notranslate nohighlight">\(\rho\)</span> averaged to faces) is what is added to it.  The Sigma model is described in
+Nicoud et al., <em>Using singular values to build a subgrid-scale model for large eddy
+simulations</em>, Phys. Fluids 23, 085106 (2011).</p>
+</section>
+<section id="embedded-boundaries">
+<span id="sec-eboptions"></span><h2>Embedded Boundaries<a class="headerlink" href="#embedded-boundaries" title="Link to this heading"></a></h2>
+<p>These apply to builds with <code class="docutils literal notranslate"><span class="pre">USE_EB=TRUE</span></code>; see <a class="reference internal" href="ProblemSetup.html#sec-eb-basics"><span class="std std-ref">Constructing Embedded Boundaries</span></a> for how the geometry
+itself is constructed.  The following must be preceded by “ns.”</p>
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"></th>
+<th class="head"><p>Description</p></th>
+<th class="head"><p>Type</p></th>
+<th class="head"><p>Default</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p>redistribution_type</p></td>
+<td><p>How the advective update of a small cut cell is redistributed to its
+neighbours: StateRedist, FluxRedist or NoRedist.  Any other value
+aborts.</p></td>
+<td><p>String</p></td>
+<td><p>StateRedist</p></td>
+</tr>
+<tr class="row-odd"><td><p>refine_cutcells</p></td>
+<td><p>Tag every cut cell for refinement, so that the embedded boundary
+never crosses a coarse/fine boundary.  Setting 0 allows a partially
+refined EB, which is still under development and issues a warning.</p></td>
+<td><p>Int</p></td>
+<td><p>1</p></td>
+</tr>
+</tbody>
+</table>
+<p>Note that <code class="docutils literal notranslate"><span class="pre">ns.advection_scheme</span> <span class="pre">=</span> <span class="pre">Godunov_PPM</span></code> and <code class="docutils literal notranslate"><span class="pre">BDS</span></code> are not available with embedded
+boundaries.</p>
+</section>
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="RunningProblems.html" class="btn btn-neutral float-left" title="Runtime Options" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="Visualization_Chapter.html" class="btn btn-neutral float-right" title="Visualization" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2017-2018, IAMR Team.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

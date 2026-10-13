@@ -1,0 +1,170 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="./">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Controlling What’s in the PlotFile &mdash; IAMR 26.11-dev documentation</title>
+      <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=03e43079" />
+      <link rel="stylesheet" type="text/css" href="_static/css/theme.css?v=9edc463e" />
+      <link rel="stylesheet" type="text/css" href="_static/theme_overrides.css?v=681a4282" />
+
+  
+      <script src="_static/jquery.js?v=5d32c60e"></script>
+      <script src="_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="_static/documentation_options.js?v=3d8aadd5"></script>
+      <script src="_static/doctools.js?v=9bcbadda"></script>
+      <script src="_static/sphinx_highlight.js?v=dc90522c"></script>
+      <script>window.MathJax = {"tex": {"macros": {"Ab": "{{\\bf A}}", "eb": "{{\\bf e}}", "Fb": "{{\\bf F}}", "gb": "{{\\bf g}}", "Hb": "{{\\bf H}}", "ib": "{{\\bf i}}", "Ib": "{{\\bf I}}", "Kb": "{{\\bf K}}", "lb": "{{\\bf l}}", "Lb": "{{\\bf L}}", "nb": "{{\\bf n}}", "Pb": "{{\\bf P}}", "Qb": "{{\\bf Q}}", "rb": "{{\\bf r}}", "Rb": "{{\\bf R}}", "Sb": "{{\\bf S}}", "ub": "{{\\bf u}}", "Ub": "{{\\bf U}}", "xb": "{{\\bf x}}", "dt": "{\\Delta t}", "omegadot": "{\\dot\\omega}", "inp": "{{\\rm in}}", "outp": "{{\\rm out}}", "sync": "{{\\rm sync}}", "half": "{\\frac{1}{2}}", "myhalf": "{\\half}", "nph": "{{n+\\myhalf}}", "vb": "{\\boldsymbol{v}}", "vbt": "{\\widetilde{\\vb}}", "rbt": "{\\widetilde{\\rb}}", "ob": "{\\boldsymbol{\\omega}}", "nablab": "{\\boldsymbol{\\nabla}}", "avg": ["{{\\left \\langle #1 \\right \\rangle}}", 1]}}}</script>
+      <script defer="defer" src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+    <script src="_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+    <link rel="next" title="Algorithm and Software Details" href="AlgorithmAndSoftware.html" />
+    <link rel="prev" title="Visualization" href="Visualization_Chapter.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="index.html" class="icon icon-home">
+            IAMR
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="Introduction_Chapter.html">Introduction</a></li>
+<li class="toctree-l1"><a class="reference internal" href="Getting_Started.html">Getting Started</a></li>
+<li class="toctree-l1"><a class="reference internal" href="Tutorials.html">Tutorials</a></li>
+<li class="toctree-l1"><a class="reference internal" href="SetupAndRunning.html">Creating and Running Your Own Problem</a></li>
+<li class="toctree-l1 current"><a class="reference internal" href="Visualization_Chapter.html">Visualization</a><ul class="current">
+<li class="toctree-l2 current"><a class="current reference internal" href="#">Controlling What’s in the PlotFile</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#amrvis">Amrvis</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#visit">VisIt</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#yt">yt</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="AlgorithmAndSoftware.html">Algorithm and Software Details</a></li>
+<li class="toctree-l1"><a class="reference internal" href="Debugging.html">Debugging</a></li>
+<li class="toctree-l1"><a class="reference internal" href="Contributing.html">Contributing</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">References</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="references.html">References</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="index.html">IAMR</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="Visualization_Chapter.html">Visualization</a></li>
+      <li class="breadcrumb-item active">Controlling What’s in the PlotFile</li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="_sources/Visualization.rst.txt" rel="nofollow"> View page source</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section id="controlling-whats-in-the-plotfile">
+<h1>Controlling What’s in the PlotFile<a class="headerlink" href="#controlling-whats-in-the-plotfile" title="Link to this heading"></a></h1>
+<p>There are a few options that can be set at runtime to control what
+variables appear in the plotfile. See section <a class="reference internal" href="RunningProblems.html#sec-inputsplotfiles"><span class="std std-ref">Plotfiles</span></a>.</p>
+</section>
+<section id="amrvis">
+<h1>Amrvis<a class="headerlink" href="#amrvis" title="Link to this heading"></a></h1>
+<p>Amrvis is a package developed
+by CCSE that is designed specifically for highly efficient visualization
+of block-structured hierarchical AMR data.
+Information on building the amrvis2d and amrvis3d executables is given in section
+<a class="reference internal" href="Getting_Started.html#visualizing-the-results"><span class="std std-ref">Visualizing the Results</span></a>. A very useful feature of Amrvis is
+View <span class="math notranslate nohighlight">\(\rightarrow\)</span> Dataset, which
+allows you to actually view the numbers in a spreadsheet that is nested
+to reflect the AMR hierarchy – this can be handy for
+debugging. You can modify how many levels of data you want to see,
+whether you want to see the grid boxes or not, what palette you use,
+etc.</p>
+<p>If you like to have amrvis display a certain variable, at a certain
+scale, when you first bring up each plotfile (you can always change it
+once the amrvis window is open), you can modify the amrvis.defaults
+file in your directory to have amrvis default to these settings every
+time you run it. The Amrvis repository has a sample amrvis.defaults
+file that can be copied to your local folder and modified.</p>
+</section>
+<section id="visit">
+<h1>VisIt<a class="headerlink" href="#visit" title="Link to this heading"></a></h1>
+<p>VisIt reads AMReX plotfiles, including IAMR’s, natively.  Open the <code class="docutils literal notranslate"><span class="pre">Header</span></code> file inside
+the plotfile directory (e.g. <code class="docutils literal notranslate"><span class="pre">plt00000/Header</span></code>) with “File” <span class="math notranslate nohighlight">\(\rightarrow\)</span> “Open file”;
+VisIt picks its Boxlib reader for it automatically.  See the <a class="reference external" href="https://amrex-codes.github.io/amrex/docs_html/Visualization.html#sec-visit" title="(in amrex v26.11-dev)"><span class="xref std std-ref">VisIt section of AMReX’s
+documentation</span></a> for a worked example, and
+<a class="reference external" href="https://visit-dav.github.io/visit-website/">https://visit-dav.github.io/visit-website/</a> for VisIt itself.</p>
+</section>
+<section id="yt">
+<h1>yt<a class="headerlink" href="#yt" title="Link to this heading"></a></h1>
+<p>yt (<a class="reference external" href="https://yt-project.org">https://yt-project.org</a>) is an open-source Python package for analyzing and visualizing
+simulation data, and it reads IAMR plotfiles directly; IAMR’s fields appear under the
+<code class="docutils literal notranslate"><span class="pre">&quot;boxlib&quot;</span></code> field type, e.g. <code class="docutils literal notranslate"><span class="pre">(&quot;boxlib&quot;,</span> <span class="pre">&quot;density&quot;)</span></code>.  Install it with
+<code class="docutils literal notranslate"><span class="pre">python</span> <span class="pre">-m</span> <span class="pre">pip</span> <span class="pre">install</span> <span class="pre">yt</span></code>.  For how to use it with AMReX plotfiles, see the
+<a class="reference external" href="https://amrex-codes.github.io/amrex/docs_html/Visualization.html#section-2" title="(in amrex v26.11-dev)"><span class="xref std std-ref">yt section of AMReX’s documentation</span></a> and the
+<a class="reference external" href="https://yt-project.org/doc/examining/loading_data.html#amrex-boxlib-data">AMReX section</a>
+of yt’s guide to loading data.</p>
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="Visualization_Chapter.html" class="btn btn-neutral float-left" title="Visualization" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="AlgorithmAndSoftware.html" class="btn btn-neutral float-right" title="Algorithm and Software Details" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2017-2018, IAMR Team.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>
