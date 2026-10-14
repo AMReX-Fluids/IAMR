@@ -232,6 +232,12 @@ public:
                                 amrex::MultiFab* sync_resid_fine=nullptr,
                                 bool doing_initial_vortproj=false);
 
+#ifdef AMREX_USE_EB
+    // Abort if the coarse/fine boundary of any level in a composite nodal
+    // solve crosses an EB body (AMReX-Codes/amrex#6069).
+    void checkCoarseFineBoundaryEB (int c_lev, int nlevel) const;
+#endif
+
     // set velocity in ghost cells to zero except for inflow
     void set_boundary_velocity (int c_lev, int nlevel,
                                 const amrex::Vector<amrex::MultiFab*>& vel,

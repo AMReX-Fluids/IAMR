@@ -2381,6 +2381,12 @@ void Projection::doMLMGNodalProjection (int c_lev, int nlevel,
     if (!rhnd.empty() )
         AMREX_ALWAYS_ASSERT(rhnd[c_lev]->boxArray().ixType().nodeCentered());
 
+#ifdef AMREX_USE_EB
+    if (nlevel > 1) {
+        checkCoarseFineBoundaryEB(c_lev, nlevel);
+    }
+#endif
+
     set_boundary_velocity(c_lev, nlevel, vel, true);
 
 #ifdef AMREX_USE_EB
@@ -2540,6 +2546,72 @@ void Projection::doMLMGNodalProjection (int c_lev, int nlevel,
 }
 
 // Set velocity in ghost cells to zero except for inflow
+#ifdef AMREX_USE_EB
+//
+// AMReX's MLNodeLaplacian does not support a multilevel (composite) solve in
+// which the coarse/fine boundary crosses an EB body: the solve diverges
+// (AMReX-Codes/amrex#6069). Catch that configuration here and abort with a
+// message pointing at the grids, rather than letting MLMG fail.
+//
+// A fine level is rejected if any of its valid cells that are cut or covered
+// touches (including diagonally) a ghost cell that is inside the domain but
+// not covered by another fine grid, i.e. a cell on the coarse side of the
+// coarse/fine boundary.
+//
+void Projection::checkCoarseFineBoundaryEB (int c_lev, int nlevel) const
+{
+    BL_PROFILE("Projection::checkCoarseFineBoundaryEB()");
+
+    for (int lev = c_lev+1; lev < c_lev+nlevel; ++lev)
+    {
+        const auto& factory = dynamic_cast<EBFArrayBoxFactory const&>(LevelData[lev]->Factory());
+        if (factory.isAllRegular()) { continue; }
+
+        const Geometry& geom = parent->Geom(lev);
+        const auto& flags = factory.getMultiEBCellFlagFab();
+
+        constexpr int interior   = 0;
+        constexpr int covered    = 1;
+        constexpr int notcovered = 2;
+        constexpr int physbnd    = 3;
+
+        iMultiFab mask(flags.boxArray(), flags.DistributionMap(), 1, 1);
+        mask.BuildMask(geom.Domain(), geom.periodicity(),
+                       covered, notcovered, physbnd, interior);
+
+        auto const& ma = mask.const_arrays();
+        auto const& fa = flags.const_arrays();
+
+        int nbad = ParReduce(TypeList<ReduceOpSum>{}, TypeList<int>{},
+                             mask, IntVect(0),
+        [=] AMREX_GPU_DEVICE (int box_no, int i, int j, int k) noexcept
+            -> GpuTuple<int>
+        {
+            if (fa[box_no](i,j,k).isRegular()) { return { 0 }; }
+            for (int kk = -AMREX_D_PICK(0,0,1); kk <= AMREX_D_PICK(0,0,1); ++kk) {
+            for (int jj = -AMREX_D_PICK(0,1,1); jj <= AMREX_D_PICK(0,1,1); ++jj) {
+            for (int ii = -1; ii <= 1; ++ii) {
+                if (ma[box_no](i+ii,j+jj,k+kk) == notcovered) { return { 1 }; }
+            }}}
+            return { 0 };
+        });
+
+        ParallelDescriptor::ReduceIntSum(nbad);
+
+        if (nbad > 0) {
+            amrex::Abort("Projection: the coarse/fine boundary between levels "
+                         + std::to_string(lev-1) + " and " + std::to_string(lev)
+                         + " crosses the embedded boundary (" + std::to_string(nbad)
+                         + " cut or covered level-" + std::to_string(lev)
+                         + " cells touch it). The multilevel nodal projection does not"
+                           " support this (see AMReX-Codes/amrex#6069). Make sure the"
+                           " fine grids contain the cut cells, e.g. with"
+                           " ns.refine_cutcells = 1.");
+        }
+    }
+}
+#endif
+
 void Projection::set_boundary_velocity (int c_lev, int nlevel,
                                         const Vector<MultiFab*>& vel,
                                         bool inflowCorner) const
