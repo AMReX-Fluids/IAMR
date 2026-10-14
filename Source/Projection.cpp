@@ -27,6 +27,53 @@ namespace
 {
     bool initialized = false;
 
+#ifdef AMREX_USE_EB
+    //
+    // The hydrostatic outflow strip gathered by set_outflow_bcs_at_level marks
+    // covered cells with a negative density. Give each of them the density of
+    // the nearest fluid cell above it in its column (below it, for a column
+    // whose top is covered), so that computeRhoG integrates fluid density
+    // through a body instead of a covered-cell sentinel. A column that is
+    // covered throughout gets the mean fluid density of the strip.
+    //
+    void fill_covered_strip_density (FArrayBox& rhoFab)
+    {
+        constexpr int vdir = AMREX_SPACEDIM-1;
+        const Box& bx  = rhoFab.box();
+        const auto rho = rhoFab.array();
+        const int vlo  = bx.smallEnd(vdir);
+        const int vhi  = bx.bigEnd(vdir);
+
+        auto fill_from = [&] (int v, int offset)
+        {
+            Box slab(bx);
+            slab.setRange(vdir, v);
+            amrex::LoopOnCpu(slab, [&] (int i, int j, int k)
+            {
+                IntVect iv(AMREX_D_DECL(i,j,k));
+                IntVect nb(iv);
+                nb[vdir] += offset;
+                if (rho(iv) < 0. && rho(nb) >= 0.) { rho(iv) = rho(nb); }
+            });
+        };
+
+        for (int v = vhi-1; v >= vlo; --v) { fill_from(v, +1); }
+        for (int v = vlo+1; v <= vhi; ++v) { fill_from(v, -1); }
+
+        Real sum = 0.;
+        int  npts = 0;
+        amrex::LoopOnCpu(bx, [&] (int i, int j, int k)
+        {
+            if (rho(i,j,k) >= 0.) { sum += rho(i,j,k); ++npts; }
+        });
+        const Real rho_mean = (npts > 0) ? sum/npts : 0.;
+        amrex::LoopOnCpu(bx, [&] (int i, int j, int k)
+        {
+            if (rho(i,j,k) < 0.) { rho(i,j,k) = rho_mean; }
+        });
+    }
+#endif
+
     bool benchmarking = false;
 
     bool agglomeration = true;
@@ -1829,6 +1876,23 @@ Projection::set_outflow_bcs_at_level (int          lev,
 
     const int ngrow = 1;
 
+#ifdef AMREX_USE_EB
+    //
+    // Covered cells of Sig_in hold a sentinel density (1.2345e20 from
+    // level_project, COVERED_VAL from initialPressureProject) that must not be
+    // integrated into the hydrostatic pressure. Mark them with a negative
+    // density instead; computeRhoG replaces them with fluid density.
+    //
+    AMREX_ASSERT(Sig_in->boxArray() == LevelData[lev]->boxArray());
+    MultiFab sig_marked(Sig_in->boxArray(), Sig_in->DistributionMap(), 1, ngrow,
+                        MFInfo(), LevelData[lev]->Factory());
+    MultiFab::Copy(sig_marked, *Sig_in, 0, 0, 1, ngrow);
+    EB_set_covered(sig_marked, 0, 1, ngrow, -1.0);
+    const MultiFab& sig_src = sig_marked;
+#else
+    const MultiFab& sig_src = *Sig_in;
+#endif
+
     for (int iface = 0; iface < numOutFlowFaces; iface++)
     {
         Box phi_strip = amrex::surroundingNodes(amrex::bdryNode(domain,
@@ -1838,7 +1902,7 @@ Projection::set_outflow_bcs_at_level (int          lev,
         phi_fine_strip[iface].setVal<RunOn::Gpu>(0.);
 
         rho[iface].resize(state_strip[iface],1);
-        (*Sig_in).copyTo(rho[iface],0,0,1,ngrow);
+        sig_src.copyTo(rho[iface],0,0,1,ngrow);
         Gpu::streamSynchronize();
     }
 
@@ -1923,9 +1987,15 @@ Projection::computeRhoG(FArrayBox*         rhoFab,
           Gpu::dtoh_memcpy_async(h_rhoFab.dataPtr(), rhoFab[iface].dataPtr(),
                                  h_rhoFab.nBytes());
           Gpu::streamSynchronize();
+#ifdef AMREX_USE_EB
+          fill_covered_strip_density(h_rhoFab);
+#endif
           const auto& phi = h_phiFab.array();
           const auto& rho = h_rhoFab.array();
 #else
+#ifdef AMREX_USE_EB
+          fill_covered_strip_density(rhoFab[iface]);
+#endif
           const auto& phi = phiFab[iface].array();
           const auto& rho = rhoFab[iface].array();
 #endif
