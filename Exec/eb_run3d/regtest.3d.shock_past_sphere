@@ -45,12 +45,9 @@ amr.max_level           =   1         # Max AMR level in hierarchy
 # Refinement around the EB by default
 #amr.n_error_buf         =   8
 
-# AMR tagging criteria
-amr.refinement_indicators = box
-amr.box.in_box_lo = 0.05 0.01  -0.05
-amr.box.in_box_hi = 0.15  0.05  0.05
-
-ns.refine_cutcells = 0
+# Refine the cut cells: the multilevel nodal projection does not support
+# a coarse/fine boundary that crosses the EB (AMReX-Codes/amrex#6069)
+ns.refine_cutcells = 1
 
 #¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨#
 #              GEOMETRY                 #
