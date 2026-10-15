@@ -2596,8 +2596,6 @@ void Projection::checkCoarseFineBoundaryEB (int c_lev, int nlevel) const
             return { 0 };
         });
 
-        ParallelDescriptor::ReduceIntSum(nbad);
-
         if (nbad > 0) {
             amrex::Abort("Projection: the coarse/fine boundary between levels "
                          + std::to_string(lev-1) + " and " + std::to_string(lev)
